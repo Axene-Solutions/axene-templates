@@ -20,12 +20,13 @@
 	} = $props();
 
 	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape') oncancel();
+		if (open && e.key === 'Escape') oncancel();
 	}
 </script>
 
+<svelte:window onkeydown={handleKeydown} />
+
 {#if open}
-	<svelte:window onkeydown={handleKeydown} />
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="cm-overlay" onclick={oncancel}>

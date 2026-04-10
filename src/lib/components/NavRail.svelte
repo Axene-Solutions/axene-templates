@@ -68,11 +68,6 @@
 		gap: 2px;
 		flex-shrink: 0;
 	}
-	.dots { display: flex; gap: 6px; margin-bottom: 14px; }
-	.dot { width: 12px; height: 12px; border-radius: 50%; }
-	.dot-r { background: #ff5f57; }
-	.dot-y { background: #febc2e; }
-	.dot-g { background: #28c840; }
 	.logo {
 		width: 30px; height: 30px; border-radius: 8px;
 		display: flex; align-items: center; justify-content: center;
