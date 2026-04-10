@@ -19,11 +19,6 @@
 	function duplicate(e: MouseEvent) { stop(e); if (canDup) editor.duplicateBlock(blockId); }
 	function remove(e: MouseEvent) { stop(e); editor.removeBlock(blockId); }
 
-	async function copyBlock(e: MouseEvent) {
-		stop(e);
-		if (!block) return;
-		await navigator.clipboard.writeText(JSON.stringify(block, null, 2));
-	}
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -61,14 +56,6 @@
 			</svg>
 		</button>
 	{/if}
-
-	<!-- Copy JSON -->
-	<button class="at-btn" onclick={copyBlock} title="Copy block data">
-		<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
-			<rect x="4" y="4" width="6.5" height="6.5" rx="1"/>
-			<path d="M8 4V2.5a1 1 0 00-1-1H2.5a1 1 0 00-1 1V7a1 1 0 001 1H4"/>
-		</svg>
-	</button>
 
 	<span class="at-sep"></span>
 
