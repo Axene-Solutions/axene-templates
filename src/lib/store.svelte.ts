@@ -67,7 +67,34 @@ function removeBlock(id: string) {
 	scheduleCompile();
 }
 
+function canMove(id: string, direction: 'up' | 'down'): boolean {
+	const idx = blocks.findIndex(b => b.id === id);
+	if (idx === -1) return false;
+	const block = blocks[idx];
+	// Header and footer can never move
+	if (block.type === 'header' || block.type === 'footer') return false;
+	const target = direction === 'up' ? idx - 1 : idx + 1;
+	if (target < 0 || target >= blocks.length) return false;
+	// Can't swap with header or footer
+	if (blocks[target].type === 'header' || blocks[target].type === 'footer') return false;
+	return true;
+}
+
+function canDelete(id: string): boolean {
+	// Header and footer can be deleted (user might want to remove them)
+	return true;
+}
+
+function canDuplicate(id: string): boolean {
+	const block = blocks.find(b => b.id === id);
+	if (!block) return false;
+	// Can't duplicate header or footer (max 1 each)
+	if (block.type === 'header' || block.type === 'footer') return false;
+	return true;
+}
+
 function moveBlock(id: string, direction: 'up' | 'down') {
+	if (!canMove(id, direction)) return;
 	const idx = blocks.findIndex(b => b.id === id);
 	if (idx === -1) return;
 	const target = direction === 'up' ? idx - 1 : idx + 1;
@@ -172,6 +199,9 @@ export const editor = {
 	moveBlock,
 	duplicateBlock,
 	updateProp,
+	canMove,
+	canDelete,
+	canDuplicate,
 	setBlocks,
 	setTemplate,
 	newTemplate,

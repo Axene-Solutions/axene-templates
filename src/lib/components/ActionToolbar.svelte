@@ -1,106 +1,139 @@
 <script lang="ts">
 	import { editor } from '$lib/store.svelte';
 
-	interface Props {
-		blockId: string;
-	}
+	let { blockId }: { blockId: string } = $props();
 
-	let { blockId }: Props = $props();
+	let block = $derived(editor.blocks.find(b => b.id === blockId));
+	let blockType = $derived(block?.type ?? '');
+	let blockIdx = $derived(editor.blocks.findIndex(b => b.id === blockId));
 
-	function stop(e: MouseEvent) {
-		e.stopPropagation();
+	let canMoveUp = $derived(editor.canMove(blockId, 'up'));
+	let canMoveDown = $derived(editor.canMove(blockId, 'down'));
+	let canDup = $derived(editor.canDuplicate(blockId));
+	let isHeaderOrFooter = $derived(blockType === 'header' || blockType === 'footer');
+
+	function stop(e: MouseEvent) { e.stopPropagation(); }
+
+	function moveUp(e: MouseEvent) { stop(e); if (canMoveUp) editor.moveBlock(blockId, 'up'); }
+	function moveDown(e: MouseEvent) { stop(e); if (canMoveDown) editor.moveBlock(blockId, 'down'); }
+	function duplicate(e: MouseEvent) { stop(e); if (canDup) editor.duplicateBlock(blockId); }
+	function remove(e: MouseEvent) { stop(e); editor.removeBlock(blockId); }
+
+	async function copyBlock(e: MouseEvent) {
+		stop(e);
+		if (!block) return;
+		await navigator.clipboard.writeText(JSON.stringify(block, null, 2));
 	}
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div
-	class="flex items-center gap-1 py-1.5 px-1 bg-gray-100/80 rounded-lg backdrop-blur-sm border border-gray-200"
-	onclick={stop}
->
-	<!-- Edit (pencil) -->
-	<button
-		class="w-6 h-6 flex items-center justify-center bg-gray-200/60 rounded text-gray-500 hover:text-gray-700"
-		onclick={stop}
-		title="Edit"
-	>
-		<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-			<path d="M9.5 2.5l2 2L4.5 11.5H2.5v-2l7-7z" />
+<div class="at" onclick={stop}>
+	<!-- Block type badge -->
+	<span class="at-badge">{blockType}</span>
+
+	<span class="at-sep"></span>
+
+	<!-- Move up -->
+	<button class="at-btn" class:disabled={!canMoveUp} onclick={moveUp} title="Move up">
+		<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+			<line x1="6" y1="10" x2="6" y2="2.5"/>
+			<polyline points="3,5 6,2 9,5"/>
 		</svg>
 	</button>
 
-	<!-- Undo (curved arrow left) -->
-	<button
-		class="w-6 h-6 flex items-center justify-center bg-gray-200/60 rounded text-gray-500 hover:text-gray-700"
-		onclick={stop}
-		title="Undo"
-	>
-		<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-			<path d="M3 5h5a4 4 0 110 4H9" />
-			<polyline points="5,3 3,5 5,7" />
+	<!-- Move down -->
+	<button class="at-btn" class:disabled={!canMoveDown} onclick={moveDown} title="Move down">
+		<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+			<line x1="6" y1="2" x2="6" y2="9.5"/>
+			<polyline points="3,7 6,10 9,7"/>
 		</svg>
 	</button>
 
-	<!-- Duplicate (stacked rectangles) -->
-	<button
-		class="w-6 h-6 flex items-center justify-center bg-gray-200/60 rounded text-gray-500 hover:text-gray-700"
-		onclick={(e) => { stop(e); editor.duplicateBlock(blockId); }}
-		title="Duplicate"
-	>
-		<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-			<rect x="4" y="4" width="8" height="8" rx="1.5" />
-			<path d="M10 4V3a1.5 1.5 0 00-1.5-1.5H3A1.5 1.5 0 001.5 3v5.5A1.5 1.5 0 003 10h1" />
+	<span class="at-sep"></span>
+
+	<!-- Duplicate -->
+	{#if !isHeaderOrFooter}
+		<button class="at-btn" onclick={duplicate} title="Duplicate">
+			<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+				<rect x="3.5" y="3.5" width="7" height="7" rx="1.2"/>
+				<path d="M8.5 3.5V2.3a.8.8 0 00-.8-.8H2.3a.8.8 0 00-.8.8v5.4a.8.8 0 00.8.8h1.2"/>
+			</svg>
+		</button>
+	{/if}
+
+	<!-- Copy JSON -->
+	<button class="at-btn" onclick={copyBlock} title="Copy block data">
+		<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+			<rect x="4" y="4" width="6.5" height="6.5" rx="1"/>
+			<path d="M8 4V2.5a1 1 0 00-1-1H2.5a1 1 0 00-1 1V7a1 1 0 001 1H4"/>
 		</svg>
 	</button>
 
-	<!-- Copy (overlapping rectangles) -->
-	<button
-		class="w-6 h-6 flex items-center justify-center bg-gray-200/60 rounded text-gray-500 hover:text-gray-700"
-		onclick={stop}
-		title="Copy"
-	>
-		<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-			<rect x="4.5" y="4.5" width="8" height="8" rx="1.5" />
-			<path d="M9.5 4.5V2.5a1 1 0 00-1-1h-6a1 1 0 00-1 1v6a1 1 0 001 1h2" />
-		</svg>
-	</button>
+	<span class="at-sep"></span>
 
-	<!-- Delete (trash) -->
-	<button
-		class="w-6 h-6 flex items-center justify-center bg-gray-200/60 rounded text-gray-500 hover:text-gray-700"
-		onclick={(e) => { stop(e); editor.removeBlock(blockId); }}
-		title="Delete"
-	>
-		<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-			<path d="M2.5 4h9" />
-			<path d="M4 4v7.5a1 1 0 001 1h4a1 1 0 001-1V4" />
-			<path d="M5.5 2h3" />
-			<line x1="6" y1="6.5" x2="6" y2="10" />
-			<line x1="8" y1="6.5" x2="8" y2="10" />
-		</svg>
-	</button>
-
-	<!-- Move up (arrow up) -->
-	<button
-		class="w-6 h-6 flex items-center justify-center bg-gray-200/60 rounded text-gray-500 hover:text-gray-700"
-		onclick={(e) => { stop(e); editor.moveBlock(blockId, 'up'); }}
-		title="Move up"
-	>
-		<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-			<line x1="7" y1="12" x2="7" y2="2" />
-			<polyline points="3,6 7,2 11,6" />
-		</svg>
-	</button>
-
-	<!-- Link (chain links) -->
-	<button
-		class="w-6 h-6 flex items-center justify-center bg-gray-200/60 rounded text-gray-500 hover:text-gray-700"
-		onclick={stop}
-		title="Link"
-	>
-		<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-			<path d="M6 8.5a3 3 0 004.24 0l1.5-1.5a3 3 0 00-4.24-4.24l-.75.75" />
-			<path d="M8 5.5a3 3 0 00-4.24 0l-1.5 1.5a3 3 0 004.24 4.24l.75-.75" />
+	<!-- Delete -->
+	<button class="at-btn at-btn-danger" onclick={remove} title="Delete block">
+		<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+			<polyline points="2,3.5 10,3.5"/>
+			<path d="M4.5 3.5V2.5a.8.8 0 01.8-.8h1.4a.8.8 0 01.8.8v1"/>
+			<path d="M2.8 3.5l.5 6a1 1 0 001 .9h3.4a1 1 0 001-.9l.5-6"/>
+			<line x1="5" y1="5.5" x2="5" y2="8.5"/>
+			<line x1="7" y1="5.5" x2="7" y2="8.5"/>
 		</svg>
 	</button>
 </div>
+
+<style>
+	.at {
+		display: flex;
+		align-items: center;
+		gap: 2px;
+		padding: 3px 4px;
+		background: #fff;
+		border: 1px solid #e0e0e0;
+		border-radius: 8px;
+		box-shadow: 0 2px 8px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.04);
+		font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+	}
+
+	.at-badge {
+		font-size: 10px;
+		font-weight: 600;
+		color: #1daa82;
+		background: #edf8f4;
+		padding: 2px 7px;
+		border-radius: 4px;
+		text-transform: capitalize;
+		letter-spacing: 0.2px;
+	}
+
+	.at-sep {
+		width: 1px;
+		height: 14px;
+		background: #e8e8e8;
+		margin: 0 2px;
+	}
+
+	.at-btn {
+		width: 26px;
+		height: 26px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: transparent;
+		border: none;
+		border-radius: 5px;
+		cursor: pointer;
+		color: #777;
+		transition: background 0.12s, color 0.12s;
+	}
+	.at-btn:hover { background: #f0f0f0; color: #333; }
+	.at-btn.disabled {
+		opacity: 0.25;
+		cursor: not-allowed;
+		pointer-events: none;
+	}
+
+	.at-btn-danger:hover { background: #fef2f2; color: #dc2626; }
+</style>
