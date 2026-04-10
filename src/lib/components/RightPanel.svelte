@@ -55,15 +55,29 @@
 	<!-- Top bar -->
 	<div class="rp-topbar">
 		<button class="rp-icon-btn" title="Settings">
-			<svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="6.5" cy="6.5" r="2"/><path d="M6.5 1v2M6.5 10v2M1 6.5h2M10 6.5h2M2.8 2.8l1.4 1.4M8.8 8.8l1.4 1.4M2.8 10.2l1.4-1.4M8.8 4.2l1.4-1.4"/></svg>
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+				<path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z"/>
+				<path d="M19.6224 10.3954L18.5247 7.7448L20 6L18 4L16.2647 5.48295L13.5578 4.36974L12.9353 2H10.981L10.3491 4.40113L7.70441 5.51596L6 4L4 6L5.45337 7.78885L4.3725 10.4463L2 11V13L4.40111 13.6555L5.51575 16.2997L4 18L6 20L7.79116 18.5403L10.397 19.6123L11 22H13L13.6045 19.6132L16.2551 18.5155C16.6969 18.8313 18 20 18 20L20 18L18.5159 16.2494L19.6139 13.598L21.9999 12.9772L22 11L19.6224 10.3954Z"/>
+			</svg>
 		</button>
-		<button class="rp-icon-btn" title="Download">
-			<svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><line x1="6.5" y1="2" x2="6.5" y2="11"/><polyline points="3,7 6.5,11 10,7"/><line x1="2.5" y1="2" x2="10.5" y2="2"/></svg>
+		<button class="rp-icon-btn" title="Download HTML">
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+				<path d="M6 20L18 20"/>
+				<path d="M12 4V16M12 16L15.5 12.5M12 16L8.5 12.5"/>
+			</svg>
 		</button>
-		<button class="rp-icon-btn" title="More">
-			<svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="3" cy="6.5" r="1.5"/><circle cx="6.5" cy="6.5" r="1.5"/><circle cx="10" cy="6.5" r="1.5"/></svg>
+		<button class="rp-icon-btn" title="More options">
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+				<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
+			</svg>
 		</button>
-		<button class="rp-use-mail">Use Mail</button>
+		<button class="rp-use-mail">
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+				<path d="M22 12L3 20L6.5625 12L3 4L22 12Z"/>
+				<path d="M6.5 12L22 12"/>
+			</svg>
+			Use Mail
+		</button>
 	</div>
 
 	<!-- Tab switcher -->
@@ -542,7 +556,7 @@
 		flex-direction: column;
 		flex-shrink: 0;
 		overflow-y: auto;
-		font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+		font-family: 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif;
 	}
 	.right-panel::-webkit-scrollbar { width: 4px; }
 	.right-panel::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
@@ -575,13 +589,18 @@
 		color: #fff;
 		border: none;
 		border-radius: 7px;
-		padding: 6px 14px;
+		padding: 6px 12px;
 		font-size: 12px;
 		font-weight: 500;
 		cursor: pointer;
 		transition: background 0.15s;
+		display: flex;
+		align-items: center;
+		gap: 5px;
+		white-space: nowrap;
 	}
 	.rp-use-mail:hover { background: #189e78; }
+	.rp-use-mail svg { flex-shrink: 0; }
 
 	/* Tabs */
 	.rp-tab-wrap {

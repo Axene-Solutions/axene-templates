@@ -88,10 +88,22 @@
 			<svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="#aaa" stroke-width="1.2"><polyline points="1.5,3 4,5.5 6.5,3"/></svg>
 		</button>
 
-		<!-- Preview toggle -->
+		<!-- Preview / Edit toggle -->
 		<button class="tb-preview" class:active={showPreview} onclick={() => { if (!showPreview) editor.compile(); showPreview = !showPreview; }}>
-			<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M1 7c1.5-3 3.5-4 6-4s4.5 1 6 4c-1.5 3-3.5 4-6 4s-4.5-1-6-4z"/><circle cx="7" cy="7" r="2"/></svg>
-			{showPreview ? 'Edit' : 'Preview'}
+			{#if showPreview}
+				<!-- Edit icon (pencil) -->
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M14.3632 5.65156L15.8431 4.17157C16.6242 3.39052 17.8905 3.39052 18.6716 4.17157L20.0858 5.58579C20.8668 6.36683 20.8668 7.63316 20.0858 8.41421L18.6058 9.8942M14.3632 5.65156L4.74749 15.2672C4.41542 15.5993 4.21079 16.0376 4.16947 16.5054L3.92738 19.2459C3.87261 19.8659 4.39148 20.3848 5.0115 20.33L7.75191 20.0879C8.21972 20.0466 8.65806 19.8419 8.99013 19.5099L18.6058 9.8942M14.3632 5.65156L18.6058 9.8942"/>
+				</svg>
+				Edit
+			{:else}
+				<!-- Preview icon (eye) -->
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M3 13C6.6 5 17.4 5 21 13"/>
+					<path d="M12 17C10.3431 17 9 15.6569 9 14C9 12.3431 10.3431 11 12 11C13.6569 11 15 12.3431 15 14C15 15.6569 13.6569 17 12 17Z"/>
+				</svg>
+				Preview
+			{/if}
 		</button>
 
 		<div style="flex:1"></div>
@@ -100,6 +112,14 @@
 		<button class="tb-action" onclick={handleCopyHtml}>
 			<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="3" width="7" height="7" rx="1"/><path d="M3 9H2a1 1 0 01-1-1V2a1 1 0 011-1h6a1 1 0 011 1v1"/></svg>
 			Copy HTML
+		</button>
+
+		<!-- Download -->
+		<button class="tb-action" onclick={handleCopyHtml} title="Download HTML">
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+				<path d="M6 20L18 20"/>
+				<path d="M12 4V16M12 16L15.5 12.5M12 16L8.5 12.5"/>
+			</svg>
 		</button>
 
 		<!-- Save -->
@@ -164,7 +184,7 @@
 		gap: 8px;
 		flex-shrink: 0;
 		padding: 0 12px;
-		font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+		font-family: 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif;
 	}
 
 	.tb-group {

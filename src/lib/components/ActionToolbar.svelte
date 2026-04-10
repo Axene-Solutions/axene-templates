@@ -78,7 +78,7 @@
 		border: 1px solid #e0e0e0;
 		border-radius: 8px;
 		box-shadow: 0 2px 8px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.04);
-		font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+		font-family: 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif;
 	}
 
 	.at-badge {

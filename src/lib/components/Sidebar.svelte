@@ -210,7 +210,7 @@
 		flex-direction: column;
 		flex-shrink: 0;
 		overflow: hidden;
-		font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+		font-family: 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif;
 	}
 
 	/* Header */
