@@ -29,22 +29,63 @@
 	onclick={(e) => { e.stopPropagation(); onselect(); }}
 >
 	{#if block.type === 'header'}
-		<div
-			style="background-color:{block.props.backgroundColor}; padding:{block.props.paddingTop}px {block.props.paddingRight}px {block.props.paddingBottom}px {block.props.paddingLeft}px; text-align:{block.props.align};"
-		>
-			<div class="flex items-center justify-center gap-3" style="justify-content:{block.props.align === 'left' ? 'flex-start' : block.props.align === 'right' ? 'flex-end' : 'center'};">
-				{#if block.props.logoUrl}
-					<img src={block.props.logoUrl} alt="Logo" style="width:{block.props.logoWidth}px; height:auto;" />
-				{/if}
-				<span style="font-size:{block.props.fontSize}px; color:{block.props.color}; font-weight:bold;">
-					{block.props.companyName}
-				</span>
-			</div>
-			{#if block.props.tagline}
-				<div style="color:{block.props.color}; opacity:0.8; font-size:12px; margin-top:4px;">
-					{block.props.tagline}
+		{@const layout = block.props.layout ?? 'logo-left'}
+		{@const bg = block.props.backgroundColor}
+		<div style="background-color:{bg}; padding:{block.props.paddingTop}px {block.props.paddingRight}px {block.props.paddingBottom}px {block.props.paddingLeft}px;">
+
+			{#if layout === 'logo-only'}
+				<div style="display:flex; justify-content:center;">
+					{#if block.props.logoUrl}
+						<img src={block.props.logoUrl} alt="Logo" style="width:{block.props.logoWidth}px; height:auto;" />
+					{/if}
+				</div>
+
+			{:else if layout === 'text-only'}
+				<div style="text-align:{block.props.align};">
+					<span style="font-size:{block.props.fontSize}px; color:{block.props.color}; font-weight:bold; display:block;">
+						{block.props.companyName}
+					</span>
+					{#if block.props.tagline}
+						<div style="color:{block.props.color}; opacity:0.75; font-size:12px; margin-top:4px;">
+							{block.props.tagline}
+						</div>
+					{/if}
+				</div>
+
+			{:else if layout === 'logo-center'}
+				<div style="display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center;">
+					{#if block.props.logoUrl}
+						<img src={block.props.logoUrl} alt="Logo" style="width:{block.props.logoWidth}px; height:auto;" />
+					{/if}
+					<span style="font-size:{block.props.fontSize}px; color:{block.props.color}; font-weight:bold;">
+						{block.props.companyName}
+					</span>
+					{#if block.props.tagline}
+						<div style="color:{block.props.color}; opacity:0.75; font-size:12px;">
+							{block.props.tagline}
+						</div>
+					{/if}
+				</div>
+
+			{:else}
+				<!-- logo-left (default) and logo-right -->
+				<div style="display:flex; align-items:center; gap:12px; flex-direction:{layout === 'logo-right' ? 'row-reverse' : 'row'}; justify-content:{block.props.align === 'right' ? 'flex-end' : block.props.align === 'center' ? 'center' : 'flex-start'};">
+					{#if block.props.logoUrl}
+						<img src={block.props.logoUrl} alt="Logo" style="width:{block.props.logoWidth}px; height:auto; flex-shrink:0;" />
+					{/if}
+					<div>
+						<div style="font-size:{block.props.fontSize}px; color:{block.props.color}; font-weight:bold;">
+							{block.props.companyName}
+						</div>
+						{#if block.props.tagline}
+							<div style="color:{block.props.color}; opacity:0.75; font-size:12px; margin-top:2px;">
+								{block.props.tagline}
+							</div>
+						{/if}
+					</div>
 				</div>
 			{/if}
+
 		</div>
 
 	{:else if block.type === 'heading'}
@@ -64,7 +105,7 @@
 	{:else if block.type === 'content'}
 		<div style="padding:{block.props.paddingTop}px {block.props.paddingRight}px {block.props.paddingBottom}px {block.props.paddingLeft}px; text-align:{block.props.align};">
 			<!-- eslint-disable svelte/no-at-html-tags -->
-			<div style="font-size:{block.props.fontSize}px; color:{block.props.color}; line-height:{block.props.lineHeight};">
+			<div style="font-size:{block.props.fontSize}px; font-weight:{block.props.fontWeight ?? 'normal'}; color:{block.props.color}; line-height:{block.props.lineHeight};">
 				{@html block.props.text}
 			</div>
 		</div>
@@ -103,8 +144,8 @@
 		<div style="padding:{block.props.paddingTop}px {block.props.paddingRight}px {block.props.paddingBottom}px {block.props.paddingLeft}px;">
 			<ul style="list-style:none; padding:0; margin:0;">
 				{#each block.props.items as item}
-					<li class="flex items-start gap-2 mb-1.5" style="font-size:{block.props.fontSize}px; color:{block.props.color};">
-						<span class="mt-1.5 shrink-0 w-1.5 h-1.5 rounded-full" style="background-color:{block.props.bulletColor};"></span>
+					<li style="display:flex; align-items:flex-start; gap:8px; margin-bottom:6px; font-size:{block.props.fontSize}px; color:{block.props.color};">
+						<span style="margin-top:5px; flex-shrink:0; width:6px; height:6px; border-radius:50%; background-color:{block.props.bulletColor}; display:inline-block;"></span>
 						<span>{item}</span>
 					</li>
 				{/each}
@@ -172,13 +213,12 @@
 
 	<!-- Selection UI -->
 	{#if selected}
-		<!-- Resize handles -->
-		<div class="handle top-left" style="top:-3px; left:-3px;"></div>
-		<div class="handle top-right" style="top:-3px; right:-3px;"></div>
-		<div class="handle bottom-left" style="bottom:-3px; left:-3px;"></div>
-		<div class="handle bottom-right" style="bottom:-3px; right:-3px;"></div>
-		<div class="handle top-mid" style="top:-3px; left:50%; transform:translateX(-50%);"></div>
-		<div class="handle bottom-mid" style="bottom:-3px; left:50%; transform:translateX(-50%);"></div>
+		<div class="handle" style="top:-3px; left:-3px;"></div>
+		<div class="handle" style="top:-3px; right:-3px;"></div>
+		<div class="handle" style="bottom:-3px; left:-3px;"></div>
+		<div class="handle" style="bottom:-3px; right:-3px;"></div>
+		<div class="handle" style="top:-3px; left:50%; transform:translateX(-50%);"></div>
+		<div class="handle" style="bottom:-3px; left:50%; transform:translateX(-50%);"></div>
 	{/if}
 </div>
 

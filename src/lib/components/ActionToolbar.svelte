@@ -27,22 +27,6 @@
 	<!-- Block type badge -->
 	<span class="at-badge">{blockType}</span>
 
-	<!-- Undo -->
-	<button class="at-btn" class:disabled={!editor.canUndo} onclick={(e) => { stop(e); editor.undo(); }} title="Undo">
-		<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-			<path d="M2.5 4.5h5a3 3 0 110 3H8.5"/>
-			<polyline points="4.5,2.5 2.5,4.5 4.5,6.5"/>
-		</svg>
-	</button>
-
-	<!-- Redo -->
-	<button class="at-btn" class:disabled={!editor.canRedo} onclick={(e) => { stop(e); editor.redo(); }} title="Redo">
-		<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-			<path d="M9.5 4.5h-5a3 3 0 100 3H3.5"/>
-			<polyline points="7.5,2.5 9.5,4.5 7.5,6.5"/>
-		</svg>
-	</button>
-
 	<span class="at-sep"></span>
 
 	<!-- Move up -->

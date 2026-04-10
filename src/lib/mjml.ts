@@ -23,9 +23,42 @@ function blockToMjml(block: Block): string {
 
 	switch (block.type) {
 		case 'header': {
-			const logoHtml = p.logoUrl ? `<img src="${p.logoUrl}" width="${p.logoWidth || 40}" style="display:inline-block;vertical-align:middle;margin-right:12px" />` : '';
-			const taglineHtml = p.tagline ? `<br/><span style="font-size:12px;color:rgba(255,255,255,0.7)">${esc(p.tagline)}</span>` : '';
-			return `<mj-section padding="${pad(block)}" background-color="${p.backgroundColor}"><mj-column><mj-text padding="0" align="${p.align}" font-family="Inter, Arial, sans-serif">${logoHtml}<span style="font-size:${p.fontSize}px;font-weight:700;color:${p.color}">${esc(p.companyName)}</span>${taglineHtml}</mj-text></mj-column></mj-section>`;
+			const layout = p.layout ?? 'logo-left';
+			const bgAttr = p.backgroundColor === 'transparent' ? '' : ` background-color="${p.backgroundColor}"`;
+			const tagline = p.tagline
+				? `<div style="font-size:12px;color:${p.color};opacity:0.75;margin-top:3px">${esc(p.tagline)}</div>`
+				: '';
+			const nameBlock = `<div style="font-size:${p.fontSize}px;font-weight:700;color:${p.color};font-family:Inter,Arial,sans-serif">${esc(p.companyName)}</div>${tagline}`;
+			const logoWidth = p.logoWidth || 40;
+
+			if (layout === 'logo-only') {
+				if (!p.logoUrl) return `<mj-section padding="${pad(block)}"${bgAttr}><mj-column><mj-text padding="0"> </mj-text></mj-column></mj-section>`;
+				return `<mj-section padding="${pad(block)}"${bgAttr}><mj-column><mj-image padding="0" src="${p.logoUrl}" width="${logoWidth}px" align="center" /></mj-column></mj-section>`;
+			}
+
+			if (layout === 'text-only') {
+				return `<mj-section padding="${pad(block)}"${bgAttr}><mj-column><mj-text padding="0" align="${p.align}" font-family="Inter,Arial,sans-serif">${nameBlock}</mj-text></mj-column></mj-section>`;
+			}
+
+			if (layout === 'logo-center') {
+				const logoTag = p.logoUrl
+					? `<img src="${p.logoUrl}" width="${logoWidth}" style="display:inline-block;margin-bottom:8px;" /><br/>`
+					: '';
+				return `<mj-section padding="${pad(block)}"${bgAttr}><mj-column><mj-text padding="0" align="center" font-family="Inter,Arial,sans-serif">${logoTag}${nameBlock}</mj-text></mj-column></mj-section>`;
+			}
+
+			if (layout === 'logo-left') {
+				const logoCols = p.logoUrl
+					? `<mj-column width="${logoWidth + 20}px"><mj-image padding="0" src="${p.logoUrl}" width="${logoWidth}px" align="center" /></mj-column>`
+					: '';
+				return `<mj-section padding="${pad(block)}"${bgAttr}>${logoCols}<mj-column><mj-text padding="0" font-family="Inter,Arial,sans-serif">${nameBlock}</mj-text></mj-column></mj-section>`;
+			}
+
+			// logo-right
+			const logoColRight = p.logoUrl
+				? `<mj-column width="${logoWidth + 20}px"><mj-image padding="0" src="${p.logoUrl}" width="${logoWidth}px" align="center" /></mj-column>`
+				: '';
+			return `<mj-section padding="${pad(block)}"${bgAttr}><mj-column><mj-text padding="0" align="right" font-family="Inter,Arial,sans-serif">${nameBlock}</mj-text></mj-column>${logoColRight}</mj-section>`;
 		}
 
 		case 'heading':
@@ -35,7 +68,7 @@ function blockToMjml(block: Block): string {
 			return `<mj-section padding="0"><mj-column><mj-text padding="${pad(block)}" font-size="${p.fontSize}px" font-weight="${p.fontWeight}" color="${p.color}" align="${p.align}" line-height="${p.lineHeight}" font-family="Inter, Arial, sans-serif">${p.text}</mj-text></mj-column></mj-section>`;
 
 		case 'content':
-			return `<mj-section padding="0"><mj-column><mj-text padding="${pad(block)}" font-size="${p.fontSize}px" color="${p.color}" align="${p.align}" line-height="${p.lineHeight}" font-family="Inter, Arial, sans-serif">${p.text}</mj-text></mj-column></mj-section>`;
+			return `<mj-section padding="0"><mj-column><mj-text padding="${pad(block)}" font-size="${p.fontSize}px" font-weight="${p.fontWeight || 'normal'}" color="${p.color}" align="${p.align}" line-height="${p.lineHeight}" font-family="Inter, Arial, sans-serif">${p.text}</mj-text></mj-column></mj-section>`;
 
 		case 'image':
 			return `<mj-section padding="0"><mj-column><mj-image padding="${pad(block)}" src="${p.src}" alt="${esc(p.alt)}" width="${p.width}px"${p.href ? ` href="${p.href}"` : ''} /></mj-column></mj-section>`;
@@ -64,8 +97,10 @@ function blockToMjml(block: Block): string {
 			return `<mj-section padding="0"><mj-column><mj-table padding="${pad(block)}">${tableHtml}</mj-table></mj-column></mj-section>`;
 		}
 
-		case 'section':
-			return `<mj-section padding="${pad(block)}" background-color="${p.backgroundColor}"><mj-column><mj-text font-size="1px" padding="0" color="transparent">&#8203;</mj-text></mj-column></mj-section>`;
+		case 'section': {
+			const bg = p.backgroundColor === 'transparent' ? '' : ` background-color="${p.backgroundColor}"`;
+			return `<mj-section padding="${pad(block)}"${bg}><mj-column><mj-text font-size="1px" padding="0" color="transparent">&#8203;</mj-text></mj-column></mj-section>`;
+		}
 
 		case 'footer': {
 			let footerContent = '';

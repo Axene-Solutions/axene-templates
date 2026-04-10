@@ -63,7 +63,7 @@
 
 	.cp-grid {
 		display: grid;
-		grid-template-columns: repeat(9, 1fr);
+		grid-template-columns: repeat(7, 1fr);
 		gap: 4px;
 	}
 

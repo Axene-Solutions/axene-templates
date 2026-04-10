@@ -10,6 +10,20 @@
 		editor.selectBlock(null);
 	}
 
+	function handleKeydown(e: KeyboardEvent) {
+		const mod = e.metaKey || e.ctrlKey;
+		if (mod && e.key === 'z' && !e.shiftKey) {
+			e.preventDefault();
+			editor.undo();
+		} else if (mod && e.key === 'z' && e.shiftKey) {
+			e.preventDefault();
+			editor.redo();
+		} else if (mod && e.key === 'y') {
+			e.preventDefault();
+			editor.redo();
+		}
+	}
+
 	function handleCopyHtml() {
 		if (editor.previewHtml) {
 			navigator.clipboard.writeText(editor.previewHtml);
@@ -30,9 +44,29 @@
 	}
 </script>
 
+<svelte:window onkeydown={handleKeydown} />
+
 <div class="center">
 	<!-- Toolbar -->
 	<div class="toolbar">
+		<!-- Undo -->
+		<button class="tb-icon" class:disabled={!editor.canUndo} onclick={() => editor.undo()} title="Undo (Cmd+Z)">
+			<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+				<path d="M3 6h6a3.5 3.5 0 110 3.5H10"/>
+				<polyline points="5.5,3.5 3,6 5.5,8.5"/>
+			</svg>
+		</button>
+
+		<!-- Redo -->
+		<button class="tb-icon" class:disabled={!editor.canRedo} onclick={() => editor.redo()} title="Redo (Cmd+Shift+Z)">
+			<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+				<path d="M11 6H5a3.5 3.5 0 100 3.5H4"/>
+				<polyline points="8.5,3.5 11,6 8.5,8.5"/>
+			</svg>
+		</button>
+
+		<span class="tb-sep"></span>
+
 		<!-- View mode buttons -->
 		<div class="tb-group">
 			<button class="tb-btn" class:active={viewMode === 'desktop'} onclick={() => viewMode = 'desktop'} title="Desktop">
@@ -222,6 +256,29 @@
 		transition: background 0.15s;
 	}
 	.tb-save:hover { background: #189e78; }
+
+	.tb-icon {
+		width: 28px;
+		height: 28px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: transparent;
+		border: none;
+		border-radius: 6px;
+		cursor: pointer;
+		color: #888;
+		transition: background 0.12s, color 0.12s;
+	}
+	.tb-icon:hover { background: #f0f0f0; color: #333; }
+	.tb-icon.disabled { opacity: 0.25; cursor: not-allowed; pointer-events: none; }
+
+	.tb-sep {
+		width: 1px;
+		height: 18px;
+		background: #e8e8e8;
+		margin: 0 4px;
+	}
 
 	.canvas {
 		flex: 1;
