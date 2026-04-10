@@ -14,11 +14,44 @@ let templateName = $state('Untitled');
 let templateId = $state('untitled');
 let dirty = $state(false);
 
+// Undo/Redo history
+let undoStack = $state<string[]>([]);
+let redoStack = $state<string[]>([]);
+const MAX_HISTORY = 50;
+
+function pushUndo() {
+	undoStack = [...undoStack.slice(-(MAX_HISTORY - 1)), JSON.stringify(blocks)];
+	redoStack = []; // any new action clears redo
+}
+
+function undo() {
+	if (!undoStack.length) return;
+	redoStack = [...redoStack, JSON.stringify(blocks)];
+	const prev = undoStack[undoStack.length - 1];
+	undoStack = undoStack.slice(0, -1);
+	blocks = JSON.parse(prev);
+	dirty = true;
+	scheduleCompile();
+}
+
+function redo() {
+	if (!redoStack.length) return;
+	undoStack = [...undoStack, JSON.stringify(blocks)];
+	const next = redoStack[redoStack.length - 1];
+	redoStack = redoStack.slice(0, -1);
+	blocks = JSON.parse(next);
+	dirty = true;
+	scheduleCompile();
+}
+
+const canUndo = $derived(undoStack.length > 0);
+const canRedo = $derived(redoStack.length > 0);
+
 // Derived
 const selected = $derived(blocks.find(b => b.id === selectedId) ?? null);
 const mjmlSource = $derived(blocksToMjml(blocks));
-// Theme color cascades from the header block's backgroundColor
-const themeColor = $derived(blocks.find(b => b.type === 'header')?.props.backgroundColor ?? '#1daa82');
+// Theme color cascades from the header block's accentColor (independent of background)
+const themeColor = $derived(blocks.find(b => b.type === 'header')?.props.accentColor ?? '#1daa82');
 
 // Actions
 function selectBlock(id: string | null) {
@@ -30,6 +63,7 @@ function addBlock(type: BlockType, index?: number) {
 	if (type === 'header' && blocks.some(b => b.type === 'header')) return;
 	if (type === 'footer' && blocks.some(b => b.type === 'footer')) return;
 
+	pushUndo();
 	const block = createBlock(type);
 
 	if (type === 'header') {
@@ -61,6 +95,7 @@ function addBlock(type: BlockType, index?: number) {
 }
 
 function removeBlock(id: string) {
+	pushUndo();
 	blocks = blocks.filter(b => b.id !== id);
 	if (selectedId === id) selectedId = null;
 	dirty = true;
@@ -95,6 +130,7 @@ function canDuplicate(id: string): boolean {
 
 function moveBlock(id: string, direction: 'up' | 'down') {
 	if (!canMove(id, direction)) return;
+	pushUndo();
 	const idx = blocks.findIndex(b => b.id === id);
 	if (idx === -1) return;
 	const target = direction === 'up' ? idx - 1 : idx + 1;
@@ -108,6 +144,7 @@ function moveBlock(id: string, direction: 'up' | 'down') {
 }
 
 function duplicateBlock(id: string) {
+	pushUndo();
 	const idx = blocks.findIndex(b => b.id === id);
 	if (idx === -1) return;
 	const original = blocks[idx];
@@ -120,11 +157,20 @@ function duplicateBlock(id: string) {
 	scheduleCompile();
 }
 
+let undoPropTimer: ReturnType<typeof setTimeout> | null = null;
+let lastUndoPropPush = 0;
+
 function updateProp(id: string, key: string, value: any) {
 	const block = blocks.find(b => b.id === id);
 	if (!block) return;
+	// Debounce undo snapshots for rapid prop changes (typing, dragging)
+	const now = Date.now();
+	if (now - lastUndoPropPush > 800) {
+		pushUndo();
+		lastUndoPropPush = now;
+	}
 	block.props[key] = value;
-	blocks = [...blocks]; // trigger reactivity
+	blocks = [...blocks];
 	dirty = true;
 	scheduleCompile();
 }
@@ -193,6 +239,10 @@ export const editor = {
 	get dirty() { return dirty; },
 	get mjmlSource() { return mjmlSource; },
 	get themeColor() { return themeColor; },
+	get canUndo() { return canUndo; },
+	get canRedo() { return canRedo; },
+	undo,
+	redo,
 	selectBlock,
 	addBlock,
 	removeBlock,
