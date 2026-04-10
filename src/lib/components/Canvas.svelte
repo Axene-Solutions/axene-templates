@@ -50,19 +50,22 @@
 	<!-- Toolbar -->
 	<div class="toolbar">
 		<!-- Undo -->
-		<button class="tb-icon" class:disabled={!editor.canUndo} onclick={() => editor.undo()} title="Undo (Cmd+Z)">
-			<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-				<path d="M3 6h6a3.5 3.5 0 110 3.5H10"/>
-				<polyline points="5.5,3.5 3,6 5.5,8.5"/>
+		<button class="tb-undo-redo" class:disabled={!editor.canUndo} onclick={() => editor.undo()} title="Undo">
+			<svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+				<path d="M4 5.5l-2.5 2 2.5 2"/>
+				<path d="M1.5 7.5H9a3.5 3.5 0 010 0A3 3 0 009 13.5H7.5"/>
+				<path d="M1.5 7.5H9a3 3 0 013 3v0a3 3 0 01-3 3H7.5"/>
 			</svg>
+			<span class="tb-shortcut">&#8984;Z</span>
 		</button>
 
 		<!-- Redo -->
-		<button class="tb-icon" class:disabled={!editor.canRedo} onclick={() => editor.redo()} title="Redo (Cmd+Shift+Z)">
-			<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-				<path d="M11 6H5a3.5 3.5 0 100 3.5H4"/>
-				<polyline points="8.5,3.5 11,6 8.5,8.5"/>
+		<button class="tb-undo-redo" class:disabled={!editor.canRedo} onclick={() => editor.redo()} title="Redo">
+			<svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+				<path d="M11 5.5l2.5 2-2.5 2"/>
+				<path d="M13.5 7.5H6a3 3 0 00-3 3v0a3 3 0 003 3h1.5"/>
 			</svg>
+			<span class="tb-shortcut">&#8984;&#8679;Z</span>
 		</button>
 
 		<span class="tb-sep"></span>
@@ -257,21 +260,28 @@
 	}
 	.tb-save:hover { background: #189e78; }
 
-	.tb-icon {
-		width: 28px;
-		height: 28px;
+	.tb-undo-redo {
 		display: flex;
 		align-items: center;
-		justify-content: center;
+		gap: 4px;
+		padding: 4px 8px;
 		background: transparent;
-		border: none;
+		border: 1px solid transparent;
 		border-radius: 6px;
 		cursor: pointer;
-		color: #888;
-		transition: background 0.12s, color 0.12s;
+		color: #777;
+		font-family: inherit;
+		transition: background 0.12s, color 0.12s, border-color 0.12s;
 	}
-	.tb-icon:hover { background: #f0f0f0; color: #333; }
-	.tb-icon.disabled { opacity: 0.25; cursor: not-allowed; pointer-events: none; }
+	.tb-undo-redo:hover { background: #f5f5f5; color: #333; border-color: #e8e8e8; }
+	.tb-undo-redo.disabled { opacity: 0.25; cursor: not-allowed; pointer-events: none; }
+	.tb-shortcut {
+		font-size: 10px;
+		color: #bbb;
+		font-weight: 500;
+		letter-spacing: 0.3px;
+	}
+	.tb-undo-redo:hover .tb-shortcut { color: #999; }
 
 	.tb-sep {
 		width: 1px;
