@@ -712,11 +712,13 @@
 	/* Header layout picker */
 	.right-panel :global(.rp-layout-picker) {
 		display: flex;
-		gap: 4px;
+		gap: 3px;
 	}
 	.right-panel :global(.rp-layout-btn) {
 		flex: 1;
 		height: 32px;
+		width: 32px;
+		aspect-ratio: 1/1;
 		border: 1px solid #e0e0e0;
 		border-radius: 6px;
 		background: #fff;

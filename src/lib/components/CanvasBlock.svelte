@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Block } from '$lib/blocks';
+	import { resolveColor } from '$lib/colors';
 
 	interface Props {
 		block: Block;
@@ -10,8 +11,9 @@
 
 	let { block, selected, themeColor, onselect }: Props = $props();
 
-	function buttonBg(props: Record<string, any>): string {
-		return props.backgroundColor === '#1daa82' ? themeColor : props.backgroundColor;
+	/** Resolve any color prop through the theme system. */
+	function rc(value: string): string {
+		return resolveColor(value, themeColor);
 	}
 
 	function buttonWidth(props: Record<string, any>): string {
@@ -124,7 +126,7 @@
 			<div
 				style="
 					display:inline-block;
-					background-color:{buttonBg(block.props)};
+					background-color:{rc(block.props.backgroundColor)};
 					color:{block.props.color};
 					font-size:{block.props.fontSize}px;
 					font-weight:{block.props.fontWeight};
@@ -145,7 +147,7 @@
 			<ul style="list-style:none; padding:0; margin:0;">
 				{#each block.props.items as item}
 					<li style="display:flex; align-items:flex-start; gap:8px; margin-bottom:6px; font-size:{block.props.fontSize}px; color:{block.props.color};">
-						<span style="margin-top:5px; flex-shrink:0; width:6px; height:6px; border-radius:50%; background-color:{block.props.bulletColor}; display:inline-block;"></span>
+						<span style="margin-top:5px; flex-shrink:0; width:6px; height:6px; border-radius:50%; background-color:{rc(block.props.bulletColor)}; display:inline-block;"></span>
 						<span>{item}</span>
 					</li>
 				{/each}
@@ -200,11 +202,11 @@
 				<div style="font-size:{block.props.fontSize}px; margin-top:8px;">
 					{#each block.props.links ?? [] as link, i}
 						{#if i > 0}<span style="color:#d1d5db; margin:0 6px;">|</span>{/if}
-						<a href={link.url} style="color:{block.props.linkColor}; text-decoration:underline;">{link.label}</a>
+						<a href={link.url} style="color:{rc(block.props.linkColor)}; text-decoration:underline;">{link.label}</a>
 					{/each}
 					{#if block.props.unsubUrl}
 						{#if block.props.links?.length}<span style="color:#d1d5db; margin:0 6px;">|</span>{/if}
-						<a href={block.props.unsubUrl} style="color:{block.props.linkColor}; text-decoration:underline;">{block.props.unsubText || 'Unsubscribe'}</a>
+						<a href={block.props.unsubUrl} style="color:{rc(block.props.linkColor)}; text-decoration:underline;">{block.props.unsubText || 'Unsubscribe'}</a>
 					{/if}
 				</div>
 			{/if}

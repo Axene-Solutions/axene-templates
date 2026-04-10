@@ -51,19 +51,20 @@
 	<div class="toolbar">
 		<!-- Undo -->
 		<button class="tb-undo-redo" class:disabled={!editor.canUndo} onclick={() => editor.undo()} title="Undo">
-			<svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-				<path d="M4 5.5l-2.5 2 2.5 2"/>
-				<path d="M1.5 7.5H9a3.5 3.5 0 010 0A3 3 0 009 13.5H7.5"/>
-				<path d="M1.5 7.5H9a3 3 0 013 3v0a3 3 0 01-3 3H7.5"/>
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+				<path d="M5 5V8V11"/>
+				<path d="M8.5 8C12.5 8 11 8 15 8C15 8 15 8 15 8C15 8 20 8 20 12.706C20 18 15 18 15 18C11.571 18 9.714 18 6.286 18"/>
+				<path d="M11.5 11.5C10.133 10.133 9.367 9.367 8 8C9.367 6.633 10.133 5.867 11.5 4.5"/>
 			</svg>
 			<span class="tb-shortcut">&#8984;Z</span>
 		</button>
 
 		<!-- Redo -->
 		<button class="tb-undo-redo" class:disabled={!editor.canRedo} onclick={() => editor.redo()} title="Redo">
-			<svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-				<path d="M11 5.5l2.5 2-2.5 2"/>
-				<path d="M13.5 7.5H6a3 3 0 00-3 3v0a3 3 0 003 3h1.5"/>
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+				<path d="M19 5V8V11"/>
+				<path d="M15.5 8C11.5 8 13 8 9 8C9 8 9 8 9 8C9 8 4 8 4 12.706C4 18 9 18 9 18C12.429 18 14.286 18 17.714 18"/>
+				<path d="M12.5 11.5C13.867 10.133 14.633 9.367 16 8C14.633 6.633 13.867 5.867 12.5 4.5"/>
 			</svg>
 			<span class="tb-shortcut">&#8984;&#8679;Z</span>
 		</button>

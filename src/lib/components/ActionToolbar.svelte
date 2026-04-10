@@ -61,12 +61,9 @@
 
 	<!-- Delete -->
 	<button class="at-btn at-btn-danger" onclick={remove} title="Delete block">
-		<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
-			<polyline points="2,3.5 10,3.5"/>
-			<path d="M4.5 3.5V2.5a.8.8 0 01.8-.8h1.4a.8.8 0 01.8.8v1"/>
-			<path d="M2.8 3.5l.5 6a1 1 0 001 .9h3.4a1 1 0 001-.9l.5-6"/>
-			<line x1="5" y1="5.5" x2="5" y2="8.5"/>
-			<line x1="7" y1="5.5" x2="7" y2="8.5"/>
+		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+			<path d="M20 9L18.005 20.3463C17.8369 21.3026 17.0062 22 16.0353 22H7.96474C6.99379 22 6.1631 21.3026 5.99496 20.3463L4 9"/>
+			<path d="M21 6L15.375 6M3 6L8.625 6M8.625 6V4C8.625 2.89543 9.52043 2 10.625 2H13.375C14.4796 2 15.375 2.89543 15.375 4V6M8.625 6L15.375 6"/>
 		</svg>
 	</button>
 </div>

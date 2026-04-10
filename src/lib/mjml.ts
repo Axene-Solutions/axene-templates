@@ -5,6 +5,14 @@
  */
 
 import type { Block } from './blocks';
+import { resolveColor } from './colors';
+
+// Theme color extracted from blocks at serialization time
+let _theme = '#1daa82';
+
+function rc(val: string): string {
+	return resolveColor(val, _theme);
+}
 
 function esc(s: string): string {
 	return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -75,7 +83,7 @@ function blockToMjml(block: Block): string {
 
 		case 'button': {
 			const widthAttr = p.width === -1 ? ' width="100%"' : p.width > 0 ? ` width="${p.width}px"` : '';
-			return `<mj-section padding="0"><mj-column><mj-button padding="${pad(block)}" inner-padding="${p.innerPadding}" background-color="${p.backgroundColor}" color="${p.color}" font-size="${p.fontSize}px" font-weight="${p.fontWeight}" border-radius="${p.borderRadius}px" align="${p.align}" href="${p.href}"${widthAttr} font-family="Inter, Arial, sans-serif">${p.text}</mj-button></mj-column></mj-section>`;
+			return `<mj-section padding="0"><mj-column><mj-button padding="${pad(block)}" inner-padding="${p.innerPadding}" background-color="${rc(p.backgroundColor)}" color="${p.color}" font-size="${p.fontSize}px" font-weight="${p.fontWeight}" border-radius="${p.borderRadius}px" align="${p.align}" href="${p.href}"${widthAttr} font-family="Inter, Arial, sans-serif">${p.text}</mj-button></mj-column></mj-section>`;
 		}
 
 		case 'list': {
@@ -109,10 +117,10 @@ function blockToMjml(block: Block): string {
 			footerContent += `<p style="margin:0 0 12px;line-height:1.6">${p.text}</p>`;
 			const linkParts: string[] = [];
 			for (const link of p.links ?? []) {
-				linkParts.push(`<a href="${link.url}" style="color:${p.linkColor || '#6b7280'};text-decoration:underline">${esc(link.label)}</a>`);
+				linkParts.push(`<a href="${link.url}" style="color:${rc(p.linkColor || 'theme-dark')};text-decoration:underline">${esc(link.label)}</a>`);
 			}
 			if (p.unsubUrl) {
-				linkParts.push(`<a href="${p.unsubUrl}" style="color:${p.linkColor || '#6b7280'};text-decoration:underline">${esc(p.unsubText || 'Unsubscribe')}</a>`);
+				linkParts.push(`<a href="${p.unsubUrl}" style="color:${rc(p.linkColor || 'theme-dark')};text-decoration:underline">${esc(p.unsubText || 'Unsubscribe')}</a>`);
 			}
 			if (linkParts.length) footerContent += `<p style="margin:8px 0 0">${linkParts.join(' &nbsp;|&nbsp; ')}</p>`;
 			const divider = p.showDivider ? '<p style="border-top:1px solid #e5e7eb;margin:0 0 16px;font-size:1px;line-height:1px">&nbsp;</p>' : '';
@@ -125,6 +133,9 @@ function blockToMjml(block: Block): string {
 }
 
 export function blocksToMjml(blocks: Block[], bodyBg = '#f5f5f5'): string {
+	// Extract theme color from header block before serializing
+	const headerBlock = blocks.find(b => b.type === 'header');
+	_theme = headerBlock?.props.accentColor ?? headerBlock?.props.backgroundColor ?? '#1daa82';
 	const inner = blocks.map(blockToMjml).join('\n');
 	return `<mjml>
   <mj-head>
