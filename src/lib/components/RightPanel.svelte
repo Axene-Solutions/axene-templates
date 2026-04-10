@@ -24,7 +24,7 @@
 	);
 </script>
 
-<div class="w-[220px] bg-white border-l border-gray-200 flex flex-col shrink-0 overflow-y-auto">
+<div class="right-panel">
 	<!-- Top bar -->
 	<div class="border-b border-gray-100 px-3 py-2 flex items-center gap-1.5">
 		<!-- Settings icon -->
@@ -480,3 +480,18 @@
 		{/if}
 	{/if}
 </div>
+
+<style>
+	.right-panel {
+		width: 200px;
+		background: #fff;
+		border-left: 1px solid #ebebeb;
+		display: flex;
+		flex-direction: column;
+		flex-shrink: 0;
+		overflow-y: auto;
+		font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+	}
+	.right-panel::-webkit-scrollbar { width: 4px; }
+	.right-panel::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
+</style>
