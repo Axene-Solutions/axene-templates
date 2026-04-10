@@ -95,7 +95,7 @@ export const blockDefs: BlockDefinition[] = [
 		defaultProps: {
 			text: 'Click Here',
 			href: 'https://example.com',
-			backgroundColor: '#0fa974',
+			backgroundColor: '#1daa82',
 			color: '#ffffff',
 			fontSize: 14,
 			fontWeight: '600',
@@ -116,7 +116,7 @@ export const blockDefs: BlockDefinition[] = [
 			items: ['First item in the list', 'Second item in the list', 'Third item in the list'],
 			fontSize: 14,
 			color: '#374151',
-			bulletColor: '#0fa974',
+			bulletColor: '#1daa82',
 			paddingTop: 8,
 			paddingBottom: 8,
 			paddingLeft: 24,
