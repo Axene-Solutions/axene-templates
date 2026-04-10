@@ -26,60 +26,32 @@
 
 <div class="right-panel">
 	<!-- Top bar -->
-	<div class="border-b border-gray-100 px-3 py-2 flex items-center gap-1.5">
-		<!-- Settings icon -->
-		<button type="button" class="p-1.5 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-50 transition-colors cursor-pointer">
-			<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-				<path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
-				<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-			</svg>
+	<div class="rp-topbar">
+		<button class="rp-icon-btn">
+			<svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="6.5" cy="6.5" r="2"/><path d="M6.5 1v2M6.5 10v2M1 6.5h2M10 6.5h2M2.8 2.8l1.4 1.4M8.8 8.8l1.4 1.4M2.8 10.2l1.4-1.4M8.8 4.2l1.4-1.4"/></svg>
 		</button>
-		<!-- Download icon -->
-		<button type="button" class="p-1.5 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-50 transition-colors cursor-pointer">
-			<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-				<path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
-			</svg>
+		<button class="rp-icon-btn">
+			<svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><line x1="6.5" y1="2" x2="6.5" y2="11"/><polyline points="3,7 6.5,11 10,7"/><line x1="2.5" y1="2" x2="10.5" y2="2"/></svg>
 		</button>
-		<!-- Ellipsis icon -->
-		<button type="button" class="p-1.5 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-50 transition-colors cursor-pointer">
-			<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-				<path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
-			</svg>
+		<button class="rp-icon-btn">
+			<svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="3" cy="6.5" r="1.5"/><circle cx="6.5" cy="6.5" r="1.5"/><circle cx="10" cy="6.5" r="1.5"/></svg>
 		</button>
-		<div class="flex-1"></div>
-		<button type="button" class="bg-[#1daa82] text-white text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-[#189e78] transition-colors cursor-pointer">
-			Use Mail
-		</button>
+		<button class="rp-use-mail">Use Mail</button>
 	</div>
 
 	<!-- Tab switcher -->
-	<div class="bg-gray-100 rounded-lg p-0.5 mx-3 my-2 flex">
-		<button
-			type="button"
-			class="flex-1 text-xs py-1.5 rounded-md text-center cursor-pointer transition-all
-				{activeTab === 'customize' ? 'bg-white text-gray-900 font-semibold shadow-sm' : 'text-gray-400'}"
-			onclick={() => activeTab = 'customize'}
-		>
-			Customize
-		</button>
-		<button
-			type="button"
-			class="flex-1 text-xs py-1.5 rounded-md text-center cursor-pointer transition-all
-				{activeTab === 'styles' ? 'bg-white text-gray-900 font-semibold shadow-sm' : 'text-gray-400'}"
-			onclick={() => activeTab = 'styles'}
-		>
-			Styles
-		</button>
+	<div class="rp-tab-wrap">
+		<button class="rp-tab" class:active={activeTab === 'customize'} onclick={() => activeTab = 'customize'}>Customize</button>
+		<button class="rp-tab" class:active={activeTab === 'styles'} onclick={() => activeTab = 'styles'}>Styles</button>
 	</div>
 
 	<!-- Panel content -->
 	{#if !editor.selected}
-		<!-- No block selected -->
-		<div class="flex-1 flex flex-col items-center justify-center px-6 text-center gap-3">
-			<svg class="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
-				<path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672 13.684 16.6m0 0-2.51 2.225.569-9.47 5.227 7.917-3.286-.672ZM12 2.25V4.5m5.834.166-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243-1.59-1.59" />
+		<div class="rp-empty">
+			<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="#ccc" stroke-width="1.2">
+				<path d="M17 24l-1.5-5.5m0 0l-2.5 2.2.6-9.5 5.2 7.9-3.3-.6ZM14 3v2.5m5.8.2-1.6 1.6M22.5 11H20M8.8 16.7l-1.6 1.6M7 11H4.5m4-4.2L6.9 5.2"/>
 			</svg>
-			<span class="text-xs text-gray-400">Select a block to edit its properties</span>
+			<span>Select a block to edit</span>
 		</div>
 	{:else if activeTab === 'customize'}
 		<!-- ======================== CUSTOMIZE TAB ======================== -->
@@ -483,7 +455,7 @@
 
 <style>
 	.right-panel {
-		width: 200px;
+		width: 220px;
 		background: #fff;
 		border-left: 1px solid #ebebeb;
 		display: flex;
@@ -494,4 +466,78 @@
 	}
 	.right-panel::-webkit-scrollbar { width: 4px; }
 	.right-panel::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
+
+	/* Top bar */
+	.rp-topbar {
+		padding: 8px 10px;
+		border-bottom: 1px solid #f0f0f0;
+		display: flex;
+		align-items: center;
+		gap: 5px;
+	}
+	.rp-icon-btn {
+		width: 24px;
+		height: 24px;
+		border: 1px solid #e8e8e8;
+		border-radius: 5px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		color: #999;
+		background: #fff;
+		transition: background 0.1s, color 0.1s;
+	}
+	.rp-icon-btn:hover { background: #f5f5f5; color: #555; }
+	.rp-use-mail {
+		margin-left: auto;
+		background: #1daa82;
+		color: #fff;
+		border: none;
+		border-radius: 7px;
+		padding: 6px 14px;
+		font-size: 12px;
+		font-weight: 500;
+		cursor: pointer;
+		transition: background 0.15s;
+	}
+	.rp-use-mail:hover { background: #189e78; }
+
+	/* Tabs */
+	.rp-tab-wrap {
+		display: flex;
+		border-bottom: 1px solid #f0f0f0;
+	}
+	.rp-tab {
+		flex: 1;
+		text-align: center;
+		padding: 8px 0;
+		font-size: 12px;
+		color: #bbb;
+		cursor: pointer;
+		border: none;
+		background: none;
+		transition: all 0.15s;
+		font-family: inherit;
+	}
+	.rp-tab.active {
+		color: #1a1a1a;
+		font-weight: 500;
+		background: #f9f9f9;
+	}
+
+	/* Empty state */
+	.rp-empty {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 10px;
+		padding: 24px;
+	}
+	.rp-empty span {
+		font-size: 12px;
+		color: #bbb;
+	}
 </style>

@@ -229,7 +229,7 @@
 		display: flex;
 		align-items: flex-start;
 		justify-content: center;
-		padding: 28px 20px;
+		padding: 50px;
 		overflow-y: auto;
 	}
 	.canvas::-webkit-scrollbar { width: 6px; }
