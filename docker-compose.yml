@@ -1,0 +1,11 @@
+services:
+  app:
+    build: .
+    ports:
+      - "127.0.0.1:3002:3000"
+    volumes:
+      - template-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  template-data:
