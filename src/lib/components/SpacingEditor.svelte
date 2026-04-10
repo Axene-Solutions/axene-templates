@@ -1,46 +1,57 @@
 <script lang="ts">
 	let {
-		top,
-		right,
-		bottom,
-		left,
-		onchange,
+		top, right, bottom, left, onchange,
 	}: {
-		top: number;
-		right: number;
-		bottom: number;
-		left: number;
+		top: number; right: number; bottom: number; left: number;
 		onchange: (key: string, value: number) => void;
 	} = $props();
 
 	const sides = [
-		{ key: 'paddingTop', label: 'T' },
-		{ key: 'paddingRight', label: 'R' },
-		{ key: 'paddingBottom', label: 'B' },
-		{ key: 'paddingLeft', label: 'L' },
-	] as const;
-
-	let values = $derived({ paddingTop: top, paddingRight: right, paddingBottom: bottom, paddingLeft: left });
+		{ key: 'paddingTop', label: 'T', get val() { return top; } },
+		{ key: 'paddingRight', label: 'R', get val() { return right; } },
+		{ key: 'paddingBottom', label: 'B', get val() { return bottom; } },
+		{ key: 'paddingLeft', label: 'L', get val() { return left; } },
+	];
 
 	function handleInput(key: string, e: Event) {
-		const raw = (e.target as HTMLInputElement).value;
-		const num = Number(raw);
-		if (!isNaN(num)) {
-			onchange(key, num);
-		}
+		const num = Number((e.target as HTMLInputElement).value);
+		if (!isNaN(num)) onchange(key, num);
 	}
 </script>
 
-<div class="grid grid-cols-2 gap-1.5">
+<div class="sp-grid">
 	{#each sides as side}
-		<div class="bg-gray-50 border border-gray-200 rounded px-2 py-1 flex items-center gap-1">
-			<span class="text-[9px] text-gray-400 shrink-0">{side.label}</span>
-			<input
-				type="number"
-				class="bg-transparent text-xs text-gray-700 w-full text-right outline-none"
-				value={values[side.key]}
-				oninput={(e) => handleInput(side.key, e)}
-			/>
+		<div class="sp-cell">
+			<svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="#ccc" stroke-width="1"><rect x="1" y="1" width="7" height="7" rx="0.5"/></svg>
+			<span class="sp-label">{side.label}</span>
+			<input class="sp-input" type="number" value={side.val} oninput={(e) => handleInput(side.key, e)} />
 		</div>
 	{/each}
 </div>
+
+<style>
+	.sp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+	.sp-cell {
+		border: 1px solid #e8e8e8;
+		border-radius: 4px;
+		padding: 4px 6px;
+		background: #fafafa;
+		display: flex;
+		align-items: center;
+		gap: 4px;
+	}
+	.sp-label { font-size: 9px; color: #bbb; }
+	.sp-input {
+		border: none;
+		background: transparent;
+		font-size: 11px;
+		color: #333;
+		width: 100%;
+		text-align: right;
+		outline: none;
+		font-family: inherit;
+		-moz-appearance: textfield;
+	}
+	.sp-input::-webkit-inner-spin-button,
+	.sp-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+</style>

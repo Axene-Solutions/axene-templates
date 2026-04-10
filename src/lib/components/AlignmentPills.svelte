@@ -1,46 +1,51 @@
 <script lang="ts">
 	let { value, onchange }: { value: string; onchange: (align: string) => void } = $props();
-
-	const options = [
-		{ key: 'left', label: 'Left' },
-		{ key: 'center', label: 'Center' },
-		{ key: 'right', label: 'Right' },
-	] as const;
 </script>
 
-<div class="flex gap-1">
-	{#each options as opt}
-		<button
-			type="button"
-			class="flex-1 flex items-center justify-center gap-1 py-1.5 border rounded-md text-[10px] cursor-pointer transition-colors
-				{value === opt.key
-				? 'border-[#1daa82] bg-[#edf8f4] text-[#1daa82]'
-				: 'border-gray-200 text-gray-500 hover:border-gray-300'}"
-			onclick={() => onchange(opt.key)}
-		>
-			{#if opt.key === 'left'}
-				<svg class="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-					<line x1="2" y1="3" x2="14" y2="3" />
-					<line x1="2" y1="7" x2="10" y2="7" />
-					<line x1="2" y1="11" x2="12" y2="11" />
-					<line x1="2" y1="15" x2="8" y2="15" />
-				</svg>
-			{:else if opt.key === 'center'}
-				<svg class="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-					<line x1="1" y1="3" x2="15" y2="3" />
-					<line x1="3" y1="7" x2="13" y2="7" />
-					<line x1="2" y1="11" x2="14" y2="11" />
-					<line x1="4" y1="15" x2="12" y2="15" />
-				</svg>
-			{:else}
-				<svg class="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-					<line x1="2" y1="3" x2="14" y2="3" />
-					<line x1="6" y1="7" x2="14" y2="7" />
-					<line x1="4" y1="11" x2="14" y2="11" />
-					<line x1="8" y1="15" x2="14" y2="15" />
-				</svg>
-			{/if}
-			{opt.label}
-		</button>
-	{/each}
+<div class="ap">
+	<button class="ap-pill" class:active={value === 'left'} onclick={() => onchange('left')}>
+		<svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" stroke-width="1.2">
+			<line x1="1" y1="2.5" x2="8" y2="2.5"/><line x1="1" y1="4.5" x2="6" y2="4.5"/><line x1="1" y1="6.5" x2="7" y2="6.5"/>
+		</svg>
+		Left
+	</button>
+	<button class="ap-pill" class:active={value === 'center'} onclick={() => onchange('center')}>
+		<svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" stroke-width="1.2">
+			<line x1="1" y1="2.5" x2="8" y2="2.5"/><line x1="2" y1="4.5" x2="7" y2="4.5"/><line x1="1.5" y1="6.5" x2="7.5" y2="6.5"/>
+		</svg>
+		Center
+	</button>
+	<button class="ap-pill" class:active={value === 'right'} onclick={() => onchange('right')}>
+		<svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" stroke-width="1.2">
+			<line x1="1" y1="2.5" x2="8" y2="2.5"/><line x1="3" y1="4.5" x2="8" y2="4.5"/><line x1="2" y1="6.5" x2="8" y2="6.5"/>
+		</svg>
+		Right
+	</button>
 </div>
+
+<style>
+	.ap { display: flex; gap: 4px; }
+	.ap-pill {
+		flex: 1;
+		padding: 5px 0;
+		border: 1px solid #e0e0e0;
+		border-radius: 5px;
+		font-size: 10.5px;
+		text-align: center;
+		cursor: pointer;
+		color: #666;
+		background: #fff;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 4px;
+		transition: all 0.15s;
+		font-family: inherit;
+	}
+	.ap-pill:hover { border-color: #ccc; color: #333; }
+	.ap-pill.active {
+		border-color: #1daa82;
+		background: #edf8f4;
+		color: #1daa82;
+	}
+</style>

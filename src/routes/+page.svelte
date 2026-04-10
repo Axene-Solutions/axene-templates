@@ -13,8 +13,9 @@
 	<title>{editor.templateName} - Axene Templates</title>
 </svelte:head>
 
-<div class="h-screen w-screen bg-[#c8dfc8] flex items-center justify-center p-4 overflow-hidden">
-	<div class="bg-[#f2f2f2] w-full max-w-[1220px] h-[calc(100vh-32px)] max-h-[820px] rounded-2xl shadow-2xl flex overflow-hidden ring-1 ring-black/5">
+<div class="w-screen bg-[#c8dfc8] flex items-center justify-center overflow-hidden">
+	<div class="bg-[#f2f2f2] w-full max-w-[1220px] min-h-screen flex overflow-hidden ring-1 ring-black/5">
+		<NavRail />
 		<Sidebar />
 		<Canvas />
 		<RightPanel />

@@ -2,12 +2,6 @@
 </script>
 
 <nav class="w-[46px] bg-white border-r border-gray-200 flex flex-col items-center py-3 gap-0.5 shrink-0">
-	<!-- Window dots -->
-	<div class="flex items-center gap-1.5 mb-3.5">
-		<div class="w-3 h-3 rounded-full bg-[#ff5f57]"></div>
-		<div class="w-3 h-3 rounded-full bg-[#febc2e]"></div>
-		<div class="w-3 h-3 rounded-full bg-[#28c840]"></div>
-	</div>
 
 	<!-- Logo -->
 	<div class="w-[30px] h-[30px] bg-[#1daa82] rounded-lg flex items-center justify-center mb-2.5">

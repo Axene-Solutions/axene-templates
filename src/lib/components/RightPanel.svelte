@@ -12,8 +12,8 @@
 		if (editor.selectedId) editor.updateProp(editor.selectedId, key, value);
 	}
 
-	const inputClass = 'w-full bg-gray-50 border border-gray-200 rounded-md px-2.5 py-1.5 text-xs text-gray-700 outline-none focus:border-[#1daa82] transition-colors';
-	const labelClass = 'text-[10px] text-gray-400 mb-1 block';
+	const inputClass = 'rp-input';
+	const labelClass = 'rp-label';
 
 	let props = $derived(editor.selected?.props ?? {});
 	let blockType = $derived(editor.selected?.type ?? null);
@@ -58,7 +58,7 @@
 
 		{#if blockType === 'header'}
 			<PropSection title="Header">
-				<div class="flex flex-col gap-2.5">
+				<div class="rp-flex-col">
 					<div>
 						<label class={labelClass}>Logo URL</label>
 						<input type="text" class={inputClass} value={props.logoUrl ?? ''} oninput={(e) => setProp('logoUrl', (e.target as HTMLInputElement).value)} />
@@ -86,7 +86,7 @@
 
 		{:else if blockType === 'heading' || blockType === 'subheading' || blockType === 'content'}
 			<PropSection title="Content">
-				<div class="flex flex-col gap-2.5">
+				<div class="rp-flex-col">
 					<div>
 						<label class={labelClass}>Text</label>
 						<textarea
@@ -100,7 +100,7 @@
 			</PropSection>
 
 			<PropSection title="Typography">
-				<div class="flex flex-col gap-2.5">
+				<div class="rp-flex-col">
 					<NumberInput label="Font Size" value={props.fontSize ?? 14} unit="px" onchange={(v) => setProp('fontSize', v)} />
 					<div>
 						<label class={labelClass}>Text Color</label>
@@ -115,14 +115,14 @@
 
 		{:else if blockType === 'button'}
 			<PropSection title="Button">
-				<div class="flex flex-col gap-2.5">
+				<div class="rp-flex-col">
 					<div>
 						<label class={labelClass}>Label</label>
 						<input type="text" class={inputClass} value={props.text ?? ''} oninput={(e) => setProp('text', (e.target as HTMLInputElement).value)} />
 					</div>
 					<div>
 						<label class={labelClass}>Link URL</label>
-						<div class="flex items-center gap-1.5">
+						<div class="rp-link-row">
 							<svg class="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
 								<path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
 							</svg>
@@ -131,23 +131,23 @@
 					</div>
 					<div>
 						<label class={labelClass}>Width</label>
-						<div class="flex gap-1">
+						<div class="rp-flex-row">
 							<button
 								type="button"
-								class="flex-1 text-[10px] py-1.5 rounded-md text-center cursor-pointer border transition-colors
-									{buttonWidthMode === 'auto' ? 'border-[#1daa82] bg-[#edf8f4] text-[#1daa82]' : 'border-gray-200 text-gray-500 hover:border-gray-300'}"
+								class="rp-width-pill
+									" class:active={buttonWidthMode === 'auto'}
 								onclick={() => setProp('width', 0)}
 							>Auto</button>
 							<button
 								type="button"
-								class="flex-1 text-[10px] py-1.5 rounded-md text-center cursor-pointer border transition-colors
-									{buttonWidthMode === 'custom' ? 'border-[#1daa82] bg-[#edf8f4] text-[#1daa82]' : 'border-gray-200 text-gray-500 hover:border-gray-300'}"
+								class="rp-width-pill
+									" class:active={buttonWidthMode === 'custom'}
 								onclick={() => setProp('width', 200)}
 							>Custom</button>
 							<button
 								type="button"
-								class="flex-1 text-[10px] py-1.5 rounded-md text-center cursor-pointer border transition-colors
-									{buttonWidthMode === 'full' ? 'border-[#1daa82] bg-[#edf8f4] text-[#1daa82]' : 'border-gray-200 text-gray-500 hover:border-gray-300'}"
+								class="rp-width-pill
+									" class:active={buttonWidthMode === 'full'}
 								onclick={() => setProp('width', -1)}
 							>Full Width</button>
 						</div>
@@ -162,7 +162,7 @@
 			</PropSection>
 
 			<PropSection title="Colors">
-				<div class="flex flex-col gap-2.5">
+				<div class="rp-flex-col">
 					<div>
 						<label class={labelClass}>Background</label>
 						<ColorPicker value={props.backgroundColor ?? '#1daa82'} onchange={(hex) => setProp('backgroundColor', hex)} />
@@ -180,7 +180,7 @@
 
 		{:else if blockType === 'image'}
 			<PropSection title="Image">
-				<div class="flex flex-col gap-2.5">
+				<div class="rp-flex-col">
 					<div>
 						<label class={labelClass}>Source URL</label>
 						<input type="text" class={inputClass} value={props.src ?? ''} oninput={(e) => setProp('src', (e.target as HTMLInputElement).value)} />
@@ -199,7 +199,7 @@
 
 		{:else if blockType === 'list'}
 			<PropSection title="List Items">
-				<div class="flex flex-col gap-1.5">
+				<div class="rp-flex-col">
 					{#each (props.items ?? []) as item, i}
 						<div class="flex items-center gap-1">
 							<input
@@ -228,7 +228,7 @@
 					{/each}
 					<button
 						type="button"
-						class="text-[#1daa82] text-xs font-medium cursor-pointer hover:underline text-left mt-1"
+						class="rp-add-btn"
 						onclick={() => {
 							const updated = [...(props.items ?? []), 'New item'];
 							setProp('items', updated);
@@ -240,7 +240,7 @@
 			</PropSection>
 
 			<PropSection title="Style">
-				<div class="flex flex-col gap-2.5">
+				<div class="rp-flex-col">
 					<NumberInput label="Font Size" value={props.fontSize ?? 14} unit="px" onchange={(v) => setProp('fontSize', v)} />
 					<div>
 						<label class={labelClass}>Text Color</label>
@@ -255,8 +255,8 @@
 
 		{:else if blockType === 'table'}
 			<PropSection title="Table">
-				<div class="flex flex-col gap-2.5">
-					<label class="flex items-center gap-2 text-[10px] text-gray-500 cursor-pointer">
+				<div class="rp-flex-col">
+					<label class="rp-checkbox-row">
 						<input type="checkbox" checked={props.headerRow ?? true} onchange={(e) => setProp('headerRow', (e.target as HTMLInputElement).checked)} class="accent-[#1daa82]" />
 						Show header row
 					</label>
@@ -273,10 +273,10 @@
 				</div>
 			</PropSection>
 			<PropSection title="Rows">
-				<div class="flex flex-col gap-2">
+				<div class="rp-flex-col">
 					{#each props.rows ?? [] as row, i}
-						<div class="flex gap-1.5 items-start">
-							<div class="flex-1 flex flex-col gap-1">
+						<div class="rp-item-row">
+							<div class="rp-flex-col" style="flex:1">
 								<input class="{inputClass} text-[10px]" value={row.col1} oninput={(e) => {
 									const rows = [...(props.rows ?? [])];
 									rows[i] = { ...rows[i], col1: (e.target as HTMLInputElement).value };
@@ -288,19 +288,19 @@
 									setProp('rows', rows);
 								}} placeholder="Col 2" />
 							</div>
-							<button class="text-red-300 hover:text-red-500 text-xs mt-1 shrink-0" onclick={() => {
+							<button class="rp-del-btn" onclick={() => {
 								const rows = (props.rows ?? []).filter((_: any, j: number) => j !== i);
 								setProp('rows', rows);
 							}}>x</button>
 						</div>
 					{/each}
-					<button class="text-[10px] text-[#1daa82] font-medium hover:underline" onclick={() => {
+					<button class="rp-add-btn" onclick={() => {
 						setProp('rows', [...(props.rows ?? []), { col1: 'Item', col2: 'Description' }]);
 					}}>+ Add row</button>
 				</div>
 			</PropSection>
 			<PropSection title="Colors">
-				<div class="flex flex-col gap-2.5">
+				<div class="rp-flex-col">
 					<div>
 						<label class={labelClass}>Header Background</label>
 						<ColorPicker value={props.headerBg ?? '#f3f4f6'} onchange={(hex) => setProp('headerBg', hex)} />
@@ -318,7 +318,7 @@
 
 		{:else if blockType === 'footer'}
 			<PropSection title="Footer Content">
-				<div class="flex flex-col gap-2.5">
+				<div class="rp-flex-col">
 					<div>
 						<label class={labelClass}>Company Name</label>
 						<input class={inputClass} value={props.companyName ?? ''} oninput={(e) => setProp('companyName', (e.target as HTMLInputElement).value)} />
@@ -331,17 +331,17 @@
 						<label class={labelClass}>Disclaimer Text</label>
 						<textarea class="{inputClass} resize-none" rows="2" value={props.text ?? ''} oninput={(e) => setProp('text', (e.target as HTMLTextAreaElement).value)}></textarea>
 					</div>
-					<label class="flex items-center gap-2 text-[10px] text-gray-500 cursor-pointer">
+					<label class="rp-checkbox-row">
 						<input type="checkbox" checked={props.showDivider ?? true} onchange={(e) => setProp('showDivider', (e.target as HTMLInputElement).checked)} class="accent-[#1daa82]" />
 						Show divider line
 					</label>
 				</div>
 			</PropSection>
 			<PropSection title="Links">
-				<div class="flex flex-col gap-2">
+				<div class="rp-flex-col">
 					{#each props.links ?? [] as link, i}
-						<div class="flex gap-1.5 items-start">
-							<div class="flex-1 flex flex-col gap-1">
+						<div class="rp-item-row">
+							<div class="rp-flex-col" style="flex:1">
 								<input class="{inputClass} text-[10px]" value={link.label} placeholder="Label" oninput={(e) => {
 									const links = [...(props.links ?? [])];
 									links[i] = { ...links[i], label: (e.target as HTMLInputElement).value };
@@ -353,19 +353,19 @@
 									setProp('links', links);
 								}} />
 							</div>
-							<button class="text-red-300 hover:text-red-500 text-xs mt-1 shrink-0" onclick={() => {
+							<button class="rp-del-btn" onclick={() => {
 								const links = (props.links ?? []).filter((_: any, j: number) => j !== i);
 								setProp('links', links);
 							}}>x</button>
 						</div>
 					{/each}
-					<button class="text-[10px] text-[#1daa82] font-medium hover:underline" onclick={() => {
+					<button class="rp-add-btn" onclick={() => {
 						setProp('links', [...(props.links ?? []), { label: 'Link', url: 'https://' }]);
 					}}>+ Add link</button>
 				</div>
 			</PropSection>
 			<PropSection title="Unsubscribe">
-				<div class="flex flex-col gap-2.5">
+				<div class="rp-flex-col">
 					<div>
 						<label class={labelClass}>Unsubscribe Text</label>
 						<input class={inputClass} value={props.unsubText ?? 'Unsubscribe'} oninput={(e) => setProp('unsubText', (e.target as HTMLInputElement).value)} />
@@ -377,7 +377,7 @@
 				</div>
 			</PropSection>
 			<PropSection title="Typography">
-				<div class="flex flex-col gap-2.5">
+				<div class="rp-flex-col">
 					<NumberInput label="Size" value={props.fontSize ?? 12} unit="px" onchange={(v) => setProp('fontSize', v)} />
 					<div>
 						<label class={labelClass}>Text Color</label>
@@ -393,7 +393,7 @@
 
 		{:else if blockType === 'section'}
 			<PropSection title="Section">
-				<div class="flex flex-col gap-2.5">
+				<div class="rp-flex-col">
 					<div>
 						<label class={labelClass}>Background</label>
 						<ColorPicker value={props.backgroundColor ?? '#f5f5f5'} onchange={(hex) => setProp('backgroundColor', hex)} />
@@ -426,7 +426,7 @@
 			{/if}
 
 			<PropSection title="Border">
-				<div class="flex flex-col gap-2.5">
+				<div class="rp-flex-col">
 					<NumberInput label="Radius" value={props.borderRadius ?? 0} unit="px" max={50} onchange={(v) => setProp('borderRadius', v)} />
 					<div>
 						<label class={labelClass}>Border Style</label>
@@ -525,6 +525,105 @@
 		font-weight: 500;
 		background: #f9f9f9;
 	}
+
+	/* Inputs & labels (global within panel) */
+	.right-panel :global(.rp-input) {
+		width: 100%;
+		background: #fafafa;
+		border: 1px solid #e8e8e8;
+		border-radius: 5px;
+		padding: 5px 8px;
+		font-size: 11.5px;
+		color: #333;
+		outline: none;
+		font-family: inherit;
+		transition: border-color 0.15s;
+		box-sizing: border-box;
+	}
+	.right-panel :global(.rp-input:focus) { border-color: #1daa82; }
+	.right-panel :global(textarea.rp-input) { resize: none; line-height: 1.5; }
+	.right-panel :global(.rp-label) {
+		display: block;
+		font-size: 10px;
+		color: #aaa;
+		margin-bottom: 4px;
+		font-weight: 400;
+	}
+	.right-panel :global(.rp-add-btn) {
+		font-size: 11px;
+		color: #1daa82;
+		font-weight: 500;
+		cursor: pointer;
+		background: none;
+		border: none;
+		padding: 0;
+		text-align: left;
+		font-family: inherit;
+	}
+	.right-panel :global(.rp-add-btn:hover) { text-decoration: underline; }
+	.right-panel :global(.rp-del-btn) {
+		color: #ccc;
+		cursor: pointer;
+		background: none;
+		border: none;
+		padding: 2px;
+		display: flex;
+		align-items: center;
+		transition: color 0.1s;
+	}
+	.right-panel :global(.rp-del-btn:hover) { color: #e55; }
+	.right-panel :global(.rp-width-pill) {
+		flex: 1;
+		padding: 5px 0;
+		border: 1px solid #e0e0e0;
+		border-radius: 5px;
+		font-size: 10.5px;
+		text-align: center;
+		cursor: pointer;
+		color: #666;
+		background: #fff;
+		font-family: inherit;
+		transition: all 0.15s;
+	}
+	.right-panel :global(.rp-width-pill:hover) { border-color: #ccc; }
+	.right-panel :global(.rp-width-pill.active) {
+		border-color: #1daa82;
+		background: #edf8f4;
+		color: #1daa82;
+	}
+	.right-panel :global(.rp-checkbox-row) {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 11px;
+		color: #666;
+		cursor: pointer;
+	}
+	.right-panel :global(.rp-checkbox-row input) { accent-color: #1daa82; }
+	.right-panel :global(.rp-link-row) {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		border: 1px solid #e8e8e8;
+		border-radius: 5px;
+		padding: 5px 8px;
+		background: #fafafa;
+	}
+	.right-panel :global(.rp-link-row svg) { color: #1daa82; flex-shrink: 0; }
+	.right-panel :global(.rp-link-row input) {
+		border: none;
+		background: transparent;
+		font-size: 11px;
+		color: #333;
+		outline: none;
+		flex: 1;
+		font-family: inherit;
+	}
+	.right-panel :global(.rp-row-group) { display: flex; flex-direction: column; gap: 6px; }
+	.right-panel :global(.rp-item-row) { display: flex; gap: 5px; align-items: flex-start; }
+	.right-panel :global(.rp-item-row .rp-input) { flex: 1; }
+	.right-panel :global(.rp-flex-col) { display: flex; flex-direction: column; gap: 8px; }
+	.right-panel :global(.rp-flex-row) { display: flex; gap: 4px; }
 
 	/* Empty state */
 	.rp-empty {
