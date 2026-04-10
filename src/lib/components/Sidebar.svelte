@@ -20,193 +20,301 @@
 			? blockDefs.filter(d => d.label.toLowerCase().includes(searchQuery.toLowerCase()))
 			: blockDefs
 	);
+
+	// Check if header/footer already exist (to disable those cards)
+	const hasHeader = $derived(editor.blocks.some(b => b.type === 'header'));
+	const hasFooter = $derived(editor.blocks.some(b => b.type === 'footer'));
 </script>
 
-<aside class="w-[178px] bg-white border-r border-gray-200 flex flex-col shrink-0 overflow-hidden">
+<div class="sidebar">
 	<!-- Header -->
-	<div class="flex items-center gap-1.5 px-3 py-[11px] border-b border-gray-100">
-		<button class="text-gray-400 hover:text-gray-600 shrink-0">
-			<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-				<polyline points="9,2 4,7 9,12" />
-			</svg>
+	<div class="sb-header">
+		<button class="sb-back">
+			<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="7.5,2 3.5,6 7.5,10"/></svg>
 		</button>
-		<span class="text-xs font-medium text-gray-800 truncate flex-1">{editor.templateName}</span>
-		<button class="text-gray-400 hover:text-gray-600 shrink-0">
-			<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-				<polyline points="3,4 5,6 7,4" />
-			</svg>
-		</button>
-		<button class="text-gray-400 hover:text-gray-600 shrink-0">
-			<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-				<rect x="1" y="1" width="5" height="5" rx="0.5" />
-				<rect x="8" y="1" width="5" height="5" rx="0.5" />
-				<rect x="1" y="8" width="5" height="5" rx="0.5" />
-				<rect x="8" y="8" width="5" height="5" rx="0.5" />
-			</svg>
+		<div class="sb-title">
+			{editor.templateName}
+			<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#bbb" stroke-width="1.5"><polyline points="2,3.5 5,6.5 8,3.5"/></svg>
+		</div>
+		<button class="sb-grid">
+			<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="0.5" y="0.5" width="5" height="5" rx="0.8" fill="#ccc"/><rect x="7.5" y="0.5" width="5" height="5" rx="0.8" fill="#ccc"/><rect x="0.5" y="7.5" width="5" height="5" rx="0.8" fill="#ccc"/><rect x="7.5" y="7.5" width="5" height="5" rx="0.8" fill="#ccc"/></svg>
 		</button>
 	</div>
 
 	<!-- Tabs -->
-	<div class="flex border-b border-gray-100">
-		<button
-			class="flex-1 text-xs py-2 text-center transition-colors {activeTab === 'layers' ? 'text-gray-900 font-medium border-b-2 border-gray-900' : 'text-gray-400'}"
-			onclick={() => activeTab = 'layers'}
-		>
-			Layers
-		</button>
-		<button
-			class="flex-1 text-xs py-2 text-center transition-colors {activeTab === 'blocks' ? 'text-gray-900 font-medium border-b-2 border-gray-900' : 'text-gray-400'}"
-			onclick={() => activeTab = 'blocks'}
-		>
-			Blocks
-		</button>
+	<div class="sb-tabs">
+		<button class="sb-tab" class:active={activeTab === 'layers'} onclick={() => activeTab = 'layers'}>Layers</button>
+		<button class="sb-tab" class:active={activeTab === 'blocks'} onclick={() => activeTab = 'blocks'}>Blocks</button>
 	</div>
 
-	{#if activeTab === 'blocks'}
-		<!-- Pills row -->
-		<div class="flex items-center gap-1.5 px-3 py-2.5">
-			<span class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-900 text-white">Block</span>
-			<span class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">Recipients</span>
-			<span class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">Tags</span>
-		</div>
+	<!-- Pills -->
+	<div class="sb-pills">
+		<span class="sb-pill active">Block</span>
+		<span class="sb-pill">Recipients</span>
+		<span class="sb-pill">Tags</span>
+	</div>
 
-		<!-- Search bar -->
-		<div class="px-3 pb-2.5">
-			<div class="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5">
-				<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#9ca3af" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-					<circle cx="5.5" cy="5.5" r="3.5" />
-					<line x1="8" y1="8" x2="11" y2="11" />
-				</svg>
-				<input
-					type="text"
-					placeholder="Search blocks..."
-					class="flex-1 bg-transparent text-[11px] text-gray-700 placeholder:text-gray-400 outline-none min-w-0"
-					bind:value={searchQuery}
-				/>
-				<span class="text-[9px] text-gray-400 bg-gray-100 px-1 py-0.5 rounded shrink-0">&#8984;K</span>
-			</div>
-		</div>
+	<!-- Search -->
+	<div class="sb-search">
+		<input type="text" placeholder="Search..." bind:value={searchQuery} />
+		<div class="sb-shortcut"><span class="kbd">&#8984;</span><span class="kbd">K</span></div>
+		<svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="#ccc" stroke-width="1.5"><circle cx="5.5" cy="5.5" r="4"/><line x1="8.5" y1="8.5" x2="12" y2="12"/></svg>
+	</div>
 
-		<!-- Blocks content -->
-		<div class="flex-1 overflow-y-auto px-3 pb-3">
-			<!-- Section header -->
-			<div class="flex items-center justify-between mb-2">
-				<span class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Block</span>
-				<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#9ca3af" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-					<polyline points="3,4 5,6 7,4" />
-				</svg>
+	<!-- Scrollable content -->
+	<div class="sb-scroll">
+		{#if activeTab === 'blocks'}
+			<!-- Block section -->
+			<div class="sb-section-hdr">
+				<span>Block</span>
+				<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#bbb" stroke-width="1.5"><polyline points="2,3.5 5,6.5 8,3.5"/></svg>
 			</div>
 
-			<!-- Block cards grid -->
-			<div class="grid grid-cols-2 gap-1.5">
+			<div class="blocks-grid">
 				{#each filteredDefs as def}
+					{@const disabled = (def.type === 'header' && hasHeader) || (def.type === 'footer' && hasFooter)}
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<div
-						class="border rounded-lg p-2.5 cursor-pointer transition-all {selectedBlockType === def.type ? 'border-[#1daa82] bg-[#f0fbf7]' : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'}"
-						onclick={() => handleBlockClick(def.type)}
+						class="block-card"
+						class:selected={selectedBlockType === def.type}
+						class:disabled
+						onclick={() => !disabled && handleBlockClick(def.type)}
 						ondragstart={(e) => handleDragStart(e, def.type)}
-						draggable="true"
+						draggable={!disabled ? "true" : "false"}
 						role="button"
 						tabindex="0"
+						onkeydown={() => {}}
 					>
-						<!-- Visual preview -->
-						<div class="h-10 mb-1.5 flex flex-col justify-center items-center">
+						<div class="block-preview">
 							{#if def.type === 'header'}
-								<div class="w-full h-7 bg-[#1daa82] rounded-sm flex items-center justify-center">
-									<div class="w-8 h-1 bg-white/80 rounded-full"></div>
+								<div style="width:100%;height:28px;background:#1daa82;border-radius:2px;display:flex;align-items:center;justify-content:center;gap:4px;">
+									<div style="width:8px;height:8px;border-radius:2px;background:rgba(255,255,255,0.6);"></div>
+									<div style="width:24px;height:3px;background:rgba(255,255,255,0.8);border-radius:1px;"></div>
 								</div>
 							{:else if def.type === 'heading'}
-								<div class="w-10 h-1.5 bg-gray-400 rounded-full mb-1"></div>
-								<div class="w-6 h-1 bg-gray-300 rounded-full"></div>
+								<div style="width:100%;display:flex;flex-direction:column;gap:3px;align-items:center;">
+									<div style="width:85%;height:5px;background:#d1d5db;border-radius:1px;"></div>
+									<div style="width:55%;height:3px;background:#e5e7eb;border-radius:1px;"></div>
+								</div>
 							{:else if def.type === 'subheading'}
-								<div class="w-9 h-1 bg-gray-400 rounded-full mb-1"></div>
-								<div class="w-12 h-0.5 bg-gray-200 rounded-full mb-0.5"></div>
-								<div class="w-10 h-0.5 bg-gray-200 rounded-full"></div>
+								<div style="width:100%;display:flex;flex-direction:column;gap:2.5px;align-items:center;">
+									<div style="width:75%;height:3.5px;background:#d1d5db;border-radius:1px;"></div>
+									<div style="width:90%;height:2.5px;background:#e5e7eb;border-radius:1px;"></div>
+									<div style="width:60%;height:2.5px;background:#e5e7eb;border-radius:1px;"></div>
+								</div>
 							{:else if def.type === 'content'}
-								<div class="w-full space-y-1 px-1">
-									<div class="w-full h-0.5 bg-gray-300 rounded-full"></div>
-									<div class="w-full h-0.5 bg-gray-300 rounded-full"></div>
-									<div class="w-full h-0.5 bg-gray-300 rounded-full"></div>
-									<div class="w-8 h-0.5 bg-gray-300 rounded-full"></div>
+								<div style="width:100%;display:flex;flex-direction:column;gap:2.5px;">
+									<div style="width:95%;height:2.5px;background:#e5e7eb;border-radius:1px;"></div>
+									<div style="width:95%;height:2.5px;background:#e5e7eb;border-radius:1px;"></div>
+									<div style="width:95%;height:2.5px;background:#e5e7eb;border-radius:1px;"></div>
+									<div style="width:60%;height:2.5px;background:#e5e7eb;border-radius:1px;"></div>
 								</div>
 							{:else if def.type === 'image'}
-								<div class="w-full h-8 bg-gray-100 rounded-sm flex items-center justify-center overflow-hidden">
-									<svg width="20" height="16" viewBox="0 0 20 16" fill="none">
-										<rect width="20" height="16" rx="1" fill="#e5e7eb" />
-										<circle cx="6" cy="5" r="2" fill="#d1d5db" />
-										<polygon points="2,14 8,8 12,12 14,10 18,14" fill="#d1d5db" />
-									</svg>
+								<div class="img-preview">
+									<div class="img-sun"></div>
+									<div class="img-mtn"></div>
 								</div>
 							{:else if def.type === 'list'}
-								<div class="w-full space-y-1 px-1">
-									<div class="flex items-center gap-1">
-										<div class="w-1 h-1 rounded-full bg-gray-400 shrink-0"></div>
-										<div class="w-10 h-0.5 bg-gray-300 rounded-full"></div>
-									</div>
-									<div class="flex items-center gap-1">
-										<div class="w-1 h-1 rounded-full bg-gray-400 shrink-0"></div>
-										<div class="w-8 h-0.5 bg-gray-300 rounded-full"></div>
-									</div>
-									<div class="flex items-center gap-1">
-										<div class="w-1 h-1 rounded-full bg-gray-400 shrink-0"></div>
-										<div class="w-9 h-0.5 bg-gray-300 rounded-full"></div>
-									</div>
+								<div style="width:100%;display:flex;flex-direction:column;gap:5px;">
+									<div style="display:flex;align-items:center;gap:4px;"><div class="list-dot"></div><div style="flex:1;height:2.5px;background:#e5e7eb;border-radius:1px;"></div></div>
+									<div style="display:flex;align-items:center;gap:4px;"><div class="list-dot"></div><div style="flex:1;height:2.5px;background:#e5e7eb;border-radius:1px;"></div></div>
+									<div style="display:flex;align-items:center;gap:4px;"><div class="list-dot"></div><div style="width:70%;height:2.5px;background:#e5e7eb;border-radius:1px;"></div></div>
 								</div>
 							{:else if def.type === 'button'}
-								<div class="space-y-1.5 flex flex-col items-center">
-									<div class="w-8 h-0.5 bg-gray-300 rounded-full"></div>
-									<div class="w-10 h-3.5 bg-[#1daa82] rounded-sm"></div>
+								<div style="width:100%;display:flex;flex-direction:column;gap:5px;align-items:center;">
+									<div style="width:80%;height:3px;background:#ccc;border-radius:1px;"></div>
+									<div style="width:100%;height:10px;background:#1daa82;border-radius:3px;"></div>
+								</div>
+							{:else if def.type === 'table'}
+								<div style="width:100%;display:flex;flex-direction:column;gap:0;">
+									<div style="display:flex;gap:1px;">
+										<div style="flex:1;height:5px;background:#d1d5db;border-radius:1px 0 0 0;"></div>
+										<div style="flex:1;height:5px;background:#d1d5db;border-radius:0 1px 0 0;"></div>
+									</div>
+									<div style="display:flex;gap:1px;margin-top:1px;">
+										<div style="flex:1;height:4px;background:#e5e7eb;"></div>
+										<div style="flex:1;height:4px;background:#e5e7eb;"></div>
+									</div>
+									<div style="display:flex;gap:1px;margin-top:1px;">
+										<div style="flex:1;height:4px;background:#e5e7eb;border-radius:0 0 0 1px;"></div>
+										<div style="flex:1;height:4px;background:#e5e7eb;border-radius:0 0 1px 0;"></div>
+									</div>
 								</div>
 							{:else if def.type === 'section'}
-								<div class="w-full h-7 border border-gray-300 rounded-sm flex items-center justify-center">
-									<div class="w-8 h-4 bg-gray-100 rounded-sm"></div>
-								</div>
+								<div class="section-preview"><div class="section-inner"></div></div>
 							{:else if def.type === 'footer'}
-								<div class="w-full flex flex-col items-center justify-end h-full">
-									<div class="w-10 h-0.5 bg-gray-300 rounded-full mb-0.5"></div>
-									<div class="w-7 h-0.5 bg-gray-300 rounded-full"></div>
+								<div style="width:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;">
+									<div style="width:60%;height:1px;background:#e5e7eb;margin-bottom:4px;"></div>
+									<div style="width:80%;height:2.5px;background:#e5e7eb;border-radius:1px;margin-bottom:2px;"></div>
+									<div style="width:50%;height:2.5px;background:#e5e7eb;border-radius:1px;"></div>
 								</div>
 							{/if}
 						</div>
-						<div class="text-[10px] text-gray-600 text-center font-medium">{def.label}</div>
+						<span class="block-name">{def.label}</span>
 					</div>
 				{/each}
 			</div>
 
 			<!-- Template section -->
-			<div class="mt-4">
-				<div class="flex items-center justify-between mb-2">
-					<span class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Template</span>
+			<div class="sb-section-hdr" style="margin-top:8px;">
+				<span>Template</span>
+				<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#bbb" stroke-width="1.5"><polyline points="2,3.5 5,6.5 8,3.5"/></svg>
+			</div>
+			<div class="template-grid">
+				<div class="tpl-card">
+					<div class="tpl-img v1"><div class="tpl-streets"></div></div>
+					<div class="tpl-body">
+						<div class="tpl-heading">Heading</div>
+						<div class="tpl-text-line"></div>
+						<div class="tpl-text-line short"></div>
+					</div>
+					<div class="tpl-footer"><span class="tpl-btn">Button</span></div>
 				</div>
-				<div class="grid grid-cols-2 gap-1.5">
-					<div class="border border-gray-200 rounded-lg overflow-hidden cursor-pointer hover:border-gray-300 hover:shadow-sm transition-all">
-						<div class="h-16 bg-gradient-to-br from-emerald-100 to-teal-200"></div>
-						<div class="px-1.5 py-1">
-							<div class="text-[9px] text-gray-500 truncate">Welcome</div>
-						</div>
+				<div class="tpl-card">
+					<div class="tpl-img v2"><div class="tpl-streets"></div></div>
+					<div class="tpl-body">
+						<div class="tpl-heading">Heading</div>
+						<div class="tpl-text-line"></div>
+						<div class="tpl-text-line short"></div>
 					</div>
-					<div class="border border-gray-200 rounded-lg overflow-hidden cursor-pointer hover:border-gray-300 hover:shadow-sm transition-all">
-						<div class="h-16 bg-gradient-to-br from-blue-100 to-indigo-200"></div>
-						<div class="px-1.5 py-1">
-							<div class="text-[9px] text-gray-500 truncate">Newsletter</div>
-						</div>
-					</div>
+					<div class="tpl-footer"><span class="tpl-btn">Button</span></div>
 				</div>
 			</div>
-		</div>
 
-	{:else}
-		<!-- Layers tab content -->
-		<div class="flex-1 overflow-y-auto">
-			{#each editor.blocks as block, i (block.id)}
-				<button
-					class="w-full text-left px-3 py-2 text-[11px] flex items-center gap-2 transition-colors {editor.selectedId === block.id ? 'bg-[#edf8f4] text-[#1daa82]' : 'text-gray-600 hover:bg-gray-50'}"
-					onclick={() => editor.selectBlock(block.id)}
-				>
-					<span class="text-[9px] text-gray-400 w-3 text-right shrink-0">{i + 1}</span>
-					<span class="capitalize truncate">{block.type}</span>
-				</button>
-			{/each}
-		</div>
-	{/if}
-</aside>
+		{:else}
+			<!-- Layers tab -->
+			<div style="padding:4px 0;">
+				{#each editor.blocks as block, i (block.id)}
+					<button
+						class="layer-item"
+						class:active={editor.selectedId === block.id}
+						onclick={() => editor.selectBlock(block.id)}
+					>
+						<span class="layer-idx">{i + 1}</span>
+						<span class="layer-name">{block.type}</span>
+						{#if block.type === 'header'}<span class="layer-badge">H</span>{/if}
+						{#if block.type === 'footer'}<span class="layer-badge">F</span>{/if}
+					</button>
+				{/each}
+			</div>
+		{/if}
+	</div>
+</div>
+
+<style>
+	.sidebar {
+		width: 178px;
+		background: #fff;
+		border-right: 1px solid #ebebeb;
+		display: flex;
+		flex-direction: column;
+		flex-shrink: 0;
+		overflow: hidden;
+		font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+	}
+
+	/* Header */
+	.sb-header {
+		padding: 11px 12px 9px;
+		border-bottom: 1px solid #f0f0f0;
+		display: flex;
+		align-items: center;
+		gap: 5px;
+	}
+	.sb-back { color: #999; background: none; border: none; cursor: pointer; display: flex; align-items: center; padding: 0; }
+	.sb-title { font-size: 13px; font-weight: 500; color: #1a1a1a; display: flex; align-items: center; gap: 3px; flex: 1; overflow: hidden; white-space: nowrap; }
+	.sb-grid { background: none; border: none; cursor: pointer; padding: 0; color: #bbb; display: flex; }
+
+	/* Tabs */
+	.sb-tabs { display: flex; gap: 18px; padding: 9px 13px 0; border-bottom: 1px solid #f0f0f0; }
+	.sb-tab { font-size: 12.5px; color: #aaa; padding-bottom: 7px; cursor: pointer; border: none; background: none; border-bottom: 2px solid transparent; line-height: 1; }
+	.sb-tab.active { color: #1a1a1a; font-weight: 500; border-bottom-color: #1a1a1a; }
+
+	/* Pills */
+	.sb-pills { display: flex; gap: 5px; padding: 8px 10px; }
+	.sb-pill { font-size: 11px; padding: 3px 11px; border-radius: 20px; border: 1px solid #e0e0e0; background: #fff; color: #666; cursor: pointer; line-height: 1.4; }
+	.sb-pill.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+
+	/* Search */
+	.sb-search { margin: 0 10px 8px; border: 1px solid #e8e8e8; border-radius: 7px; padding: 5px 9px; display: flex; align-items: center; gap: 6px; background: #fafafa; }
+	.sb-search input { border: none; background: transparent; font-size: 11.5px; color: #555; outline: none; flex: 1; width: 0; font-family: inherit; }
+	.sb-search input::placeholder { color: #bbb; }
+	.sb-shortcut { display: flex; align-items: center; gap: 3px; }
+	.kbd { font-size: 9px; color: #ccc; border: 1px solid #e5e5e5; border-radius: 3px; padding: 1px 4px; line-height: 1.4; }
+
+	/* Section header */
+	.sb-section-hdr { padding: 4px 12px 6px; display: flex; align-items: center; justify-content: space-between; }
+	.sb-section-hdr span { font-size: 12px; font-weight: 500; color: #1a1a1a; }
+
+	/* Scroll area */
+	.sb-scroll { flex: 1; overflow-y: auto; padding-bottom: 8px; }
+	.sb-scroll::-webkit-scrollbar { width: 0; }
+
+	/* Block grid */
+	.blocks-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; padding: 0 9px; }
+	.block-card {
+		border: 1px solid #e8e8e8;
+		border-radius: 8px;
+		padding: 9px 7px 6px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 5px;
+		cursor: pointer;
+		background: #fff;
+		transition: border-color 0.15s, box-shadow 0.15s;
+	}
+	.block-card:hover { border-color: #ccc; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+	.block-card.selected { border: 1.5px solid #1daa82; background: #f0fbf7; box-shadow: 0 0 0 3px rgba(29,170,130,.1); }
+	.block-card.disabled { opacity: 0.4; cursor: not-allowed; }
+	.block-card.disabled:hover { border-color: #e8e8e8; box-shadow: none; }
+	.block-preview { width: 50px; height: 30px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+	.block-name { font-size: 10.5px; color: #666; }
+	.block-card.selected .block-name { color: #1daa82; font-weight: 500; }
+
+	/* Block preview shapes */
+	.img-preview { width: 50px; height: 30px; border: 1.5px solid #ddd; border-radius: 3px; position: relative; overflow: hidden; }
+	.img-mtn { position: absolute; bottom: 0; left: 0; right: 0; height: 16px; background: #e8e8e8; clip-path: polygon(0 100%, 30% 20%, 60% 60%, 80% 30%, 100% 60%, 100% 100%); }
+	.img-sun { position: absolute; top: 4px; left: 6px; width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid #ddd; }
+	.list-dot { width: 4px; height: 4px; border-radius: 50%; background: #d0d0d0; flex-shrink: 0; }
+	.section-preview { width: 26px; height: 30px; border: 1.5px solid #ddd; border-radius: 3px; display: flex; flex-direction: column; justify-content: flex-end; padding: 2px; }
+	.section-inner { height: 10px; background: #ececec; border-radius: 2px; }
+
+	/* Template cards */
+	.template-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; padding: 4px 9px 10px; }
+	.tpl-card { border: 1px solid #e8e8e8; border-radius: 8px; overflow: hidden; cursor: pointer; transition: transform 0.15s; }
+	.tpl-card:hover { transform: translateY(-1px); border-color: #1daa82; }
+	.tpl-img { height: 48px; overflow: hidden; }
+	.tpl-img.v1 { background: linear-gradient(135deg, #d4a860, #c08040); }
+	.tpl-img.v2 { background: linear-gradient(135deg, #c8825a, #a86040); }
+	.tpl-streets { width: 100%; height: 100%; background: repeating-linear-gradient(0deg, rgba(0,0,0,.06) 0px, rgba(0,0,0,.06) 1px, transparent 1px, transparent 8px), repeating-linear-gradient(90deg, rgba(0,0,0,.04) 0px, rgba(0,0,0,.04) 1px, transparent 1px, transparent 12px); }
+	.tpl-body { padding: 5px 6px 3px; }
+	.tpl-heading { font-size: 9px; font-weight: 600; color: #111; margin-bottom: 3px; }
+	.tpl-text-line { height: 2px; background: #e5e7eb; border-radius: 1px; margin-bottom: 2px; }
+	.tpl-text-line.short { width: 66%; }
+	.tpl-footer { padding: 3px 6px 6px; }
+	.tpl-btn { display: inline-block; font-size: 8px; padding: 2px 10px; background: #1daa82; color: #fff; border-radius: 3px; font-weight: 500; }
+
+	/* Layers */
+	.layer-item {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 6px 12px;
+		border: none;
+		background: none;
+		cursor: pointer;
+		font-size: 11.5px;
+		color: #666;
+		text-transform: capitalize;
+		font-family: inherit;
+		text-align: left;
+		transition: background 0.1s;
+	}
+	.layer-item:hover { background: #f9f9f9; }
+	.layer-item.active { background: #edf8f4; color: #1daa82; }
+	.layer-idx { font-size: 9px; color: #bbb; width: 14px; text-align: right; flex-shrink: 0; }
+	.layer-name { flex: 1; }
+	.layer-badge { font-size: 8px; color: #999; background: #f0f0f0; border-radius: 3px; padding: 1px 4px; font-weight: 600; }
+</style>

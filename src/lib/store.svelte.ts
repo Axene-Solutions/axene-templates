@@ -26,12 +26,34 @@ function selectBlock(id: string | null) {
 }
 
 function addBlock(type: BlockType, index?: number) {
+	// Enforce max 1 header and 1 footer
+	if (type === 'header' && blocks.some(b => b.type === 'header')) return;
+	if (type === 'footer' && blocks.some(b => b.type === 'footer')) return;
+
 	const block = createBlock(type);
-	if (index !== undefined) {
-		blocks.splice(index, 0, block);
+
+	if (type === 'header') {
+		// Header always goes first
+		blocks = [block, ...blocks];
+	} else if (type === 'footer') {
+		// Footer always goes last
+		blocks = [...blocks, block];
+	} else if (index !== undefined) {
+		// Insert at specific position but never before header or after footer
+		const headerEnd = blocks[0]?.type === 'header' ? 1 : 0;
+		const footerStart = blocks[blocks.length - 1]?.type === 'footer' ? blocks.length - 1 : blocks.length;
+		const clampedIndex = Math.max(headerEnd, Math.min(index, footerStart));
+		blocks.splice(clampedIndex, 0, block);
 		blocks = [...blocks];
 	} else {
-		blocks = [...blocks, block];
+		// Add before footer if one exists, else at end
+		const footerIdx = blocks.findIndex(b => b.type === 'footer');
+		if (footerIdx !== -1) {
+			blocks.splice(footerIdx, 0, block);
+			blocks = [...blocks];
+		} else {
+			blocks = [...blocks, block];
+		}
 	}
 	selectedId = block.id;
 	dirty = true;

@@ -3,7 +3,7 @@
  * Each block represents a section of the email and maps to MJML output.
  */
 
-export type BlockType = 'header' | 'heading' | 'subheading' | 'content' | 'image' | 'button' | 'list' | 'section' | 'footer';
+export type BlockType = 'header' | 'heading' | 'subheading' | 'content' | 'image' | 'button' | 'list' | 'table' | 'section' | 'footer';
 
 export interface Block {
 	id: string;
@@ -144,6 +144,30 @@ export const blockDefs: BlockDefinition[] = [
 		},
 	},
 	{
+		type: 'table',
+		label: 'Table',
+		icon: 'table',
+		defaultProps: {
+			headerRow: true,
+			col1Header: 'Feature',
+			col2Header: 'Details',
+			rows: [
+				{ col1: 'First item', col2: 'Description of the first item' },
+				{ col1: 'Second item', col2: 'Description of the second item' },
+				{ col1: 'Third item', col2: 'Description of the third item' },
+			],
+			headerBg: '#f3f4f6',
+			headerColor: '#111827',
+			cellColor: '#374151',
+			borderColor: '#e5e7eb',
+			fontSize: 13,
+			paddingTop: 12,
+			paddingBottom: 12,
+			paddingLeft: 24,
+			paddingRight: 24,
+		},
+	},
+	{
 		type: 'section',
 		label: 'Section',
 		icon: 'section',
@@ -160,12 +184,22 @@ export const blockDefs: BlockDefinition[] = [
 		label: 'Footer',
 		icon: 'footer',
 		defaultProps: {
-			text: 'You received this email because you have an account with us. If you are not sure why, please contact us.',
+			text: 'You received this email because you have an account with us.',
+			companyName: 'Your Company',
+			companyAddress: '123 Street, City, Country',
+			links: [
+				{ label: 'Website', url: 'https://example.com' },
+				{ label: 'Privacy Policy', url: 'https://example.com/privacy' },
+			],
+			unsubText: 'Unsubscribe',
+			unsubUrl: '{{unsubscribe_url}}',
 			fontSize: 12,
 			color: '#9ca3af',
+			linkColor: '#6b7280',
 			align: 'center',
-			paddingTop: 16,
-			paddingBottom: 16,
+			showDivider: true,
+			paddingTop: 20,
+			paddingBottom: 20,
 			paddingLeft: 24,
 			paddingRight: 24,
 		},

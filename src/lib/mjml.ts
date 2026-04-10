@@ -52,11 +52,37 @@ function blockToMjml(block: Block): string {
 			return `<mj-section padding="0"><mj-column><mj-text padding="${pad(block)}" font-size="${p.fontSize}px" color="${p.color}" font-family="Inter, Arial, sans-serif"><ul style="padding-left:20px;margin:0">${items}</ul></mj-text></mj-column></mj-section>`;
 		}
 
+		case 'table': {
+			let tableHtml = '<table style="width:100%;border-collapse:collapse;" cellpadding="0" cellspacing="0">';
+			if (p.headerRow) {
+				tableHtml += `<tr><td style="background:${p.headerBg};color:${p.headerColor};padding:10px 14px;border:1px solid ${p.borderColor};font-weight:600;font-size:${p.fontSize}px;">${esc(p.col1Header)}</td><td style="background:${p.headerBg};color:${p.headerColor};padding:10px 14px;border:1px solid ${p.borderColor};font-weight:600;font-size:${p.fontSize}px;">${esc(p.col2Header)}</td></tr>`;
+			}
+			for (const row of p.rows ?? []) {
+				tableHtml += `<tr><td style="padding:10px 14px;color:${p.cellColor};border:1px solid ${p.borderColor};font-size:${p.fontSize}px;">${row.col1}</td><td style="padding:10px 14px;color:${p.cellColor};border:1px solid ${p.borderColor};font-size:${p.fontSize}px;">${row.col2}</td></tr>`;
+			}
+			tableHtml += '</table>';
+			return `<mj-section padding="0"><mj-column><mj-table padding="${pad(block)}">${tableHtml}</mj-table></mj-column></mj-section>`;
+		}
+
 		case 'section':
 			return `<mj-section padding="${pad(block)}" background-color="${p.backgroundColor}"><mj-column><mj-text font-size="1px" padding="0" color="transparent">&#8203;</mj-text></mj-column></mj-section>`;
 
-		case 'footer':
-			return `<mj-section padding="0"><mj-column><mj-text padding="${pad(block)}" font-size="${p.fontSize}px" color="${p.color}" align="${p.align}" font-family="Inter, Arial, sans-serif">${p.text}</mj-text></mj-column></mj-section>`;
+		case 'footer': {
+			let footerContent = '';
+			if (p.companyName) footerContent += `<p style="font-weight:600;margin:0 0 4px">${esc(p.companyName)}</p>`;
+			if (p.companyAddress) footerContent += `<p style="margin:0 0 10px">${esc(p.companyAddress)}</p>`;
+			footerContent += `<p style="margin:0 0 12px;line-height:1.6">${p.text}</p>`;
+			const linkParts: string[] = [];
+			for (const link of p.links ?? []) {
+				linkParts.push(`<a href="${link.url}" style="color:${p.linkColor || '#6b7280'};text-decoration:underline">${esc(link.label)}</a>`);
+			}
+			if (p.unsubUrl) {
+				linkParts.push(`<a href="${p.unsubUrl}" style="color:${p.linkColor || '#6b7280'};text-decoration:underline">${esc(p.unsubText || 'Unsubscribe')}</a>`);
+			}
+			if (linkParts.length) footerContent += `<p style="margin:8px 0 0">${linkParts.join(' &nbsp;|&nbsp; ')}</p>`;
+			const divider = p.showDivider ? '<p style="border-top:1px solid #e5e7eb;margin:0 0 16px;font-size:1px;line-height:1px">&nbsp;</p>' : '';
+			return `<mj-section padding="0"><mj-column><mj-text padding="${pad(block)}" font-size="${p.fontSize}px" color="${p.color}" align="${p.align}" font-family="Inter, Arial, sans-serif">${divider}${footerContent}</mj-text></mj-column></mj-section>`;
+		}
 
 		default:
 			return '';

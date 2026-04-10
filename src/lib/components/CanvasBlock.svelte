@@ -26,7 +26,7 @@
 <div
 	class="relative cursor-pointer"
 	class:selected
-	onclick={onselect}
+	onclick={(e) => { e.stopPropagation(); onselect(); }}
 >
 	{#if block.type === 'header'}
 		<div
@@ -111,15 +111,62 @@
 			</ul>
 		</div>
 
+	{:else if block.type === 'table'}
+		<div style="padding:{block.props.paddingTop}px {block.props.paddingRight}px {block.props.paddingBottom}px {block.props.paddingLeft}px;">
+			<table style="width:100%;border-collapse:collapse;font-size:{block.props.fontSize}px;">
+				{#if block.props.headerRow}
+					<thead>
+						<tr>
+							<th style="background:{block.props.headerBg};color:{block.props.headerColor};padding:10px 14px;text-align:left;border:1px solid {block.props.borderColor};font-weight:600;">{block.props.col1Header}</th>
+							<th style="background:{block.props.headerBg};color:{block.props.headerColor};padding:10px 14px;text-align:left;border:1px solid {block.props.borderColor};font-weight:600;">{block.props.col2Header}</th>
+						</tr>
+					</thead>
+				{/if}
+				<tbody>
+					{#each block.props.rows as row}
+						<tr>
+							<td style="padding:10px 14px;color:{block.props.cellColor};border:1px solid {block.props.borderColor};">{row.col1}</td>
+							<td style="padding:10px 14px;color:{block.props.cellColor};border:1px solid {block.props.borderColor};">{row.col2}</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
+
 	{:else if block.type === 'section'}
 		<div style="background-color:{block.props.backgroundColor}; padding:{block.props.paddingTop}px {block.props.paddingRight}px {block.props.paddingBottom}px {block.props.paddingLeft}px;">
 		</div>
 
 	{:else if block.type === 'footer'}
 		<div style="padding:{block.props.paddingTop}px {block.props.paddingRight}px {block.props.paddingBottom}px {block.props.paddingLeft}px; text-align:{block.props.align};">
-			<p style="font-size:{block.props.fontSize}px; color:{block.props.color}; margin:0;">
+			{#if block.props.showDivider}
+				<div style="border-top:1px solid #e5e7eb; margin-bottom:16px;"></div>
+			{/if}
+			{#if block.props.companyName}
+				<p style="font-size:{block.props.fontSize + 1}px; color:{block.props.color}; margin:0 0 4px; font-weight:600;">
+					{block.props.companyName}
+				</p>
+			{/if}
+			{#if block.props.companyAddress}
+				<p style="font-size:{block.props.fontSize}px; color:{block.props.color}; margin:0 0 10px;">
+					{block.props.companyAddress}
+				</p>
+			{/if}
+			<p style="font-size:{block.props.fontSize}px; color:{block.props.color}; margin:0 0 12px; line-height:1.6;">
 				{block.props.text}
 			</p>
+			{#if block.props.links?.length || block.props.unsubUrl}
+				<div style="font-size:{block.props.fontSize}px; margin-top:8px;">
+					{#each block.props.links ?? [] as link, i}
+						{#if i > 0}<span style="color:#d1d5db; margin:0 6px;">|</span>{/if}
+						<a href={link.url} style="color:{block.props.linkColor}; text-decoration:underline;">{link.label}</a>
+					{/each}
+					{#if block.props.unsubUrl}
+						{#if block.props.links?.length}<span style="color:#d1d5db; margin:0 6px;">|</span>{/if}
+						<a href={block.props.unsubUrl} style="color:{block.props.linkColor}; text-decoration:underline;">{block.props.unsubText || 'Unsubscribe'}</a>
+					{/if}
+				</div>
+			{/if}
 		</div>
 	{/if}
 

@@ -112,7 +112,7 @@
 				</div>
 			</PropSection>
 
-		{:else if blockType === 'heading' || blockType === 'subheading' || blockType === 'content' || blockType === 'footer'}
+		{:else if blockType === 'heading' || blockType === 'subheading' || blockType === 'content'}
 			<PropSection title="Content">
 				<div class="flex flex-col gap-2.5">
 					<div>
@@ -278,6 +278,144 @@
 						<label class={labelClass}>Bullet Color</label>
 						<ColorPicker value={props.bulletColor ?? '#1daa82'} onchange={(hex) => setProp('bulletColor', hex)} />
 					</div>
+				</div>
+			</PropSection>
+
+		{:else if blockType === 'table'}
+			<PropSection title="Table">
+				<div class="flex flex-col gap-2.5">
+					<label class="flex items-center gap-2 text-[10px] text-gray-500 cursor-pointer">
+						<input type="checkbox" checked={props.headerRow ?? true} onchange={(e) => setProp('headerRow', (e.target as HTMLInputElement).checked)} class="accent-[#1daa82]" />
+						Show header row
+					</label>
+					{#if props.headerRow}
+						<div>
+							<label class={labelClass}>Column 1 Header</label>
+							<input class={inputClass} value={props.col1Header ?? ''} oninput={(e) => setProp('col1Header', (e.target as HTMLInputElement).value)} />
+						</div>
+						<div>
+							<label class={labelClass}>Column 2 Header</label>
+							<input class={inputClass} value={props.col2Header ?? ''} oninput={(e) => setProp('col2Header', (e.target as HTMLInputElement).value)} />
+						</div>
+					{/if}
+				</div>
+			</PropSection>
+			<PropSection title="Rows">
+				<div class="flex flex-col gap-2">
+					{#each props.rows ?? [] as row, i}
+						<div class="flex gap-1.5 items-start">
+							<div class="flex-1 flex flex-col gap-1">
+								<input class="{inputClass} text-[10px]" value={row.col1} oninput={(e) => {
+									const rows = [...(props.rows ?? [])];
+									rows[i] = { ...rows[i], col1: (e.target as HTMLInputElement).value };
+									setProp('rows', rows);
+								}} placeholder="Col 1" />
+								<input class="{inputClass} text-[10px]" value={row.col2} oninput={(e) => {
+									const rows = [...(props.rows ?? [])];
+									rows[i] = { ...rows[i], col2: (e.target as HTMLInputElement).value };
+									setProp('rows', rows);
+								}} placeholder="Col 2" />
+							</div>
+							<button class="text-red-300 hover:text-red-500 text-xs mt-1 shrink-0" onclick={() => {
+								const rows = (props.rows ?? []).filter((_: any, j: number) => j !== i);
+								setProp('rows', rows);
+							}}>x</button>
+						</div>
+					{/each}
+					<button class="text-[10px] text-[#1daa82] font-medium hover:underline" onclick={() => {
+						setProp('rows', [...(props.rows ?? []), { col1: 'Item', col2: 'Description' }]);
+					}}>+ Add row</button>
+				</div>
+			</PropSection>
+			<PropSection title="Colors">
+				<div class="flex flex-col gap-2.5">
+					<div>
+						<label class={labelClass}>Header Background</label>
+						<ColorPicker value={props.headerBg ?? '#f3f4f6'} onchange={(hex) => setProp('headerBg', hex)} />
+					</div>
+					<div>
+						<label class={labelClass}>Cell Text</label>
+						<ColorPicker value={props.cellColor ?? '#374151'} onchange={(hex) => setProp('cellColor', hex)} />
+					</div>
+					<div>
+						<label class={labelClass}>Border</label>
+						<ColorPicker value={props.borderColor ?? '#e5e7eb'} onchange={(hex) => setProp('borderColor', hex)} />
+					</div>
+				</div>
+			</PropSection>
+
+		{:else if blockType === 'footer'}
+			<PropSection title="Footer Content">
+				<div class="flex flex-col gap-2.5">
+					<div>
+						<label class={labelClass}>Company Name</label>
+						<input class={inputClass} value={props.companyName ?? ''} oninput={(e) => setProp('companyName', (e.target as HTMLInputElement).value)} />
+					</div>
+					<div>
+						<label class={labelClass}>Company Address</label>
+						<input class={inputClass} value={props.companyAddress ?? ''} oninput={(e) => setProp('companyAddress', (e.target as HTMLInputElement).value)} />
+					</div>
+					<div>
+						<label class={labelClass}>Disclaimer Text</label>
+						<textarea class="{inputClass} resize-none" rows="2" value={props.text ?? ''} oninput={(e) => setProp('text', (e.target as HTMLTextAreaElement).value)}></textarea>
+					</div>
+					<label class="flex items-center gap-2 text-[10px] text-gray-500 cursor-pointer">
+						<input type="checkbox" checked={props.showDivider ?? true} onchange={(e) => setProp('showDivider', (e.target as HTMLInputElement).checked)} class="accent-[#1daa82]" />
+						Show divider line
+					</label>
+				</div>
+			</PropSection>
+			<PropSection title="Links">
+				<div class="flex flex-col gap-2">
+					{#each props.links ?? [] as link, i}
+						<div class="flex gap-1.5 items-start">
+							<div class="flex-1 flex flex-col gap-1">
+								<input class="{inputClass} text-[10px]" value={link.label} placeholder="Label" oninput={(e) => {
+									const links = [...(props.links ?? [])];
+									links[i] = { ...links[i], label: (e.target as HTMLInputElement).value };
+									setProp('links', links);
+								}} />
+								<input class="{inputClass} text-[10px]" value={link.url} placeholder="URL" oninput={(e) => {
+									const links = [...(props.links ?? [])];
+									links[i] = { ...links[i], url: (e.target as HTMLInputElement).value };
+									setProp('links', links);
+								}} />
+							</div>
+							<button class="text-red-300 hover:text-red-500 text-xs mt-1 shrink-0" onclick={() => {
+								const links = (props.links ?? []).filter((_: any, j: number) => j !== i);
+								setProp('links', links);
+							}}>x</button>
+						</div>
+					{/each}
+					<button class="text-[10px] text-[#1daa82] font-medium hover:underline" onclick={() => {
+						setProp('links', [...(props.links ?? []), { label: 'Link', url: 'https://' }]);
+					}}>+ Add link</button>
+				</div>
+			</PropSection>
+			<PropSection title="Unsubscribe">
+				<div class="flex flex-col gap-2.5">
+					<div>
+						<label class={labelClass}>Unsubscribe Text</label>
+						<input class={inputClass} value={props.unsubText ?? 'Unsubscribe'} oninput={(e) => setProp('unsubText', (e.target as HTMLInputElement).value)} />
+					</div>
+					<div>
+						<label class={labelClass}>Unsubscribe URL</label>
+						<input class={inputClass} value={props.unsubUrl ?? ''} oninput={(e) => setProp('unsubUrl', (e.target as HTMLInputElement).value)} />
+					</div>
+				</div>
+			</PropSection>
+			<PropSection title="Typography">
+				<div class="flex flex-col gap-2.5">
+					<NumberInput label="Size" value={props.fontSize ?? 12} unit="px" onchange={(v) => setProp('fontSize', v)} />
+					<div>
+						<label class={labelClass}>Text Color</label>
+						<ColorPicker value={props.color ?? '#9ca3af'} onchange={(hex) => setProp('color', hex)} />
+					</div>
+					<div>
+						<label class={labelClass}>Link Color</label>
+						<ColorPicker value={props.linkColor ?? '#6b7280'} onchange={(hex) => setProp('linkColor', hex)} />
+					</div>
+					<AlignmentPills value={props.align ?? 'center'} onchange={(a) => setProp('align', a)} />
 				</div>
 			</PropSection>
 
