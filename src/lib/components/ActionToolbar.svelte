@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { editor } from '$lib/store.svelte';
+	import ConfirmModal from './ConfirmModal.svelte';
 
 	let { blockId }: { blockId: string } = $props();
 
@@ -12,12 +13,15 @@
 	let canDup = $derived(editor.canDuplicate(blockId));
 	let isHeaderOrFooter = $derived(blockType === 'header' || blockType === 'footer');
 
+	let showDeleteConfirm = $state(false);
+
 	function stop(e: MouseEvent) { e.stopPropagation(); }
 
 	function moveUp(e: MouseEvent) { stop(e); if (canMoveUp) editor.moveBlock(blockId, 'up'); }
 	function moveDown(e: MouseEvent) { stop(e); if (canMoveDown) editor.moveBlock(blockId, 'down'); }
 	function duplicate(e: MouseEvent) { stop(e); if (canDup) editor.duplicateBlock(blockId); }
-	function remove(e: MouseEvent) { stop(e); editor.removeBlock(blockId); }
+	function askDelete(e: MouseEvent) { stop(e); showDeleteConfirm = true; }
+	function confirmDelete() { editor.removeBlock(blockId); showDeleteConfirm = false; }
 
 </script>
 
@@ -60,13 +64,23 @@
 	<span class="at-sep"></span>
 
 	<!-- Delete -->
-	<button class="at-btn at-btn-danger" onclick={remove} title="Delete block">
+	<button class="at-btn at-btn-danger" onclick={askDelete} title="Delete block">
 		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
 			<path d="M20 9L18.005 20.3463C17.8369 21.3026 17.0062 22 16.0353 22H7.96474C6.99379 22 6.1631 21.3026 5.99496 20.3463L4 9"/>
 			<path d="M21 6L15.375 6M3 6L8.625 6M8.625 6V4C8.625 2.89543 9.52043 2 10.625 2H13.375C14.4796 2 15.375 2.89543 15.375 4V6M8.625 6L15.375 6"/>
 		</svg>
 	</button>
 </div>
+
+<ConfirmModal
+	open={showDeleteConfirm}
+	title="Delete Block"
+	message="Are you sure you want to delete this {blockType} block?"
+	confirmText="Delete"
+	variant="danger"
+	onconfirm={confirmDelete}
+	oncancel={() => showDeleteConfirm = false}
+/>
 
 <style>
 	.at {
