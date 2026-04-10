@@ -22,6 +22,12 @@ function blockToMjml(block: Block): string {
 	const p = block.props;
 
 	switch (block.type) {
+		case 'header': {
+			const logoHtml = p.logoUrl ? `<img src="${p.logoUrl}" width="${p.logoWidth || 40}" style="display:inline-block;vertical-align:middle;margin-right:12px" />` : '';
+			const taglineHtml = p.tagline ? `<br/><span style="font-size:12px;color:rgba(255,255,255,0.7)">${esc(p.tagline)}</span>` : '';
+			return `<mj-section padding="${pad(block)}" background-color="${p.backgroundColor}"><mj-column><mj-text padding="0" align="${p.align}" font-family="Inter, Arial, sans-serif">${logoHtml}<span style="font-size:${p.fontSize}px;font-weight:700;color:${p.color}">${esc(p.companyName)}</span>${taglineHtml}</mj-text></mj-column></mj-section>`;
+		}
+
 		case 'heading':
 			return `<mj-section padding="0"><mj-column><mj-text padding="${pad(block)}" font-size="${p.fontSize}px" font-weight="${p.fontWeight}" color="${p.color}" align="${p.align}" font-family="Inter, Arial, sans-serif">${p.text}</mj-text></mj-column></mj-section>`;
 
@@ -34,8 +40,10 @@ function blockToMjml(block: Block): string {
 		case 'image':
 			return `<mj-section padding="0"><mj-column><mj-image padding="${pad(block)}" src="${p.src}" alt="${esc(p.alt)}" width="${p.width}px"${p.href ? ` href="${p.href}"` : ''} /></mj-column></mj-section>`;
 
-		case 'button':
-			return `<mj-section padding="0"><mj-column><mj-button padding="${pad(block)}" inner-padding="${p.innerPadding}" background-color="${p.backgroundColor}" color="${p.color}" font-size="${p.fontSize}px" font-weight="${p.fontWeight}" border-radius="${p.borderRadius}px" align="${p.align}" href="${p.href}" font-family="Inter, Arial, sans-serif">${p.text}</mj-button></mj-column></mj-section>`;
+		case 'button': {
+			const widthAttr = p.width === -1 ? ' width="100%"' : p.width > 0 ? ` width="${p.width}px"` : '';
+			return `<mj-section padding="0"><mj-column><mj-button padding="${pad(block)}" inner-padding="${p.innerPadding}" background-color="${p.backgroundColor}" color="${p.color}" font-size="${p.fontSize}px" font-weight="${p.fontWeight}" border-radius="${p.borderRadius}px" align="${p.align}" href="${p.href}"${widthAttr} font-family="Inter, Arial, sans-serif">${p.text}</mj-button></mj-column></mj-section>`;
+		}
 
 		case 'list': {
 			const items = (p.items as string[])

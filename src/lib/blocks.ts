@@ -3,7 +3,7 @@
  * Each block represents a section of the email and maps to MJML output.
  */
 
-export type BlockType = 'heading' | 'subheading' | 'content' | 'image' | 'button' | 'list' | 'section' | 'footer';
+export type BlockType = 'header' | 'heading' | 'subheading' | 'content' | 'image' | 'button' | 'list' | 'section' | 'footer';
 
 export interface Block {
 	id: string;
@@ -24,6 +24,25 @@ export function uid(): string {
 }
 
 export const blockDefs: BlockDefinition[] = [
+	{
+		type: 'header',
+		label: 'Header',
+		icon: 'header',
+		defaultProps: {
+			logoUrl: 'https://mail.axene.io/email-assets/logo.png',
+			companyName: 'Your Company',
+			tagline: '',
+			backgroundColor: '#1daa82',
+			logoWidth: 40,
+			fontSize: 20,
+			color: '#ffffff',
+			align: 'center',
+			paddingTop: 24,
+			paddingBottom: 24,
+			paddingLeft: 24,
+			paddingRight: 24,
+		},
+	},
 	{
 		type: 'heading',
 		label: 'Heading',
@@ -100,6 +119,7 @@ export const blockDefs: BlockDefinition[] = [
 			fontSize: 14,
 			fontWeight: '600',
 			borderRadius: 6,
+			width: 0, // 0 = auto (content width), >0 = fixed px, -1 = full width
 			align: 'center',
 			innerPadding: '12px 32px',
 			paddingTop: 16,
@@ -171,10 +191,17 @@ export function getBlockDef(type: BlockType): BlockDefinition | undefined {
  */
 export function defaultBlocks(): Block[] {
 	return [
-		createBlock('section'),
+		createBlock('header'),
 		createBlock('heading'),
 		createBlock('subheading'),
 		createBlock('button'),
 		createBlock('footer'),
 	];
 }
+
+/** Color palette for the custom color picker. */
+export const colorPalette = [
+	'#1daa82', '#0ea5e9', '#6366f1', '#8b5cf6', '#ec4899', '#ef4444',
+	'#f97316', '#eab308', '#22c55e', '#14b8a6', '#1e293b', '#374151',
+	'#6b7280', '#9ca3af', '#d1d5db', '#ffffff',
+];

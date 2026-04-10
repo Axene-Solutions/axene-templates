@@ -17,6 +17,8 @@ let dirty = $state(false);
 // Derived
 const selected = $derived(blocks.find(b => b.id === selectedId) ?? null);
 const mjmlSource = $derived(blocksToMjml(blocks));
+// Theme color cascades from the header block's backgroundColor
+const themeColor = $derived(blocks.find(b => b.type === 'header')?.props.backgroundColor ?? '#1daa82');
 
 // Actions
 function selectBlock(id: string | null) {
@@ -141,6 +143,7 @@ export const editor = {
 	get templateId() { return templateId; },
 	get dirty() { return dirty; },
 	get mjmlSource() { return mjmlSource; },
+	get themeColor() { return themeColor; },
 	selectBlock,
 	addBlock,
 	removeBlock,
