@@ -5,6 +5,23 @@
 	let activeTab = $state<'layers' | 'blocks'>('blocks');
 	let searchQuery = $state('');
 	let selectedBlockType = $state<BlockType>('button');
+	let editingName = $state(false);
+	let nameInput = $state<HTMLInputElement | null>(null);
+
+	function startNameEdit() {
+		editingName = true;
+		// Focus the input after Svelte renders it
+		setTimeout(() => nameInput?.select(), 0);
+	}
+
+	function finishNameEdit() {
+		editingName = false;
+	}
+
+	function handleNameKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter') { finishNameEdit(); }
+		if (e.key === 'Escape') { editor.templateName = editor.templateName; finishNameEdit(); }
+	}
 
 	function handleBlockClick(type: BlockType) {
 		selectedBlockType = type;
@@ -32,9 +49,20 @@
 		<button class="sb-back">
 			<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="7.5,2 3.5,6 7.5,10"/></svg>
 		</button>
-		<div class="sb-title">
-			{editor.templateName}
-			<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#bbb" stroke-width="1.5"><polyline points="2,3.5 5,6.5 8,3.5"/></svg>
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div class="sb-title" ondblclick={startNameEdit}>
+			{#if editingName}
+				<input
+					class="sb-name-input"
+					bind:this={nameInput}
+					bind:value={editor.templateName}
+					onblur={finishNameEdit}
+					onkeydown={handleNameKeydown}
+				/>
+			{:else}
+				<span class="sb-name-text" title="Double-click to rename">{editor.templateName}</span>
+				<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#bbb" stroke-width="1.5"><polyline points="2,3.5 5,6.5 8,3.5"/></svg>
+			{/if}
 		</div>
 		<button class="sb-grid">
 			<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="0.5" y="0.5" width="5" height="5" rx="0.8" fill="#ccc"/><rect x="7.5" y="0.5" width="5" height="5" rx="0.8" fill="#ccc"/><rect x="0.5" y="7.5" width="5" height="5" rx="0.8" fill="#ccc"/><rect x="7.5" y="7.5" width="5" height="5" rx="0.8" fill="#ccc"/></svg>
@@ -222,7 +250,20 @@
 		gap: 5px;
 	}
 	.sb-back { color: #999; background: none; border: none; cursor: pointer; display: flex; align-items: center; padding: 0; }
-	.sb-title { font-size: 13px; font-weight: 500; color: #1a1a1a; display: flex; align-items: center; gap: 3px; flex: 1; overflow: hidden; white-space: nowrap; }
+	.sb-title { font-size: 13px; font-weight: 500; color: #1a1a1a; display: flex; align-items: center; gap: 3px; flex: 1; overflow: hidden; white-space: nowrap; cursor: default; }
+	.sb-name-text { overflow: hidden; text-overflow: ellipsis; }
+	.sb-name-input {
+		border: 1px solid #1daa82;
+		border-radius: 4px;
+		padding: 1px 5px;
+		font-size: 13px;
+		font-weight: 500;
+		color: #1a1a1a;
+		outline: none;
+		width: 100%;
+		background: #fff;
+		font-family: inherit;
+	}
 	.sb-grid { background: none; border: none; cursor: pointer; padding: 0; color: #bbb; display: flex; }
 
 	/* Tabs */
