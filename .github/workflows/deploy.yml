@@ -1,0 +1,51 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: POSTGRES_PASSWORD,DATABASE_URL,JWT_SECRET,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,OAUTH_REDIRECT_URL
+          script: |
+            set -e
+
+            # Clone or pull
+            if [ ! -d /opt/axene-templates ]; then
+              git clone git@github.com:Axene-Solutions/axene-templates.git /opt/axene-templates
+            fi
+            cd /opt/axene-templates
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Write .env
+            cat > .env << EOF
+            DATABASE_URL=$DATABASE_URL
+            POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+            GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID
+            GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET
+            JWT_SECRET=$JWT_SECRET
+            OAUTH_REDIRECT_URL=$OAUTH_REDIRECT_URL
+            NODE_ENV=production
+            EOF
+            sed -i 's/^[[:space:]]*//' .env
+
+            # Build and deploy
+            docker compose -f docker-compose.yml down --remove-orphans || true
+            docker compose -f docker-compose.yml build
+            docker compose -f docker-compose.yml up -d
+
+            # Wait for postgres then push schema
+            sleep 5
+            docker compose exec -T app npx drizzle-kit push --force || echo "Schema push attempted"
+
+            echo "Deploy complete"
