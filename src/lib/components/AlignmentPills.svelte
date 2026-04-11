@@ -28,13 +28,13 @@
 	.ap-pill {
 		flex: 1;
 		padding: 5px 0;
-		border: 1px solid #e0e0e0;
+		border: 1px solid rgba(255,255,255,0.08);
 		border-radius: 5px;
 		font-size: 10.5px;
 		text-align: center;
 		cursor: pointer;
-		color: #666;
-		background: #fff;
+		color: #888;
+		background: transparent;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -42,10 +42,10 @@
 		transition: all 0.15s;
 		font-family: inherit;
 	}
-	.ap-pill:hover { border-color: #ccc; color: #333; }
+	.ap-pill:hover { border-color: rgba(255,255,255,0.15); color: #ccc; }
 	.ap-pill.active {
-		border-color: #1daa82;
-		background: #edf8f4;
-		color: #1daa82;
+		border-color: #FFD100;
+		background: rgba(255,209,0,0.08);
+		color: #FFD100;
 	}
 </style>

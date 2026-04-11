@@ -144,11 +144,11 @@
 				<div class="rp-flex-col">
 					<div>
 						<label class={labelClass}>Accent Color <span class="rp-label-hint">(buttons & theme)</span></label>
-						<ColorPicker value={props.accentColor ?? '#1daa82'} onchange={(hex) => setProp('accentColor', hex)} />
+						<ColorPicker value={props.accentColor ?? '#FFD100'} onchange={(hex) => setProp('accentColor', hex)} />
 					</div>
 					<div>
 						<label class={labelClass}>Background</label>
-						<ColorPicker value={props.backgroundColor ?? '#1daa82'} onchange={(hex) => setProp('backgroundColor', hex)} />
+						<ColorPicker value={props.backgroundColor ?? '#FFD100'} onchange={(hex) => setProp('backgroundColor', hex)} />
 					</div>
 					{#if (props.layout ?? 'logo-left') !== 'logo-only'}
 						<div>
@@ -209,7 +209,7 @@
 					<div>
 						<label class={labelClass}>Link URL</label>
 						<div class="rp-link-row">
-							<svg width="14" height="14" style="color:#1daa82;flex-shrink:0;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+							<svg width="14" height="14" style="color:#FFD100;flex-shrink:0;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
 								<path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
 							</svg>
 							<input type="text" value={props.href ?? ''} oninput={(e) => setProp('href', (e.target as HTMLInputElement).value)} />
@@ -236,7 +236,7 @@
 				<div class="rp-flex-col">
 					<div>
 						<label class={labelClass}>Background</label>
-						<ColorPicker value={props.backgroundColor ?? '#1daa82'} onchange={(hex) => setProp('backgroundColor', hex)} />
+						<ColorPicker value={props.backgroundColor ?? '#FFD100'} onchange={(hex) => setProp('backgroundColor', hex)} />
 					</div>
 					<div>
 						<label class={labelClass}>Text</label>
@@ -266,7 +266,7 @@
 					<div>
 						<label class={labelClass}>Link URL</label>
 						<div class="rp-link-row">
-							<svg width="14" height="14" style="color:#1daa82;flex-shrink:0;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+							<svg width="14" height="14" style="color:#FFD100;flex-shrink:0;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
 								<path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
 							</svg>
 							<input type="text" value={props.href ?? ''} oninput={(e) => setProp('href', (e.target as HTMLInputElement).value)} />
@@ -323,7 +323,7 @@
 					</div>
 					<div>
 						<label class={labelClass}>Bullet Color</label>
-						<ColorPicker value={props.bulletColor ?? '#1daa82'} onchange={(hex) => setProp('bulletColor', hex)} />
+						<ColorPicker value={props.bulletColor ?? '#FFD100'} onchange={(hex) => setProp('bulletColor', hex)} />
 					</div>
 				</div>
 			</PropSection>
@@ -550,8 +550,8 @@
 <style>
 	.right-panel {
 		width: 220px;
-		background: #fff;
-		border-left: 1px solid #ebebeb;
+		background: #141414;
+		border-left: 1px solid rgba(255,255,255,0.06);
 		display: flex;
 		flex-direction: column;
 		flex-shrink: 0;
@@ -564,7 +564,7 @@
 	/* Top bar */
 	.rp-topbar {
 		padding: 8px 10px;
-		border-bottom: 1px solid #f0f0f0;
+		border-bottom: 1px solid rgba(255,255,255,0.06);
 		display: flex;
 		align-items: center;
 		gap: 5px;
@@ -572,21 +572,21 @@
 	.rp-icon-btn {
 		width: 24px;
 		height: 24px;
-		border: 1px solid #e8e8e8;
+		border: 1px solid rgba(255,255,255,0.08);
 		border-radius: 5px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		cursor: pointer;
-		color: #999;
-		background: #fff;
+		color: #666;
+		background: #141414;
 		transition: background 0.1s, color 0.1s;
 	}
-	.rp-icon-btn:hover { background: #f5f5f5; color: #555; }
+	.rp-icon-btn:hover { background: rgba(255,255,255,0.04); color: #888; }
 	.rp-use-mail {
 		margin-left: auto;
-		background: #1daa82;
-		color: #fff;
+		background: #FFD100;
+		color: #000;
 		border: none;
 		border-radius: 7px;
 		padding: 6px 12px;
@@ -599,20 +599,20 @@
 		gap: 5px;
 		white-space: nowrap;
 	}
-	.rp-use-mail:hover { background: #189e78; }
+	.rp-use-mail:hover { background: #e6bc00; }
 	.rp-use-mail svg { flex-shrink: 0; }
 
 	/* Tabs */
 	.rp-tab-wrap {
 		display: flex;
-		border-bottom: 1px solid #f0f0f0;
+		border-bottom: 1px solid rgba(255,255,255,0.06);
 	}
 	.rp-tab {
 		flex: 1;
 		text-align: center;
 		padding: 8px 0;
 		font-size: 12px;
-		color: #bbb;
+		color: #555;
 		cursor: pointer;
 		border: none;
 		background: none;
@@ -620,16 +620,16 @@
 		font-family: inherit;
 	}
 	.rp-tab.active {
-		color: #1a1a1a;
+		color: #e0e0e0;
 		font-weight: 500;
-		background: #f9f9f9;
+		background: rgba(255,255,255,0.03);
 	}
 
 	/* Inputs & labels */
 	.right-panel :global(.rp-input) {
 		width: 100%;
 		background: #fafafa;
-		border: 1px solid #e8e8e8;
+		border: 1px solid rgba(255,255,255,0.08);
 		border-radius: 5px;
 		padding: 5px 8px;
 		font-size: 11.5px;
@@ -639,7 +639,7 @@
 		transition: border-color 0.15s;
 		box-sizing: border-box;
 	}
-	.right-panel :global(.rp-input:focus) { border-color: #1daa82; }
+	.right-panel :global(.rp-input:focus) { border-color: #FFD100; }
 	.right-panel :global(textarea.rp-input) { resize: none; line-height: 1.5; }
 	.right-panel :global(.rp-label) {
 		display: block;
@@ -654,7 +654,7 @@
 	}
 	.right-panel :global(.rp-add-btn) {
 		font-size: 11px;
-		color: #1daa82;
+		color: #FFD100;
 		font-weight: 500;
 		cursor: pointer;
 		background: none;
@@ -685,15 +685,15 @@
 		text-align: center;
 		cursor: pointer;
 		color: #666;
-		background: #fff;
+		background: #141414;
 		font-family: inherit;
 		transition: all 0.15s;
 	}
 	.right-panel :global(.rp-width-pill:hover) { border-color: #ccc; }
 	.right-panel :global(.rp-width-pill.active) {
-		border-color: #1daa82;
+		border-color: #FFD100;
 		background: #edf8f4;
-		color: #1daa82;
+		color: #FFD100;
 	}
 	.right-panel :global(.rp-checkbox-row) {
 		display: flex;
@@ -703,12 +703,12 @@
 		color: #666;
 		cursor: pointer;
 	}
-	.right-panel :global(.rp-checkbox-row input) { accent-color: #1daa82; }
+	.right-panel :global(.rp-checkbox-row input) { accent-color: #FFD100; }
 	.right-panel :global(.rp-link-row) {
 		display: flex;
 		align-items: center;
 		gap: 6px;
-		border: 1px solid #e8e8e8;
+		border: 1px solid rgba(255,255,255,0.08);
 		border-radius: 5px;
 		padding: 5px 8px;
 		background: #fafafa;
@@ -740,23 +740,23 @@
 		aspect-ratio: 1/1;
 		border: 1px solid #e0e0e0;
 		border-radius: 6px;
-		background: #fff;
+		background: #141414;
 		cursor: pointer;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		padding: 4px;
 		transition: all 0.15s;
-		color: #bbb;
+		color: #555;
 	}
 	.right-panel :global(.rp-layout-btn:hover) {
 		border-color: #ccc;
 		color: #666;
 	}
 	.right-panel :global(.rp-layout-btn.active) {
-		border-color: #1daa82;
+		border-color: #FFD100;
 		background: #edf8f4;
-		color: #1daa82;
+		color: #FFD100;
 	}
 
 	/* Empty state */
@@ -769,5 +769,5 @@
 		gap: 10px;
 		padding: 24px;
 	}
-	.rp-empty span { font-size: 12px; color: #bbb; }
+	.rp-empty span { font-size: 12px; color: #555; }
 </style>

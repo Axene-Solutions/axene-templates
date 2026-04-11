@@ -176,8 +176,8 @@
 
 	.toolbar {
 		height: 44px;
-		background: #fff;
-		border-bottom: 1px solid #ebebeb;
+		background: #141414;
+		border-bottom: 1px solid rgba(255,255,255,0.06);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -191,8 +191,8 @@
 		display: flex;
 		align-items: center;
 		gap: 1px;
-		background: #f5f5f5;
-		border: 1px solid #e8e8e8;
+		background: rgba(255,255,255,0.04);
+		border: 1px solid rgba(255,255,255,0.08);
 		border-radius: 8px;
 		padding: 3px;
 	}
@@ -206,68 +206,68 @@
 		align-items: center;
 		justify-content: center;
 		cursor: pointer;
-		color: #999;
+		color: #666;
 		background: transparent;
 		transition: all 0.15s;
 	}
-	.tb-btn:hover { color: #555; }
+	.tb-btn:hover { color: #666; }
 	.tb-btn.active {
-		background: #fff;
-		border-color: #e0e0e0;
-		color: #333;
-		box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+		background: #141414;
+		border-color: rgba(255,255,255,0.12);
+		color: #ccc;
+		box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 	}
 
 	.tb-lang {
 		display: flex;
 		align-items: center;
 		gap: 4px;
-		border: 1px solid #e8e8e8;
+		border: 1px solid rgba(255,255,255,0.08);
 		border-radius: 6px;
 		padding: 4px 9px;
 		font-size: 11.5px;
-		color: #555;
+		color: #666;
 		cursor: pointer;
-		background: #fff;
+		background: #141414;
 		height: 28px;
 	}
-	.tb-lang:hover { background: #f9f9f9; }
+	.tb-lang:hover { background: rgba(255,255,255,0.03); }
 
 	.tb-preview {
 		display: flex;
 		align-items: center;
 		gap: 5px;
-		border: 1px solid #e8e8e8;
-		border-radius: 6px;
-		padding: 4px 10px;
-		font-size: 11.5px;
-		color: #555;
-		cursor: pointer;
-		background: #fff;
-		height: 28px;
-		transition: all 0.15s;
-	}
-	.tb-preview:hover { background: #f9f9f9; }
-	.tb-preview.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
-
-	.tb-action {
-		display: flex;
-		align-items: center;
-		gap: 5px;
-		border: 1px solid #e8e8e8;
+		border: 1px solid rgba(255,255,255,0.08);
 		border-radius: 6px;
 		padding: 4px 10px;
 		font-size: 11.5px;
 		color: #666;
 		cursor: pointer;
-		background: #fff;
+		background: #141414;
+		height: 28px;
+		transition: all 0.15s;
+	}
+	.tb-preview:hover { background: rgba(255,255,255,0.03); }
+	.tb-preview.active { background: #222; color: #fff; border-color: #1a1a1a; }
+
+	.tb-action {
+		display: flex;
+		align-items: center;
+		gap: 5px;
+		border: 1px solid rgba(255,255,255,0.08);
+		border-radius: 6px;
+		padding: 4px 10px;
+		font-size: 11.5px;
+		color: #666;
+		cursor: pointer;
+		background: #141414;
 		height: 28px;
 	}
-	.tb-action:hover { background: #f5f5f5; color: #333; }
+	.tb-action:hover { background: rgba(255,255,255,0.04); color: #ccc; }
 
 	.tb-save {
-		background: #1daa82;
-		color: #fff;
+		background: #FFD100;
+		color: #000;
 		border: none;
 		border-radius: 7px;
 		padding: 6px 14px;
@@ -279,7 +279,7 @@
 		align-items: center;
 		transition: background 0.15s;
 	}
-	.tb-save:hover { background: #189e78; }
+	.tb-save:hover { background: #e6bc00; }
 
 	.tb-undo-redo {
 		display: flex;
@@ -290,11 +290,11 @@
 		border: 1px solid transparent;
 		border-radius: 6px;
 		cursor: pointer;
-		color: #777;
+		color: #666;
 		font-family: inherit;
 		transition: background 0.12s, color 0.12s, border-color 0.12s;
 	}
-	.tb-undo-redo:hover { background: #f5f5f5; color: #333; border-color: #e8e8e8; }
+	.tb-undo-redo:hover { background: rgba(255,255,255,0.04); color: #ccc; border-color: #e8e8e8; }
 	.tb-undo-redo.disabled { opacity: 0.25; cursor: not-allowed; pointer-events: none; }
 	.tb-shortcut {
 		font-size: 10px;
@@ -302,7 +302,7 @@
 		font-weight: 500;
 		letter-spacing: 0.3px;
 	}
-	.tb-undo-redo:hover .tb-shortcut { color: #999; }
+	.tb-undo-redo:hover .tb-shortcut { color: #666; }
 
 	.tb-sep {
 		width: 1px;
@@ -313,7 +313,7 @@
 
 	.canvas {
 		flex: 1;
-		background: #ddeadd;
+		background: #222;
 		display: flex;
 		align-items: flex-start;
 		justify-content: center;
@@ -324,7 +324,7 @@
 	.canvas::-webkit-scrollbar-thumb { background: #bbb; border-radius: 3px; }
 
 	.email-wrap {
-		border: 2px dashed #9aabee;
+		border: 2px dashed rgba(255,209,0,0.3);
 		border-radius: 3px;
 		width: 100%;
 		background: transparent;

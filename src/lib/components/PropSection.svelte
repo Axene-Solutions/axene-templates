@@ -25,7 +25,7 @@
 </div>
 
 <style>
-	.prop-section { border-bottom: 1px solid #f0f0f0; }
+	.prop-section { border-bottom: 1px solid rgba(255,255,255,0.06); }
 	.prop-header {
 		display: flex;
 		align-items: center;
@@ -37,9 +37,9 @@
 		cursor: pointer;
 		font-family: inherit;
 	}
-	.prop-header:hover { background: #fafafa; }
-	.prop-title { font-size: 11.5px; font-weight: 600; color: #1a1a1a; }
-	.prop-chevron { color: #bbb; transition: transform 0.2s; }
+	.prop-header:hover { background: rgba(255,255,255,0.03); }
+	.prop-title { font-size: 11.5px; font-weight: 600; color: #e0e0e0; }
+	.prop-chevron { color: #555; transition: transform 0.2s; }
 	.prop-chevron.closed { transform: rotate(-90deg); }
 	.prop-body { padding: 0 12px 10px; }
 </style>

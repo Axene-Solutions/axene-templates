@@ -113,29 +113,29 @@
 		background-size: 6px 6px;
 		background-position: 0 0, 0 3px, 3px -3px, -3px 0;
 		background-color: #fff;
-		border: 1px solid #ddd;
+		border: 1px solid rgba(255,255,255,0.1);
 	}
 
 	.cp-none-label {
 		font-size: 11px;
-		color: #aaa;
+		color: #666;
 	}
 
 	.cp-hex-input {
 		display: flex;
 		align-items: center;
-		background: #fafafa;
-		border: 1px solid #e8e8e8;
+		background: rgba(255,255,255,0.04);
+		border: 1px solid rgba(255,255,255,0.08);
 		border-radius: 5px;
 		padding: 3px 7px;
 		flex: 1;
 	}
-	.cp-hash { font-size: 11px; color: #bbb; }
+	.cp-hash { font-size: 11px; color: #555; }
 	.cp-hex-input input {
 		border: none;
 		background: transparent;
 		font-size: 11px;
-		color: #333;
+		color: #ddd;
 		outline: none;
 		width: 100%;
 		margin-left: 2px;

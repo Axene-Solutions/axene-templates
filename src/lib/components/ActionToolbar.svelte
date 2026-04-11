@@ -88,8 +88,8 @@
 		align-items: center;
 		gap: 2px;
 		padding: 3px 4px;
-		background: #fff;
-		border: 1px solid #e0e0e0;
+		background: #1e1e1e;
+		border: 1px solid rgba(255,255,255,0.1);
 		border-radius: 8px;
 		box-shadow: 0 2px 8px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.04);
 		font-family: 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -98,8 +98,8 @@
 	.at-badge {
 		font-size: 10px;
 		font-weight: 600;
-		color: #1daa82;
-		background: #edf8f4;
+		color: #FFD100;
+		background: rgba(255,209,0,0.1);
 		padding: 2px 7px;
 		border-radius: 4px;
 		text-transform: capitalize;
@@ -123,15 +123,15 @@
 		border: none;
 		border-radius: 5px;
 		cursor: pointer;
-		color: #777;
+		color: #666;
 		transition: background 0.12s, color 0.12s;
 	}
-	.at-btn:hover { background: #f0f0f0; color: #333; }
+	.at-btn:hover { background: rgba(255,255,255,0.06); color: #ccc; }
 	.at-btn.disabled {
 		opacity: 0.25;
 		cursor: not-allowed;
 		pointer-events: none;
 	}
 
-	.at-btn-danger:hover { background: #fef2f2; color: #dc2626; }
+	.at-btn-danger:hover { background: rgba(220,38,38,0.1); color: #dc2626; }
 </style>

@@ -115,7 +115,7 @@
 					>
 						<div class="block-preview">
 							{#if def.type === 'header'}
-								<div style="width:100%;height:28px;background:#1daa82;border-radius:2px;display:flex;align-items:center;justify-content:center;gap:4px;">
+								<div style="width:100%;height:28px;background:#FFD100;border-radius:2px;display:flex;align-items:center;justify-content:center;gap:4px;">
 									<div style="width:8px;height:8px;border-radius:2px;background:rgba(255,255,255,0.6);"></div>
 									<div style="width:24px;height:3px;background:rgba(255,255,255,0.8);border-radius:1px;"></div>
 								</div>
@@ -151,7 +151,7 @@
 							{:else if def.type === 'button'}
 								<div style="width:100%;display:flex;flex-direction:column;gap:5px;align-items:center;">
 									<div style="width:80%;height:3px;background:#ccc;border-radius:1px;"></div>
-									<div style="width:100%;height:10px;background:#1daa82;border-radius:3px;"></div>
+									<div style="width:100%;height:10px;background:#FFD100;border-radius:3px;"></div>
 								</div>
 							{:else if def.type === 'table'}
 								<div style="width:100%;display:flex;flex-direction:column;gap:0;">
@@ -232,8 +232,8 @@
 <style>
 	.sidebar {
 		width: 178px;
-		background: #fff;
-		border-right: 1px solid #ebebeb;
+		background: #141414;
+		border-right: 1px solid rgba(255,255,255,0.06);
 		display: flex;
 		flex-direction: column;
 		flex-shrink: 0;
@@ -244,48 +244,48 @@
 	/* Header */
 	.sb-header {
 		padding: 11px 12px 9px;
-		border-bottom: 1px solid #f0f0f0;
+		border-bottom: 1px solid rgba(255,255,255,0.06);
 		display: flex;
 		align-items: center;
 		gap: 5px;
 	}
-	.sb-back { color: #999; background: none; border: none; cursor: pointer; display: flex; align-items: center; padding: 0; }
-	.sb-title { font-size: 13px; font-weight: 500; color: #1a1a1a; display: flex; align-items: center; gap: 3px; flex: 1; overflow: hidden; white-space: nowrap; cursor: default; }
+	.sb-back { color: #555; background: none; border: none; cursor: pointer; display: flex; align-items: center; padding: 0; }
+	.sb-title { font-size: 13px; font-weight: 500; color: #e0e0e0; display: flex; align-items: center; gap: 3px; flex: 1; overflow: hidden; white-space: nowrap; cursor: default; }
 	.sb-name-text { overflow: hidden; text-overflow: ellipsis; }
 	.sb-name-input {
-		border: 1px solid #1daa82;
+		border: 1px solid #FFD100;
 		border-radius: 4px;
 		padding: 1px 5px;
 		font-size: 13px;
 		font-weight: 500;
-		color: #1a1a1a;
+		color: #e0e0e0;
 		outline: none;
 		width: 100%;
-		background: #fff;
+		background: #141414;
 		font-family: inherit;
 	}
-	.sb-grid { background: none; border: none; cursor: pointer; padding: 0; color: #bbb; display: flex; }
+	.sb-grid { background: none; border: none; cursor: pointer; padding: 0; color: #444; display: flex; }
 
 	/* Tabs */
-	.sb-tabs { display: flex; gap: 18px; padding: 9px 13px 0; border-bottom: 1px solid #f0f0f0; }
-	.sb-tab { font-size: 12.5px; color: #aaa; padding-bottom: 7px; cursor: pointer; border: none; background: none; border-bottom: 2px solid transparent; line-height: 1; }
-	.sb-tab.active { color: #1a1a1a; font-weight: 500; border-bottom-color: #1a1a1a; }
+	.sb-tabs { display: flex; gap: 18px; padding: 9px 13px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+	.sb-tab { font-size: 12.5px; color: #555; padding-bottom: 7px; cursor: pointer; border: none; background: none; border-bottom: 2px solid transparent; line-height: 1; }
+	.sb-tab.active { color: #e0e0e0; font-weight: 500; border-bottom-color: #e0e0e0; }
 
 	/* Pills */
 	.sb-pills { display: flex; gap: 5px; padding: 8px 10px; }
-	.sb-pill { font-size: 11px; padding: 3px 11px; border-radius: 20px; border: 1px solid #e0e0e0; background: #fff; color: #666; cursor: pointer; line-height: 1.4; }
-	.sb-pill.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+	.sb-pill { font-size: 11px; padding: 3px 11px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.08); background: #141414; color: #888; cursor: pointer; line-height: 1.4; }
+	.sb-pill.active { background: #e0e0e0; color: #fff; border-color: #e0e0e0; }
 
 	/* Search */
-	.sb-search { margin: 0 10px 8px; border: 1px solid #e8e8e8; border-radius: 7px; padding: 5px 9px; display: flex; align-items: center; gap: 6px; background: #fafafa; }
+	.sb-search { margin: 0 10px 8px; border: 1px solid rgba(255,255,255,0.08); border-radius: 7px; padding: 5px 9px; display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.04); }
 	.sb-search input { border: none; background: transparent; font-size: 11.5px; color: #555; outline: none; flex: 1; width: 0; font-family: inherit; }
-	.sb-search input::placeholder { color: #bbb; }
+	.sb-search input::placeholder { color: #444; }
 	.sb-shortcut { display: flex; align-items: center; gap: 3px; }
 	.kbd { font-size: 9px; color: #ccc; border: 1px solid #e5e5e5; border-radius: 3px; padding: 1px 4px; line-height: 1.4; }
 
 	/* Section header */
 	.sb-section-hdr { padding: 4px 12px 6px; display: flex; align-items: center; justify-content: space-between; }
-	.sb-section-hdr span { font-size: 12px; font-weight: 500; color: #1a1a1a; }
+	.sb-section-hdr span { font-size: 12px; font-weight: 500; color: #e0e0e0; }
 
 	/* Scroll area */
 	.sb-scroll { flex: 1; overflow-y: auto; padding-bottom: 8px; }
@@ -294,7 +294,7 @@
 	/* Block grid */
 	.blocks-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; padding: 0 9px; }
 	.block-card {
-		border: 1px solid #e8e8e8;
+		border: 1px solid rgba(255,255,255,0.08);
 		border-radius: 8px;
 		padding: 9px 7px 6px;
 		display: flex;
@@ -302,39 +302,39 @@
 		align-items: center;
 		gap: 5px;
 		cursor: pointer;
-		background: #fff;
+		background: #141414;
 		transition: border-color 0.15s, box-shadow 0.15s;
 	}
-	.block-card:hover { border-color: #ccc; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
-	.block-card.selected { border: 1.5px solid #1daa82; background: #f0fbf7; box-shadow: 0 0 0 3px rgba(29,170,130,.1); }
+	.block-card:hover { border-color: rgba(255,255,255,0.12); box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+	.block-card.selected { border: 1.5px solid #FFD100; background: rgba(255,209,0,0.06); box-shadow: 0 0 0 3px rgba(29,170,130,.1); }
 	.block-card.disabled { opacity: 0.4; cursor: not-allowed; }
 	.block-card.disabled:hover { border-color: #e8e8e8; box-shadow: none; }
 	.block-preview { width: 50px; height: 30px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-	.block-name { font-size: 10.5px; color: #666; }
-	.block-card.selected .block-name { color: #1daa82; font-weight: 500; }
+	.block-name { font-size: 10.5px; color: #888; }
+	.block-card.selected .block-name { color: #FFD100; font-weight: 500; }
 
 	/* Block preview shapes */
-	.img-preview { width: 50px; height: 30px; border: 1.5px solid #ddd; border-radius: 3px; position: relative; overflow: hidden; }
+	.img-preview { width: 50px; height: 30px; border: 1.5px solid #444; border-radius: 3px; position: relative; overflow: hidden; }
 	.img-mtn { position: absolute; bottom: 0; left: 0; right: 0; height: 16px; background: #e8e8e8; clip-path: polygon(0 100%, 30% 20%, 60% 60%, 80% 30%, 100% 60%, 100% 100%); }
-	.img-sun { position: absolute; top: 4px; left: 6px; width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid #ddd; }
+	.img-sun { position: absolute; top: 4px; left: 6px; width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid #444; }
 	.list-dot { width: 4px; height: 4px; border-radius: 50%; background: #d0d0d0; flex-shrink: 0; }
-	.section-preview { width: 26px; height: 30px; border: 1.5px solid #ddd; border-radius: 3px; display: flex; flex-direction: column; justify-content: flex-end; padding: 2px; }
-	.section-inner { height: 10px; background: #ececec; border-radius: 2px; }
+	.section-preview { width: 26px; height: 30px; border: 1.5px solid #444; border-radius: 3px; display: flex; flex-direction: column; justify-content: flex-end; padding: 2px; }
+	.section-inner { height: 10px; background: #333; border-radius: 2px; }
 
 	/* Template cards */
 	.template-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; padding: 4px 9px 10px; }
-	.tpl-card { border: 1px solid #e8e8e8; border-radius: 8px; overflow: hidden; cursor: pointer; transition: transform 0.15s; }
-	.tpl-card:hover { transform: translateY(-1px); border-color: #1daa82; }
+	.tpl-card { border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; overflow: hidden; cursor: pointer; transition: transform 0.15s; }
+	.tpl-card:hover { transform: translateY(-1px); border-color: #FFD100; }
 	.tpl-img { height: 48px; overflow: hidden; }
 	.tpl-img.v1 { background: linear-gradient(135deg, #d4a860, #c08040); }
 	.tpl-img.v2 { background: linear-gradient(135deg, #c8825a, #a86040); }
 	.tpl-streets { width: 100%; height: 100%; background: repeating-linear-gradient(0deg, rgba(0,0,0,.06) 0px, rgba(0,0,0,.06) 1px, transparent 1px, transparent 8px), repeating-linear-gradient(90deg, rgba(0,0,0,.04) 0px, rgba(0,0,0,.04) 1px, transparent 1px, transparent 12px); }
 	.tpl-body { padding: 5px 6px 3px; }
 	.tpl-heading { font-size: 9px; font-weight: 600; color: #111; margin-bottom: 3px; }
-	.tpl-text-line { height: 2px; background: #e5e7eb; border-radius: 1px; margin-bottom: 2px; }
+	.tpl-text-line { height: 2px; background: #333; border-radius: 1px; margin-bottom: 2px; }
 	.tpl-text-line.short { width: 66%; }
 	.tpl-footer { padding: 3px 6px 6px; }
-	.tpl-btn { display: inline-block; font-size: 8px; padding: 2px 10px; background: #1daa82; color: #fff; border-radius: 3px; font-weight: 500; }
+	.tpl-btn { display: inline-block; font-size: 8px; padding: 2px 10px; background: #FFD100; color: #fff; border-radius: 3px; font-weight: 500; }
 
 	/* Layers */
 	.layer-item {
@@ -347,15 +347,15 @@
 		background: none;
 		cursor: pointer;
 		font-size: 11.5px;
-		color: #666;
+		color: #888;
 		text-transform: capitalize;
 		font-family: inherit;
 		text-align: left;
 		transition: background 0.1s;
 	}
 	.layer-item:hover { background: #f9f9f9; }
-	.layer-item.active { background: #edf8f4; color: #1daa82; }
-	.layer-idx { font-size: 9px; color: #bbb; width: 14px; text-align: right; flex-shrink: 0; }
+	.layer-item.active { background: #edf8f4; color: #FFD100; }
+	.layer-idx { font-size: 9px; color: #444; width: 14px; text-align: right; flex-shrink: 0; }
 	.layer-name { flex: 1; }
-	.layer-badge { font-size: 8px; color: #999; background: #f0f0f0; border-radius: 3px; padding: 1px 4px; font-weight: 600; }
+	.layer-badge { font-size: 8px; color: #555; background: #f0f0f0; border-radius: 3px; padding: 1px 4px; font-weight: 600; }
 </style>

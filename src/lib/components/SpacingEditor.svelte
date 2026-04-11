@@ -32,20 +32,20 @@
 <style>
 	.sp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
 	.sp-cell {
-		border: 1px solid #e8e8e8;
+		border: 1px solid rgba(255,255,255,0.08);
 		border-radius: 4px;
 		padding: 4px 6px;
-		background: #fafafa;
+		background: rgba(255,255,255,0.04);
 		display: flex;
 		align-items: center;
 		gap: 4px;
 	}
-	.sp-label { font-size: 9px; color: #bbb; }
+	.sp-label { font-size: 9px; color: #555; }
 	.sp-input {
 		border: none;
 		background: transparent;
 		font-size: 11px;
-		color: #333;
+		color: #ddd;
 		width: 100%;
 		text-align: right;
 		outline: none;

@@ -56,7 +56,7 @@
 		justify-content: center;
 	}
 	.cm-card {
-		background: #fff;
+		background: #1e1e1e;
 		border-radius: 12px;
 		box-shadow: 0 4px 24px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.04);
 		max-width: 400px;
@@ -67,12 +67,12 @@
 	.cm-title {
 		font-size: 16px;
 		font-weight: 600;
-		color: #111827;
+		color: #e0e0e0;
 		margin-bottom: 8px;
 	}
 	.cm-message {
 		font-size: 14px;
-		color: #6b7280;
+		color: #888;
 		line-height: 1.5;
 		margin-bottom: 20px;
 	}
@@ -92,16 +92,16 @@
 		transition: background 0.15s, opacity 0.15s;
 	}
 	.cm-btn-cancel {
-		background: #fff;
-		color: #555;
-		border: 1px solid #e0e0e0;
+		background: #1e1e1e;
+		color: #888;
+		border: 1px solid rgba(255,255,255,0.1);
 	}
-	.cm-btn-cancel:hover { background: #f5f5f5; }
+	.cm-btn-cancel:hover { background: rgba(255,255,255,0.06); }
 	.cm-btn-confirm {
-		background: #1daa82;
-		color: #fff;
+		background: #FFD100;
+		color: #000;
 	}
-	.cm-btn-confirm:hover { background: #189e78; }
+	.cm-btn-confirm:hover { background: #e6bc00; }
 	.cm-btn-danger {
 		background: #dc2626;
 		color: #fff;

@@ -59,8 +59,8 @@
 <style>
 	.rail {
 		width: 46px;
-		background: #fff;
-		border-right: 1px solid #ebebeb;
+		background: #141414;
+		border-right: 1px solid rgba(255,255,255,0.06);
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -77,14 +77,14 @@
 	.nav-btn {
 		width: 30px; height: 30px; border-radius: 7px;
 		display: flex; align-items: center; justify-content: center;
-		cursor: pointer; color: #aaa; border: none; background: transparent;
+		cursor: pointer; color: #888; border: none; background: transparent;
 		text-decoration: none; transition: background 0.12s, color 0.12s;
 	}
-	.nav-btn:hover { background: #f5f5f5; color: #555; }
-	.nav-btn.active { background: #edf8f4; color: #1daa82; }
+	.nav-btn:hover { background: rgba(255,255,255,0.05); color: #888; }
+	.nav-btn.active { background: rgba(255,209,0,0.08); color: #FFD100; }
 	.spacer { flex: 1; }
 	.avatar {
-		width: 26px; height: 26px; border-radius: 50%; background: #eee;
+		width: 26px; height: 26px; border-radius: 50%; background: #2a2a2a;
 		display: flex; align-items: center; justify-content: center;
 		overflow: hidden; margin-top: 4px;
 	}

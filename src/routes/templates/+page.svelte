@@ -12,7 +12,7 @@
 	let editingName = $state('');
 
 	const gradients = [
-		'linear-gradient(135deg, #1daa82, #0d8f62)',
+		'linear-gradient(135deg, #FFD100, #0d8f62)',
 		'linear-gradient(135deg, #6366f1, #4f46e5)',
 		'linear-gradient(135deg, #0ea5e9, #0284c7)',
 		'linear-gradient(135deg, #f59e0b, #d97706)',
@@ -268,7 +268,7 @@
 	.page {
 		overflow-y: auto;
 		flex: 1;
-		background: #fff;
+		background: #101010;
 		padding: 32px 36px 48px;
 		font-family: 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif;
 	}
@@ -290,7 +290,7 @@
 	.title {
 		font-size: 24px;
 		font-weight: 700;
-		color: #111;
+		color: #fff;
 		margin: 0;
 		line-height: 1;
 	}
@@ -298,8 +298,8 @@
 	.count-badge {
 		font-size: 11px;
 		font-weight: 600;
-		color: #666;
-		background: #f0f0f0;
+		color: #888;
+		background: rgba(255,255,255,0.08);
 		border-radius: 999px;
 		padding: 2px 9px;
 		line-height: 1.5;
@@ -309,7 +309,7 @@
 		display: flex;
 		align-items: center;
 		gap: 6px;
-		background: #1daa82;
+		background: #FFD100;
 		color: #fff;
 		border: none;
 		border-radius: 8px;
@@ -322,7 +322,7 @@
 	}
 
 	.btn-new:hover {
-		background: #179b74;
+		background: #e6bc00;
 		box-shadow: 0 2px 8px rgba(29, 170, 130, 0.25);
 	}
 
@@ -345,8 +345,8 @@
 	.search-input {
 		width: 100%;
 		box-sizing: border-box;
-		background: #fafafa;
-		border: 1px solid #e8e8e8;
+		background: rgba(255,255,255,0.05);
+		border: 1px solid rgba(255,255,255,0.08);
 		border-radius: 8px;
 		padding: 8px 12px 8px 34px;
 		font-size: 13px;
@@ -357,7 +357,7 @@
 	}
 
 	.search-input:focus {
-		border-color: #1daa82;
+		border-color: #FFD100;
 		box-shadow: 0 0 0 3px rgba(29, 170, 130, 0.1);
 	}
 
@@ -374,7 +374,7 @@
 	.section-header {
 		font-size: 13px;
 		font-weight: 600;
-		color: #666;
+		color: #888;
 		text-transform: uppercase;
 		letter-spacing: 0.04em;
 		margin: 0 0 14px;
@@ -394,13 +394,13 @@
 		border: 1px solid rgba(0,0,0,0.06);
 		border-radius: 14px;
 		overflow: hidden;
-		background: #fff;
+		background: #101010;
 		transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 		box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 	}
 
 	.card:hover {
-		border-color: #1daa82;
+		border-color: #FFD100;
 		box-shadow: 0 12px 32px rgba(29,170,130,0.12), 0 2px 6px rgba(0,0,0,0.04);
 		transform: translateY(-3px);
 	}
@@ -467,7 +467,7 @@
 	.card-name {
 		font-size: 14px;
 		font-weight: 600;
-		color: #111;
+		color: #fff;
 		cursor: text;
 		border-radius: 4px;
 		padding: 1px 2px;
@@ -476,7 +476,7 @@
 	}
 
 	.card-name:hover {
-		background: #f5f5f5;
+		background: rgba(255,255,255,0.03);
 	}
 
 	.card-name.static {
@@ -490,21 +490,21 @@
 	.name-input {
 		font-size: 14px;
 		font-weight: 600;
-		color: #111;
+		color: #fff;
 		font-family: inherit;
-		border: 1px solid #1daa82;
+		border: 1px solid #FFD100;
 		border-radius: 4px;
 		padding: 1px 4px;
 		margin: -2px -5px;
 		outline: none;
 		width: calc(100% + 10px);
-		background: #fff;
+		background: #101010;
 		box-shadow: 0 0 0 3px rgba(29, 170, 130, 0.1);
 	}
 
 	.card-meta {
 		font-size: 12px;
-		color: #999;
+		color: #666;
 		margin-top: 4px;
 		display: flex;
 		align-items: center;
@@ -513,7 +513,7 @@
 
 	.dot {
 		margin: 0 5px;
-		color: #ccc;
+		color: #555;
 	}
 
 	.card-desc {
@@ -533,7 +533,7 @@
 	.action-open {
 		font-size: 12px;
 		font-weight: 500;
-		color: #1daa82;
+		color: #FFD100;
 		text-decoration: none;
 		cursor: pointer;
 		font-family: inherit;
@@ -548,7 +548,7 @@
 	.action-delete {
 		background: none;
 		border: none;
-		color: #ccc;
+		color: #555;
 		cursor: pointer;
 		padding: 4px;
 		display: flex;
@@ -559,13 +559,13 @@
 
 	.action-delete:hover {
 		color: #dc2626;
-		background: #fef2f2;
+		background: rgba(220,38,38,0.1);
 	}
 
 	.btn-use {
 		background: none;
-		border: 1px solid #1daa82;
-		color: #1daa82;
+		border: 1px solid #FFD100;
+		color: #FFD100;
 		border-radius: 6px;
 		padding: 5px 14px;
 		font-size: 12px;
@@ -576,7 +576,7 @@
 	}
 
 	.btn-use:hover {
-		background: #1daa82;
+		background: #FFD100;
 		color: #fff;
 	}
 
@@ -584,7 +584,7 @@
 
 	.no-results {
 		font-size: 13px;
-		color: #999;
+		color: #666;
 		padding: 24px 0;
 	}
 </style>

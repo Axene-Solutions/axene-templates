@@ -383,10 +383,9 @@
 		align-items: center;
 		gap: 8px;
 		padding: 6px 16px;
-		border-radius: 100px;
-		background: rgba(255,255,255,0.06);
 		backdrop-filter: blur(8px);
-		border: 1px solid rgba(255,255,255,0.1);
+		border-top: 1px solid rgba(255,255,255,0.1);
+		border-bottom: 1px solid rgba(255,255,255,0.1);
 		font-size: 11px;
 		font-weight: 700;
 		letter-spacing: 1.5px;

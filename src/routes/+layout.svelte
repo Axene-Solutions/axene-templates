@@ -30,16 +30,16 @@
 	.app-shell {
 		width: 100vw;
 		min-height: 100vh;
-		background: #c8dfc8;
+		background: #0a0a0a;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 	}
 	.app-window {
-		background: #f2f2f2;
+		background: #101010;
 		width: 100%;
-		box-shadow: 0 30px 80px rgba(0,0,0,0.25);
 		display: flex;
+		min-height: 100vh;
 	}
 	.app-content {
 		flex: 1;

@@ -29,15 +29,15 @@
 
 <style>
 	.ni { display: flex; align-items: center; gap: 5px; }
-	.ni-label { font-size: 10.5px; color: #aaa; width: 38px; flex-shrink: 0; }
+	.ni-label { font-size: 10.5px; color: #666; width: 38px; flex-shrink: 0; }
 	.ni-input {
 		width: 44px;
-		border: 1px solid #e8e8e8;
+		border: 1px solid rgba(255,255,255,0.08);
 		border-radius: 4px;
 		padding: 3px 5px;
 		font-size: 11px;
-		color: #333;
-		background: #fafafa;
+		color: #ddd;
+		background: rgba(255,255,255,0.04);
 		text-align: right;
 		outline: none;
 		font-family: inherit;
@@ -45,6 +45,6 @@
 	}
 	.ni-input::-webkit-inner-spin-button,
 	.ni-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-	.ni-input:focus { border-color: #1daa82; }
-	.ni-unit { font-size: 10px; color: #bbb; }
+	.ni-input:focus { border-color: #FFD100; }
+	.ni-unit { font-size: 10px; color: #555; }
 </style>
