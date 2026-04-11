@@ -6,7 +6,12 @@ const config = {
 		runes: ({ filename }) => (filename.split(/[/\\]/).includes('node_modules') ? undefined : true)
 	},
 	kit: {
-		adapter: adapter()
+		adapter: adapter(),
+		vite: {
+			server: {
+				allowedHosts: ['templates.axene.io']
+			}
+		}
 	}
 };
 
