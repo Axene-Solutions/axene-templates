@@ -41,8 +41,8 @@
 			editor.duplicateBlock(editor.selectedId);
 		}
 
-		// Delete or Backspace to remove selected block
-		else if ((e.key === 'Delete' || e.key === 'Backspace') && editor.selectedId) {
+		// cmd + Delete or Backspace to remove selected block
+		else if (mod && (e.key === 'Delete' || e.key === 'Backspace') && editor.selectedId) {
 			e.preventDefault();
 			editor.removeBlock(editor.selectedId);
 		}

@@ -27,7 +27,7 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="at" onclick={stop}>
+<div class="at pl-1.5!" onclick={stop}>
 	<!-- Block type badge -->
 	<span class="at-badge">{blockType}</span>
 
