@@ -13,10 +13,12 @@
 
 <div class="login-page">
 	<div class="login-card">
-		<img src="https://mail.axene.io/email-assets/logo.png" alt="Axene" width="40" height="40" style="border-radius:8px;" />
+		<img src="https://mail.axene.io/email-assets/logo.png" alt="Axene" width="80" height="80" style="border-radius:8px;" />
 
 		<h1>Sign in to Axene Templates</h1>
-		<p class="subtitle">Create and share email templates</p>
+		<p class="subtitle">
+			Auth is required to enable us to provide a personalized experience and sync your work across devices.
+		</p>
 
 		{#if error}
 			<div class="error">

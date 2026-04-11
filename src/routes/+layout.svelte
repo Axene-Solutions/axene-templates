@@ -1,16 +1,21 @@
 <script lang="ts">
-	import '../app.css';
-	import { page } from '$app/state';
-	import NavRail from '$lib/components/NavRail.svelte';
-	let { data, children } = $props();
+	import '../app.css'
+	import { page } from '$app/state'
+	import NavRail from '$lib/components/NavRail.svelte'
+	let { data, children } = $props()
 
-	const isLanding = $derived(page.url.pathname === '/');
-	const isTemplates = $derived(page.url.pathname === '/templates');
-	const isFullPage = $derived(isLanding || isTemplates);
+	const isLanding = $derived(page.url.pathname === '/')
+	const isTemplates = $derived(page.url.pathname === '/templates')
+	const isLogin = $derived(page.url.pathname === '/login')
+	const isEditor = $derived(page.url.pathname.startsWith('/editor'))
+	const isFullPage = $derived(isLanding || isTemplates || isLogin || (isEditor && !data.user))
 </script>
 
 <svelte:head>
 	<title>Axene Templates</title>
+
+	<link rel="icon" href="https://mail.axene.io/email-assets/logo.png" type="image/png" />
+	<link rel="apple-touch-icon" href="https://mail.axene.io/email-assets/logo.png" />
 </svelte:head>
 
 {#if isFullPage}
@@ -20,7 +25,7 @@
 {:else}
 	<div class="app-shell">
 		<div class="app-window relative">
-			<NavRail />
+			<NavRail user={data.user} />
 			<div class="app-content">
 				{@render children()}
 			</div>
