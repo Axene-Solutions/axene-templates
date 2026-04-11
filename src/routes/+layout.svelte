@@ -5,13 +5,15 @@
 	let { children } = $props();
 
 	const isLanding = $derived(page.url.pathname === '/');
+	const isTemplates = $derived(page.url.pathname === '/templates');
+	const isFullPage = $derived(isLanding || isTemplates);
 </script>
 
 <svelte:head>
 	<title>Axene Templates</title>
 </svelte:head>
 
-{#if isLanding}
+{#if isFullPage}
 	<div class="app-landing">
 		{@render children()}
 	</div>
