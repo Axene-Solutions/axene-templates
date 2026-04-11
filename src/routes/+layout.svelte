@@ -17,7 +17,7 @@
 	</div>
 {:else}
 	<div class="app-shell">
-		<div class="app-window">
+		<div class="app-window relative">
 			<NavRail />
 			<div class="app-content">
 				{@render children()}

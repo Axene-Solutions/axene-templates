@@ -150,7 +150,7 @@
 			<div class="grid">
 				{#each filteredTemplates as tpl (tpl.id)}
 					<div class="card">
-						<div class="card-thumb" style:background={gradientFor(tpl.name)}>
+						<div class="card-thumb">
 							<div class="wire">
 								<div class="wire-hdr"></div>
 								<div class="wire-bd">
@@ -222,7 +222,7 @@
 			<div class="grid">
 				{#each filteredStarters as starter (starter.id)}
 					<div class="card">
-						<div class="card-thumb" style:background={starter.gradient}>
+						<div class="card-thumb">
 							<div class="wire">
 								<div class="wire-hdr"></div>
 								<div class="wire-bd">
@@ -310,20 +310,19 @@
 		align-items: center;
 		gap: 6px;
 		background: #FFD100;
-		color: #fff;
+		color: #101010;
 		border: none;
 		border-radius: 8px;
 		padding: 9px 18px;
 		font-size: 13px;
 		font-weight: 600;
 		cursor: pointer;
+		cursor: pointer;
 		font-family: inherit;
-		transition: background 0.15s, box-shadow 0.15s;
 	}
 
 	.btn-new:hover {
 		background: #e6bc00;
-		box-shadow: 0 2px 8px rgba(29, 170, 130, 0.25);
 	}
 
 	/* ---------- Search ---------- */
@@ -397,11 +396,11 @@
 		background: #101010;
 		transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 		box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+		border: 1px solid #bbbab70d;
 	}
 
 	.card:hover {
-		border-color: #FFD100;
-		box-shadow: 0 12px 32px rgba(29,170,130,0.12), 0 2px 6px rgba(0,0,0,0.04);
+		border-color: #ffd00037;
 		transform: translateY(-3px);
 	}
 
@@ -425,6 +424,7 @@
 		overflow: hidden;
 		display: flex;
 		flex-direction: column;
+		opacity: 0.3;
 		box-shadow: 0 4px 16px rgba(0,0,0,0.1);
 		transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 	}
@@ -564,20 +564,21 @@
 
 	.btn-use {
 		background: none;
-		border: 1px solid #FFD100;
+		border: 1px solid #ffd00037;
 		color: #FFD100;
-		border-radius: 6px;
-		padding: 5px 14px;
+		border-radius: 10px;
+		padding: 8px 20px;
 		font-size: 12px;
 		font-weight: 600;
 		cursor: pointer;
 		font-family: inherit;
+		cursor: pointer;
 		transition: background 0.15s, color 0.15s;
 	}
 
 	.btn-use:hover {
 		background: #FFD100;
-		color: #fff;
+		color: #101010;
 	}
 
 	/* ---------- No results ---------- */

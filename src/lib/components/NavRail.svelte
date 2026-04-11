@@ -9,7 +9,7 @@
 	}
 </script>
 
-<nav class="rail">
+<nav class="rail max-h-[100vh] sticky top-0">
 
 	<a href="/" class="logo" title="Home">
 		<img src="https://mail.axene.io/email-assets/logo.png" width="24" height="24" alt="Axene" />
