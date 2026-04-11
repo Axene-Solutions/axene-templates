@@ -25,7 +25,7 @@
 <nav class="site-nav">
 	<div class="sn-inner">
 		<a href="/" class="sn-brand">
-			<img src="https://mail.axene.io/email-assets/logo.png" width="22" height="22" alt="Axene" class="sn-logo" />
+			<img src="https://mail.axene.io/email-assets/logo.png" width="40" height="40" alt="Axene" class="sn-logo" />
 			Axene Templates
 		</a>
 		<div class="sn-links">
