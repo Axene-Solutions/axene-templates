@@ -22,8 +22,8 @@
 			e.preventDefault();
 			editor.redo();
 		} 
-		// space key to toggle preview
-		else if (e.key === ' ' && !e.repeat) {
+		// cmd + space key to toggle preview
+		else if (mod && e.key === ' ' && !e.repeat) {
 			e.preventDefault();
 			if (!showPreview) editor.compile();
 			showPreview = !showPreview;

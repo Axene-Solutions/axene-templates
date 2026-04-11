@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/state';
 	import SiteNav from '$lib/components/SiteNav.svelte';
 	import SiteFooter from '$lib/components/SiteFooter.svelte';
 
+	const user = $derived(page.data.user);
 	let mounted = $state(false);
 	const NUM_BARS = 18;
 
@@ -33,7 +35,7 @@
 
 <div class="landing">
 
-	<SiteNav />
+	<SiteNav {user} />
 
 	<!-- ══════ HERO ══════ -->
 	<section class="hero">

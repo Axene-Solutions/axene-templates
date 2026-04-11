@@ -90,7 +90,7 @@
 	</div>
 
 	<!-- Scrollable content -->
-	<div class="sb-scroll">
+	<div class="sb-scroll overflow-y-scroll! max-h-[90vh]! overflow-x-clip!">
 		{#if activeTab === 'blocks'}
 			<!-- Block section -->
 			<div class="sb-section-hdr">
@@ -288,7 +288,7 @@
 	.sb-section-hdr span { font-size: 12px; font-weight: 500; color: #e0e0e0; }
 
 	/* Scroll area */
-	.sb-scroll { flex: 1; overflow-y: auto; padding-bottom: 8px; }
+	.sb-scroll { flex: 1; overflow-y: auto; padding-bottom: 8px; max-height: 90vh !important; }
 	.sb-scroll::-webkit-scrollbar { width: 0; }
 
 	/* Block grid */

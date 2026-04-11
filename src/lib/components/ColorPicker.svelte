@@ -1,20 +1,20 @@
 <script lang="ts">
-	import { colorPalette } from '$lib/blocks';
+	import { colorPalette } from '$lib/blocks'
 
-	let { value, onchange }: { value: string; onchange: (hex: string) => void } = $props();
+	let { value, onchange }: { value: string; onchange: (hex: string) => void } = $props()
 
-	const isTransparent = $derived(value === 'transparent');
-	let hexInput = $state('');
+	const isTransparent = $derived(value === 'transparent')
+	let hexInput = $state('')
 
 	$effect(() => {
-		hexInput = value === 'transparent' ? '' : value.replace('#', '');
-	});
+		hexInput = value === 'transparent' ? '' : value.replace('#', '')
+	})
 
 	function handleHexInput(e: Event) {
-		const raw = (e.target as HTMLInputElement).value.replace('#', '');
-		hexInput = raw;
+		const raw = (e.target as HTMLInputElement).value.replace('#', '')
+		hexInput = raw
 		if (/^[0-9a-fA-F]{3}$/.test(raw) || /^[0-9a-fA-F]{6}$/.test(raw)) {
-			onchange(`#${raw}`);
+			onchange(`#${raw}`)
 		}
 	}
 </script>
@@ -34,7 +34,9 @@
 				{@const ringColor = color.toLowerCase() === '#ffffff' ? '#999' : color}
 				<button
 					class="cp-swatch"
-					style="background-color:{color};{color.toLowerCase() === '#ffffff' ? 'border:1.5px solid #ddd;' : ''}{active ? `box-shadow:0 0 0 2px #fff,0 0 0 3.5px ${ringColor};` : ''}"
+					style="background-color:{color};{color.toLowerCase() === '#ffffff'
+						? 'border:1.5px solid #ddd;'
+						: ''}{active ? `box-shadow:0 0 0 2px #fff,0 0 0 3.5px ${ringColor};` : ''}"
 					title={color}
 					onclick={() => onchange(color)}
 				></button>
@@ -48,7 +50,9 @@
 		{:else}
 			<div
 				class="cp-preview"
-				style="background-color:{value};{value.toLowerCase() === '#ffffff' ? 'border:1px solid #ddd;' : ''}"
+				style="background-color:{value};{value.toLowerCase() === '#ffffff'
+					? 'border:1px solid #ddd;'
+					: ''}"
 			></div>
 			<div class="cp-hex-input">
 				<span class="cp-hash">#</span>
@@ -59,7 +63,11 @@
 </div>
 
 <style>
-	.cp { display: flex; flex-direction: column; gap: 8px; }
+	.cp {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
 
 	.cp-grid {
 		display: grid;
@@ -77,26 +85,37 @@
 		box-sizing: border-box;
 		flex-shrink: 0;
 	}
-	.cp-swatch:hover { transform: scale(1.2); }
+	.cp-swatch:hover {
+		transform: scale(1.2);
+	}
 
-	/* Transparent / None swatch — checkerboard pattern */
+	/* Transparent / None swatch - checkerboard pattern */
 	.cp-none {
-		background-image:
-			linear-gradient(45deg, #d0d0d0 25%, transparent 25%),
+		background-image: linear-gradient(45deg, #d0d0d0 25%, transparent 25%),
 			linear-gradient(-45deg, #d0d0d0 25%, transparent 25%),
 			linear-gradient(45deg, transparent 75%, #d0d0d0 75%),
 			linear-gradient(-45deg, transparent 75%, #d0d0d0 75%);
 		background-size: 6px 6px;
-		background-position: 0 0, 0 3px, 3px -3px, -3px 0;
+		background-position:
+			0 0,
+			0 3px,
+			3px -3px,
+			-3px 0;
 		background-color: #fff;
 		border: 1.5px solid #ddd !important;
 	}
 	.cp-none.cp-active {
-		box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px #999;
+		box-shadow:
+			0 0 0 2px #fff,
+			0 0 0 3.5px #999;
 	}
 
 	/* Hex input row */
-	.cp-hex-row { display: flex; align-items: center; gap: 6px; }
+	.cp-hex-row {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+	}
 
 	.cp-preview {
 		width: 20px;
@@ -105,15 +124,18 @@
 		flex-shrink: 0;
 	}
 	.cp-preview-none {
-		background-image:
-			linear-gradient(45deg, #d0d0d0 25%, transparent 25%),
+		background-image: linear-gradient(45deg, #d0d0d0 25%, transparent 25%),
 			linear-gradient(-45deg, #d0d0d0 25%, transparent 25%),
 			linear-gradient(45deg, transparent 75%, #d0d0d0 75%),
 			linear-gradient(-45deg, transparent 75%, #d0d0d0 75%);
 		background-size: 6px 6px;
-		background-position: 0 0, 0 3px, 3px -3px, -3px 0;
+		background-position:
+			0 0,
+			0 3px,
+			3px -3px,
+			-3px 0;
 		background-color: #fff;
-		border: 1px solid rgba(255,255,255,0.1);
+		border: 1px solid rgba(255, 255, 255, 0.1);
 	}
 
 	.cp-none-label {
@@ -124,13 +146,16 @@
 	.cp-hex-input {
 		display: flex;
 		align-items: center;
-		background: rgba(255,255,255,0.04);
-		border: 1px solid rgba(255,255,255,0.08);
+		background: rgba(255, 255, 255, 0.04);
+		border: 1px solid rgba(255, 255, 255, 0.08);
 		border-radius: 5px;
 		padding: 3px 7px;
 		flex: 1;
 	}
-	.cp-hash { font-size: 11px; color: #555; }
+	.cp-hash {
+		font-size: 11px;
+		color: #555;
+	}
 	.cp-hex-input input {
 		border: none;
 		background: transparent;

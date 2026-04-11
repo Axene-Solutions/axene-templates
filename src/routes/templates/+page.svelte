@@ -1,38 +1,19 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 	import SiteNav from '$lib/components/SiteNav.svelte';
 	import SiteFooter from '$lib/components/SiteFooter.svelte';
-	import { starterTemplates } from '$lib/defaults';
 
 	let { data } = $props();
+
+	const user = $derived(page.data.user);
 
 	let templates = $state(data.templates);
 	let searchQuery = $state('');
 	let deleteTarget = $state<{ id: string; name: string } | null>(null);
 	let editingId = $state<string | null>(null);
 	let editingName = $state('');
-
-	const gradients = [
-		'linear-gradient(135deg, #FFD100, #0d8f62)',
-		'linear-gradient(135deg, #6366f1, #4f46e5)',
-		'linear-gradient(135deg, #0ea5e9, #0284c7)',
-		'linear-gradient(135deg, #f59e0b, #d97706)',
-		'linear-gradient(135deg, #ef4444, #dc2626)',
-		'linear-gradient(135deg, #8b5cf6, #7c3aed)',
-	];
-
-	function hashName(name: string): number {
-		let hash = 0;
-		for (let i = 0; i < name.length; i++) {
-			hash = ((hash << 5) - hash + name.charCodeAt(i)) | 0;
-		}
-		return Math.abs(hash);
-	}
-
-	function gradientFor(name: string) {
-		return gradients[hashName(name) % gradients.length];
-	}
 
 	function formatDate(iso: string) {
 		const d = new Date(iso);
@@ -45,13 +26,11 @@
 		)
 	);
 
-	const filteredStarters = $derived(
-		starterTemplates.filter((t) =>
-			t.name.toLowerCase().includes(searchQuery.toLowerCase())
-		)
-	);
+	const ownTemplates = $derived(filteredTemplates.filter((t: any) => t.isOwn));
+	const communityTemplates = $derived(filteredTemplates.filter((t: any) => t.isPublic && !t.isOwn && !t.isStarter));
+	const starterTemplates = $derived(filteredTemplates.filter((t: any) => t.isStarter));
 
-	const totalCount = $derived(filteredTemplates.length + filteredStarters.length);
+	const totalCount = $derived(filteredTemplates.length);
 
 	async function handleDelete() {
 		if (!deleteTarget) return;
@@ -64,7 +43,7 @@
 		}
 	}
 
-	async function useStarter(starter: typeof starterTemplates[0]) {
+	async function useStarter(starter: any) {
 		const newId = starter.id + '-' + Date.now().toString(36);
 		const res = await fetch('/api/templates', {
 			method: 'POST',
@@ -72,7 +51,7 @@
 			body: JSON.stringify({
 				id: newId,
 				name: starter.name,
-				blocks: starter.blocks,
+				blocks: [], // blocks will be loaded from the starter in the editor
 			}),
 		});
 		if (res.ok) {
@@ -119,7 +98,7 @@
 </svelte:head>
 
 <div class="page">
-	<SiteNav />
+	<SiteNav {user} />
 
 	<div class="tpl-container">
 	<div class="topbar">
@@ -127,13 +106,24 @@
 			<h1 class="title">Templates</h1>
 			<span class="count-badge">{totalCount}</span>
 		</div>
-		<button class="btn-new" onclick={() => goto('/editor')}>
-			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-				<line x1="12" y1="5" x2="12" y2="19" />
-				<line x1="5" y1="12" x2="19" y2="12" />
-			</svg>
-			New Template
-		</button>
+		{#if user}
+			<button class="btn-new" onclick={() => goto('/editor')}>
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+					<line x1="12" y1="5" x2="12" y2="19" />
+					<line x1="5" y1="12" x2="19" y2="12" />
+				</svg>
+				New Template
+			</button>
+		{:else}
+			<a href="/auth/google" class="btn-signin-banner">
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+					<polyline points="10 17 15 12 10 7" />
+					<line x1="15" y1="12" x2="3" y2="12" />
+				</svg>
+				Sign in to create templates
+			</a>
+		{/if}
 	</div>
 
 	<div class="search-wrap">
@@ -149,11 +139,11 @@
 		/>
 	</div>
 
-	{#if filteredTemplates.length > 0}
+	{#if user && ownTemplates.length > 0}
 		<section class="section">
 			<h2 class="section-header">Your Templates</h2>
 			<div class="grid">
-				{#each filteredTemplates as tpl (tpl.id)}
+				{#each ownTemplates as tpl (tpl.id)}
 					<div class="card">
 						<div class="card-thumb">
 							<div class="wire">
@@ -196,6 +186,10 @@
 									<span class="dot">&#183;</span>
 									{formatDate(tpl.updatedAt)}
 								{/if}
+								{#if tpl.isPublic}
+									<span class="dot">&#183;</span>
+									<span class="public-badge">Public</span>
+								{/if}
 							</div>
 							<div class="card-actions">
 								<a
@@ -221,11 +215,50 @@
 		</section>
 	{/if}
 
+	{#if communityTemplates.length > 0}
+		<section class="section">
+			<h2 class="section-header">Community Templates</h2>
+			<div class="grid">
+				{#each communityTemplates as tpl (tpl.id)}
+					<div class="card">
+						<div class="card-thumb">
+							<div class="wire">
+								<div class="wire-hdr"></div>
+								<div class="wire-bd">
+									<div class="wire-ln w50"></div>
+									<div class="wire-sp"></div>
+									<div class="wire-ls"></div>
+									<div class="wire-ls w80"></div>
+									<div class="wire-sp"></div>
+									<div class="wire-bt"></div>
+								</div>
+							</div>
+							<span class="card-hover-pill">Use</span>
+						</div>
+						<div class="card-info">
+							<div class="card-name static">{tpl.name}</div>
+							<div class="card-meta">
+								{tpl.blockCount ?? 0} blocks
+								{#if tpl.updatedAt}
+									<span class="dot">&#183;</span>
+									{formatDate(tpl.updatedAt)}
+								{/if}
+							</div>
+							<div class="card-actions">
+								<a class="action-open" href="/editor/{tpl.id}">Open in Editor</a>
+							</div>
+						</div>
+					</div>
+				{/each}
+			</div>
+		</section>
+	{/if}
+
 	<section class="section">
 		<h2 class="section-header">Starter Templates</h2>
-		{#if filteredStarters.length > 0}
+		{#if starterTemplates.length > 0}
 			<div class="grid">
-				{#each filteredStarters as starter (starter.id)}
+				{#each starterTemplates as starter (starter.id)}
 					<div class="card">
 						<div class="card-thumb">
 							<div class="wire">
@@ -243,11 +276,17 @@
 						</div>
 						<div class="card-info">
 							<div class="card-name static">{starter.name}</div>
-							<div class="card-desc">{starter.description}</div>
+							<div class="card-meta">
+								{starter.blockCount ?? 0} blocks
+							</div>
 							<div class="card-actions">
-								<button class="btn-use" onclick={() => useStarter(starter)}>
-									Use Template
-								</button>
+								{#if user}
+									<button class="btn-use" onclick={() => useStarter(starter)}>
+										Use Template
+									</button>
+								{:else}
+									<a href="/auth/google" class="btn-use">Sign in to use</a>
+								{/if}
 							</div>
 						</div>
 					</div>
@@ -336,12 +375,30 @@
 		font-size: 13px;
 		font-weight: 600;
 		cursor: pointer;
-		cursor: pointer;
 		font-family: inherit;
 	}
 
 	.btn-new:hover {
 		background: #e6bc00;
+	}
+
+	.btn-signin-banner {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		background: rgba(255,209,0,0.1);
+		color: #FFD100;
+		border: 1px solid rgba(255,209,0,0.25);
+		border-radius: 8px;
+		padding: 9px 18px;
+		font-size: 13px;
+		font-weight: 600;
+		text-decoration: none;
+		transition: background 0.15s;
+	}
+
+	.btn-signin-banner:hover {
+		background: rgba(255,209,0,0.18);
 	}
 
 	/* ---------- Search ---------- */
@@ -535,6 +592,15 @@
 		color: #555;
 	}
 
+	.public-badge {
+		font-size: 10px;
+		font-weight: 600;
+		color: #FFD100;
+		background: rgba(255,209,0,0.1);
+		padding: 1px 6px;
+		border-radius: 4px;
+	}
+
 	.card-desc {
 		font-size: 12px;
 		color: #888;
@@ -591,7 +657,7 @@
 		font-weight: 600;
 		cursor: pointer;
 		font-family: inherit;
-		cursor: pointer;
+		text-decoration: none;
 		transition: background 0.15s, color 0.15s;
 	}
 

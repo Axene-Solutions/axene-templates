@@ -2,7 +2,7 @@
 	import '../app.css';
 	import { page } from '$app/state';
 	import NavRail from '$lib/components/NavRail.svelte';
-	let { children } = $props();
+	let { data, children } = $props();
 
 	const isLanding = $derived(page.url.pathname === '/');
 	const isTemplates = $derived(page.url.pathname === '/templates');

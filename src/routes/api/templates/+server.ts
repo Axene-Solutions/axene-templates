@@ -1,40 +1,54 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import fs from 'fs/promises';
-import path from 'path';
+import { db } from '$lib/server/db';
+import { templates } from '$lib/server/db/schema';
+import { eq, or, desc } from 'drizzle-orm';
 
-const DATA_DIR = path.resolve('data');
+// GET /api/templates - list templates visible to the user
+export const GET: RequestHandler = async ({ locals }) => {
+	const user = locals.user;
 
-async function ensureDir() {
-	try { await fs.mkdir(DATA_DIR, { recursive: true }); } catch {}
-}
-
-// GET /api/templates - list all saved templates
-export const GET: RequestHandler = async () => {
-	await ensureDir();
-	const files = await fs.readdir(DATA_DIR).catch(() => []);
-	const templates = [];
-
-	for (const file of files) {
-		if (!file.endsWith('.json')) continue;
-		try {
-			const raw = await fs.readFile(path.join(DATA_DIR, file), 'utf-8');
-			const data = JSON.parse(raw);
-			templates.push({
-				id: file.replace('.json', ''),
-				name: data.name || file.replace('.json', ''),
-				updatedAt: data.updatedAt || null,
-				blockCount: data.blocks?.length || 0,
-			});
-		} catch {}
+	let rows;
+	if (user) {
+		rows = await db
+			.select()
+			.from(templates)
+			.where(
+				or(
+					eq(templates.userId, user.id),
+					eq(templates.isPublic, true),
+					eq(templates.isStarter, true)
+				)
+			)
+			.orderBy(desc(templates.updatedAt));
+	} else {
+		rows = await db
+			.select()
+			.from(templates)
+			.where(or(eq(templates.isPublic, true), eq(templates.isStarter, true)))
+			.orderBy(desc(templates.updatedAt));
 	}
 
-	return json(templates);
+	const result = rows.map((t) => ({
+		id: t.id,
+		name: t.name,
+		blockCount: Array.isArray(t.blocks) ? t.blocks.length : 0,
+		isStarter: t.isStarter,
+		isPublic: t.isPublic,
+		updatedAt: t.updatedAt?.toISOString() ?? null,
+		isOwn: user ? t.userId === user.id : false,
+	}));
+
+	return json(result);
 };
 
-// POST /api/templates - save a template
-export const POST: RequestHandler = async ({ request }) => {
-	await ensureDir();
+// POST /api/templates - save a template (protected)
+export const POST: RequestHandler = async ({ request, locals }) => {
+	const user = locals.user;
+	if (!user) {
+		return json({ error: 'Not authenticated' }, { status: 401 });
+	}
+
 	const body = await request.json();
 	const { id, name, blocks } = body;
 
@@ -42,13 +56,28 @@ export const POST: RequestHandler = async ({ request }) => {
 		return json({ error: 'id, name, and blocks are required' }, { status: 400 });
 	}
 
-	const safeId = id.replace(/[^a-zA-Z0-9_-]/g, '');
-	const data = {
-		name,
-		blocks,
-		updatedAt: new Date().toISOString(),
-	};
+	const existing = await db
+		.select()
+		.from(templates)
+		.where(eq(templates.id, id))
+		.limit(1);
 
-	await fs.writeFile(path.join(DATA_DIR, `${safeId}.json`), JSON.stringify(data, null, 2));
-	return json({ id: safeId, saved: true });
+	if (existing.length > 0 && existing[0].userId === user.id) {
+		await db
+			.update(templates)
+			.set({ name, blocks, updatedAt: new Date() })
+			.where(eq(templates.id, id));
+	} else {
+		await db.insert(templates).values({
+			id,
+			name,
+			blocks,
+			userId: user.id,
+			isStarter: false,
+			isPublic: false,
+			updatedAt: new Date(),
+		});
+	}
+
+	return json({ id, saved: true });
 };
