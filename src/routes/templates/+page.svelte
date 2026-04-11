@@ -151,7 +151,20 @@
 				{#each filteredTemplates as tpl (tpl.id)}
 					<div class="card">
 						<div class="card-thumb" style:background={gradientFor(tpl.name)}>
-							<span class="card-thumb-label">{tpl.name}</span>
+							<div class="wire">
+								<div class="wire-hdr"></div>
+								<div class="wire-bd">
+									<div class="wire-ln w60"></div>
+									<div class="wire-ln w40" style="opacity:0.5"></div>
+									<div class="wire-sp"></div>
+									<div class="wire-ls"></div>
+									<div class="wire-ls"></div>
+									<div class="wire-ls w70"></div>
+									<div class="wire-sp"></div>
+									<div class="wire-bt"></div>
+								</div>
+							</div>
+							<span class="card-hover-pill">Open</span>
 						</div>
 						<div class="card-info">
 							{#if editingId === tpl.id}
@@ -210,7 +223,18 @@
 				{#each filteredStarters as starter (starter.id)}
 					<div class="card">
 						<div class="card-thumb" style:background={starter.gradient}>
-							<span class="card-thumb-label">{starter.name}</span>
+							<div class="wire">
+								<div class="wire-hdr"></div>
+								<div class="wire-bd">
+									<div class="wire-ln w50"></div>
+									<div class="wire-sp"></div>
+									<div class="wire-ls"></div>
+									<div class="wire-ls w80"></div>
+									<div class="wire-sp"></div>
+									<div class="wire-bt"></div>
+								</div>
+							</div>
+							<span class="card-hover-pill">Use</span>
 						</div>
 						<div class="card-info">
 							<div class="card-name static">{starter.name}</div>
@@ -367,40 +391,74 @@
 	/* ---------- Card ---------- */
 
 	.card {
-		border: 1px solid #ebebeb;
-		border-radius: 12px;
+		border: 1px solid rgba(0,0,0,0.06);
+		border-radius: 14px;
 		overflow: hidden;
 		background: #fff;
-		transition: border-color 0.2s, box-shadow 0.2s;
+		transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+		box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 	}
 
 	.card:hover {
 		border-color: #1daa82;
-		box-shadow: 0 4px 16px rgba(29, 170, 130, 0.1), 0 1px 4px rgba(0, 0, 0, 0.04);
+		box-shadow: 0 12px 32px rgba(29,170,130,0.12), 0 2px 6px rgba(0,0,0,0.04);
+		transform: translateY(-3px);
 	}
 
 	.card-thumb {
-		height: 120px;
+		height: 150px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		padding: 16px;
 		overflow: hidden;
-		transition: transform 0.25s;
+		position: relative;
 	}
 
-	.card:hover .card-thumb {
-		transform: scale(1.03);
+	/* Wireframe inside thumbnail */
+	.wire {
+		width: 100px;
+		background: rgba(255,255,255,0.15);
+		backdrop-filter: blur(6px);
+		border-radius: 6px;
+		border: 1px solid rgba(255,255,255,0.2);
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+		box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+		transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 	}
+	.card:hover .wire { transform: scale(1.06) translateY(-2px); }
+	.wire-hdr { height: 9px; background: rgba(255,255,255,0.25); }
+	.wire-bd { padding: 7px 9px 9px; display: flex; flex-direction: column; gap: 3px; }
+	.wire-ln { height: 4px; background: rgba(255,255,255,0.55); border-radius: 2px; width: 100%; }
+	.wire-ln.w60 { width: 60%; }
+	.wire-ln.w50 { width: 50%; }
+	.wire-ln.w40 { width: 40%; }
+	.wire-ls { height: 2.5px; background: rgba(255,255,255,0.3); border-radius: 1px; width: 100%; }
+	.wire-ls.w80 { width: 80%; }
+	.wire-ls.w70 { width: 70%; }
+	.wire-sp { height: 3px; }
+	.wire-bt { height: 7px; background: rgba(255,255,255,0.5); border-radius: 4px; width: 50%; margin: 0 auto; }
 
-	.card-thumb-label {
-		color: #fff;
-		font-size: 15px;
+	/* Hover pill badge */
+	.card-hover-pill {
+		position: absolute;
+		bottom: 10px;
+		right: 10px;
+		padding: 4px 12px;
+		border-radius: 100px;
+		background: rgba(255,255,255,0.9);
+		backdrop-filter: blur(4px);
+		font-size: 11px;
 		font-weight: 600;
-		text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
-		text-align: center;
-		pointer-events: none;
+		color: #0f172a;
+		opacity: 0;
+		transform: translateY(6px);
+		transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+		box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 	}
+	.card:hover .card-hover-pill { opacity: 1; transform: translateY(0); }
 
 	.card-info {
 		padding: 16px;

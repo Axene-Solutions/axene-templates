@@ -188,12 +188,115 @@
 				<p class="section-sub" style="margin-left:auto;margin-right:auto;">Pre-built layouts for common email types. Customize the colors, content, and branding to match your business.</p>
 			</div>
 			<div class="tpl-grid">
-				<div class="tpl-card sr-card"><div class="tpl-thumb" style="background:linear-gradient(135deg,#1daa82,#0d8f62)"></div><div class="tpl-info"><span class="tpl-name">Welcome Email</span><span class="tpl-desc">Greet new users and get them started</span></div></div>
-				<div class="tpl-card sr-card"><div class="tpl-thumb" style="background:linear-gradient(135deg,#6366f1,#4f46e5)"></div><div class="tpl-info"><span class="tpl-name">Email Verification</span><span class="tpl-desc">Confirm addresses with one-click</span></div></div>
-				<div class="tpl-card sr-card"><div class="tpl-thumb" style="background:linear-gradient(135deg,#0ea5e9,#0284c7)"></div><div class="tpl-info"><span class="tpl-name">Newsletter</span><span class="tpl-desc">Clean layout with image and CTA</span></div></div>
-				<div class="tpl-card sr-card"><div class="tpl-thumb" style="background:linear-gradient(135deg,#f59e0b,#d97706)"></div><div class="tpl-info"><span class="tpl-name">Invoice / Receipt</span><span class="tpl-desc">Payment confirmation with table</span></div></div>
-				<div class="tpl-card sr-card"><div class="tpl-thumb" style="background:linear-gradient(135deg,#ef4444,#dc2626)"></div><div class="tpl-info"><span class="tpl-name">Password Reset</span><span class="tpl-desc">Secure link with expiry notice</span></div></div>
-				<div class="tpl-card sr-card"><div class="tpl-thumb" style="background:linear-gradient(135deg,#6b7280,#4b5563)"></div><div class="tpl-info"><span class="tpl-name">Blank Template</span><span class="tpl-desc">Start from scratch</span></div></div>
+				<!-- Welcome -->
+				<a href="/templates" class="tpl-card sr-card">
+					<div class="tpl-thumb" style="background:linear-gradient(135deg,#1daa82,#0d8f62)">
+						<div class="tpl-wireframe">
+							<div class="wire-header" style="background:rgba(255,255,255,0.25)"></div>
+							<div class="wire-body">
+								<div class="wire-line w60"></div>
+								<div class="wire-line w40" style="opacity:0.5"></div>
+								<div class="wire-spacer"></div>
+								<div class="wire-line-sm"></div>
+								<div class="wire-line-sm"></div>
+								<div class="wire-line-sm w70"></div>
+								<div class="wire-spacer"></div>
+								<div class="wire-btn"></div>
+							</div>
+						</div>
+						<span class="tpl-hover-badge">Use template</span>
+					</div>
+					<div class="tpl-info"><span class="tpl-name">Welcome Email</span><span class="tpl-desc">Greet new users and get them started</span></div>
+				</a>
+				<!-- Verification -->
+				<a href="/templates" class="tpl-card sr-card">
+					<div class="tpl-thumb" style="background:linear-gradient(135deg,#6366f1,#4f46e5)">
+						<div class="tpl-wireframe">
+							<div class="wire-header" style="background:rgba(255,255,255,0.25)"></div>
+							<div class="wire-body">
+								<div class="wire-line w50"></div>
+								<div class="wire-spacer"></div>
+								<div class="wire-line-sm w80"></div>
+								<div class="wire-line-sm"></div>
+								<div class="wire-spacer"></div>
+								<div class="wire-btn"></div>
+								<div class="wire-spacer"></div>
+								<div class="wire-line-sm w60" style="opacity:0.4"></div>
+							</div>
+						</div>
+						<span class="tpl-hover-badge">Use template</span>
+					</div>
+					<div class="tpl-info"><span class="tpl-name">Email Verification</span><span class="tpl-desc">Confirm addresses with one-click</span></div>
+				</a>
+				<!-- Newsletter -->
+				<a href="/templates" class="tpl-card sr-card">
+					<div class="tpl-thumb" style="background:linear-gradient(135deg,#0ea5e9,#0284c7)">
+						<div class="tpl-wireframe">
+							<div class="wire-header" style="background:rgba(255,255,255,0.25)"></div>
+							<div class="wire-body">
+								<div class="wire-img"></div>
+								<div class="wire-line w70"></div>
+								<div class="wire-line-sm"></div>
+								<div class="wire-line-sm w80"></div>
+								<div class="wire-btn" style="width:40%"></div>
+							</div>
+						</div>
+						<span class="tpl-hover-badge">Use template</span>
+					</div>
+					<div class="tpl-info"><span class="tpl-name">Newsletter</span><span class="tpl-desc">Clean layout with image and CTA</span></div>
+				</a>
+				<!-- Invoice -->
+				<a href="/templates" class="tpl-card sr-card">
+					<div class="tpl-thumb" style="background:linear-gradient(135deg,#f59e0b,#d97706)">
+						<div class="tpl-wireframe">
+							<div class="wire-header" style="background:rgba(255,255,255,0.25)"></div>
+							<div class="wire-body">
+								<div class="wire-line w50"></div>
+								<div class="wire-spacer"></div>
+								<div class="wire-table-row"><div class="wire-table-cell"></div><div class="wire-table-cell short"></div></div>
+								<div class="wire-table-row"><div class="wire-table-cell"></div><div class="wire-table-cell short"></div></div>
+								<div class="wire-table-row"><div class="wire-table-cell"></div><div class="wire-table-cell short"></div></div>
+								<div class="wire-spacer"></div>
+								<div class="wire-btn"></div>
+							</div>
+						</div>
+						<span class="tpl-hover-badge">Use template</span>
+					</div>
+					<div class="tpl-info"><span class="tpl-name">Invoice / Receipt</span><span class="tpl-desc">Payment confirmation with table</span></div>
+				</a>
+				<!-- Password Reset -->
+				<a href="/templates" class="tpl-card sr-card">
+					<div class="tpl-thumb" style="background:linear-gradient(135deg,#ef4444,#dc2626)">
+						<div class="tpl-wireframe">
+							<div class="wire-header" style="background:rgba(255,255,255,0.25)"></div>
+							<div class="wire-body">
+								<div class="wire-line w60"></div>
+								<div class="wire-spacer"></div>
+								<div class="wire-line-sm"></div>
+								<div class="wire-line-sm w80"></div>
+								<div class="wire-spacer"></div>
+								<div class="wire-btn"></div>
+								<div class="wire-spacer"></div>
+								<div class="wire-line-sm w70" style="opacity:0.4"></div>
+							</div>
+						</div>
+						<span class="tpl-hover-badge">Use template</span>
+					</div>
+					<div class="tpl-info"><span class="tpl-name">Password Reset</span><span class="tpl-desc">Secure link with expiry notice</span></div>
+				</a>
+				<!-- Blank -->
+				<a href="/templates" class="tpl-card sr-card">
+					<div class="tpl-thumb" style="background:linear-gradient(135deg,#6b7280,#4b5563)">
+						<div class="tpl-wireframe">
+							<div class="wire-header" style="background:rgba(255,255,255,0.25)"></div>
+							<div class="wire-body" style="display:flex;align-items:center;justify-content:center;flex:1;">
+								<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+							</div>
+						</div>
+						<span class="tpl-hover-badge">Use template</span>
+					</div>
+					<div class="tpl-info"><span class="tpl-name">Blank Template</span><span class="tpl-desc">Start from scratch</span></div>
+				</a>
 			</div>
 			<div class="text-center" style="margin-top:32px;">
 				<a href="/templates" class="btn-secondary">Browse all templates</a>
@@ -329,13 +432,121 @@
 	.step-card p { font-size: 14px; color: #64748b; line-height: 1.6; }
 
 	/* ---- Template grid ---- */
-	.tpl-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-	.tpl-card { border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; background: #fff; transition: all 0.2s; cursor: pointer; }
-	.tpl-card:hover { border-color: #1daa82; box-shadow: 0 8px 24px rgba(29,170,130,0.1); transform: translateY(-3px); }
-	.tpl-thumb { height: 100px; }
-	.tpl-info { padding: 14px 16px; }
+	.tpl-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+	.tpl-card {
+		border-radius: 16px;
+		border: 1px solid rgba(0,0,0,0.06);
+		overflow: hidden;
+		background: #fff;
+		transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+		cursor: pointer;
+		text-decoration: none;
+		display: block;
+		box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+	}
+	.tpl-card:hover {
+		border-color: #1daa82;
+		box-shadow: 0 12px 32px rgba(29,170,130,0.12), 0 2px 6px rgba(0,0,0,0.04);
+		transform: translateY(-4px);
+	}
+	.tpl-thumb {
+		height: 160px;
+		position: relative;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		overflow: hidden;
+		padding: 16px;
+	}
+	.tpl-wireframe {
+		width: 110px;
+		background: rgba(255,255,255,0.15);
+		backdrop-filter: blur(6px);
+		border-radius: 8px;
+		border: 1px solid rgba(255,255,255,0.2);
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+		box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+		transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+	}
+	.tpl-card:hover .tpl-wireframe { transform: scale(1.05) translateY(-2px); }
+	.wire-header {
+		height: 10px;
+		border-radius: 0;
+	}
+	.wire-body {
+		padding: 8px 10px 10px;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+	.wire-line {
+		height: 5px;
+		background: rgba(255,255,255,0.6);
+		border-radius: 2px;
+		width: 100%;
+	}
+	.wire-line.w75 { width: 75%; }
+	.wire-line.w70 { width: 70%; }
+	.wire-line.w60 { width: 60%; }
+	.wire-line.w50 { width: 50%; }
+	.wire-line.w40 { width: 40%; }
+	.wire-line-sm {
+		height: 3px;
+		background: rgba(255,255,255,0.35);
+		border-radius: 1.5px;
+		width: 100%;
+	}
+	.wire-line-sm.w80 { width: 80%; }
+	.wire-line-sm.w70 { width: 70%; }
+	.wire-line-sm.w60 { width: 60%; }
+	.wire-spacer { height: 4px; }
+	.wire-btn {
+		height: 8px;
+		background: rgba(255,255,255,0.55);
+		border-radius: 4px;
+		width: 55%;
+		margin: 0 auto;
+	}
+	.wire-img {
+		height: 22px;
+		background: rgba(255,255,255,0.2);
+		border-radius: 3px;
+		border: 1px dashed rgba(255,255,255,0.3);
+		margin-bottom: 4px;
+	}
+	.wire-table-row {
+		display: flex;
+		gap: 3px;
+	}
+	.wire-table-cell {
+		flex: 1;
+		height: 4px;
+		background: rgba(255,255,255,0.3);
+		border-radius: 1px;
+	}
+	.wire-table-cell.short { flex: 0.5; }
+	.tpl-hover-badge {
+		position: absolute;
+		bottom: 12px;
+		right: 12px;
+		padding: 5px 12px;
+		border-radius: 100px;
+		background: rgba(255,255,255,0.9);
+		backdrop-filter: blur(4px);
+		font-size: 11px;
+		font-weight: 600;
+		color: #0f172a;
+		opacity: 0;
+		transform: translateY(6px);
+		transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+		box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+	}
+	.tpl-card:hover .tpl-hover-badge { opacity: 1; transform: translateY(0); }
+	.tpl-info { padding: 16px 18px; }
 	.tpl-name { display: block; font-size: 14px; font-weight: 600; color: #0f172a; margin-bottom: 4px; }
-	.tpl-desc { font-size: 12px; color: #94a3b8; }
+	.tpl-desc { font-size: 12px; color: #94a3b8; line-height: 1.4; }
 
 	/* ---- CTA ---- */
 	.section-cta { padding: 120px 24px; background: #fff; position: relative; overflow: hidden; }
