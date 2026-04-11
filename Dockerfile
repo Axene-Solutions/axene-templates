@@ -1,9 +1,9 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm install --ignore-scripts
 COPY . .
-RUN npm run build
+RUN npx svelte-kit sync && npm run build
 
 FROM node:22-alpine
 WORKDIR /app
