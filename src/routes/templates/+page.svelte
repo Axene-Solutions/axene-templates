@@ -63,10 +63,12 @@
 	}
 
 	async function useStarter(starter: typeof starterTemplates[0]) {
+		const newId = starter.id + '-' + Date.now().toString(36);
 		const res = await fetch('/api/templates', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
+				id: newId,
 				name: starter.name,
 				blocks: starter.blocks,
 			}),
@@ -114,7 +116,7 @@
 	<title>Templates - Axene Templates</title>
 </svelte:head>
 
-<div class="page">
+<div class="page min-h-screen">
 	<div class="topbar">
 		<div class="topbar-left">
 			<h1 class="title">Templates</h1>
