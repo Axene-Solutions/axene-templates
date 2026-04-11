@@ -537,7 +537,6 @@
 	}
 	.tpl-card:hover {
 		border-color: #ffd00037;
-		box-shadow: 0 0 32px rgba(255,209,0,0.1);
 		transform: translateY(-3px);
 	}
 	.tpl-thumb {
