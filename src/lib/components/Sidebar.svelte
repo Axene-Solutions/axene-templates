@@ -76,14 +76,14 @@
 	</div>
 
 	<!-- Pills -->
-	<div class="sb-pills">
+	<div class="sb-pills hidden!">
 		<span class="sb-pill active">Block</span>
 		<span class="sb-pill">Recipients</span>
 		<span class="sb-pill">Tags</span>
 	</div>
 
 	<!-- Search -->
-	<div class="sb-search">
+	<div class="sb-search mt-4!">
 		<input type="text" placeholder="Search..." bind:value={searchQuery} />
 		<div class="sb-shortcut"><span class="kbd">&#8984;</span><span class="kbd">K</span></div>
 		<svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="#ccc" stroke-width="1.5"><circle cx="5.5" cy="5.5" r="4"/><line x1="8.5" y1="8.5" x2="12" y2="12"/></svg>
@@ -113,7 +113,7 @@
 						tabindex="0"
 						onkeydown={() => {}}
 					>
-						<div class="block-preview">
+						<div class="block-preview opacity-50">
 							{#if def.type === 'header'}
 								<div style="width:100%;height:28px;background:#FFD100;border-radius:2px;display:flex;align-items:center;justify-content:center;gap:4px;">
 									<div style="width:8px;height:8px;border-radius:2px;background:rgba(255,255,255,0.6);"></div>
@@ -281,7 +281,7 @@
 	.sb-search input { border: none; background: transparent; font-size: 11.5px; color: #555; outline: none; flex: 1; width: 0; font-family: inherit; }
 	.sb-search input::placeholder { color: #444; }
 	.sb-shortcut { display: flex; align-items: center; gap: 3px; }
-	.kbd { font-size: 9px; color: #ccc; border: 1px solid #e5e5e5; border-radius: 3px; padding: 1px 4px; line-height: 1.4; }
+	.kbd { font-size: 9px; color: #ccc; border: 1px solid #e5e5e526; border-radius: 3px; padding: 1px 4px; line-height: 1.4; }
 
 	/* Section header */
 	.sb-section-hdr { padding: 4px 12px 6px; display: flex; align-items: center; justify-content: space-between; }

@@ -559,7 +559,7 @@
 		font-family: 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif;
 	}
 	.right-panel::-webkit-scrollbar { width: 4px; }
-	.right-panel::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
+	.right-panel::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
 
 	/* Top bar */
 	.rp-topbar {
@@ -628,12 +628,12 @@
 	/* Inputs & labels */
 	.right-panel :global(.rp-input) {
 		width: 100%;
-		background: #fafafa;
+		background: rgba(255,255,255,0.04);
 		border: 1px solid rgba(255,255,255,0.08);
 		border-radius: 5px;
 		padding: 5px 8px;
 		font-size: 11.5px;
-		color: #333;
+		color: #ddd;
 		outline: none;
 		font-family: inherit;
 		transition: border-color 0.15s;
@@ -641,16 +641,18 @@
 	}
 	.right-panel :global(.rp-input:focus) { border-color: #FFD100; }
 	.right-panel :global(textarea.rp-input) { resize: none; line-height: 1.5; }
+	.right-panel :global(select.rp-input) { color: #ccc; }
+	.right-panel :global(select.rp-input option) { background: #1e1e1e; color: #ddd; }
 	.right-panel :global(.rp-label) {
 		display: block;
 		font-size: 10px;
-		color: #aaa;
+		color: #666;
 		margin-bottom: 4px;
 		font-weight: 400;
 	}
 	.right-panel :global(.rp-label-hint) {
 		font-size: 9px;
-		color: #ccc;
+		color: #555;
 	}
 	.right-panel :global(.rp-add-btn) {
 		font-size: 11px;
@@ -665,7 +667,7 @@
 	}
 	.right-panel :global(.rp-add-btn:hover) { text-decoration: underline; }
 	.right-panel :global(.rp-del-btn) {
-		color: #ccc;
+		color: #555;
 		cursor: pointer;
 		background: none;
 		border: none;
@@ -679,20 +681,20 @@
 	.right-panel :global(.rp-width-pill) {
 		flex: 1;
 		padding: 5px 0;
-		border: 1px solid #e0e0e0;
+		border: 1px solid rgba(255,255,255,0.08);
 		border-radius: 5px;
 		font-size: 10.5px;
 		text-align: center;
 		cursor: pointer;
-		color: #666;
-		background: #141414;
+		color: #888;
+		background: transparent;
 		font-family: inherit;
 		transition: all 0.15s;
 	}
-	.right-panel :global(.rp-width-pill:hover) { border-color: #ccc; }
+	.right-panel :global(.rp-width-pill:hover) { border-color: rgba(255,255,255,0.15); color: #ccc; }
 	.right-panel :global(.rp-width-pill.active) {
 		border-color: #FFD100;
-		background: #edf8f4;
+		background: rgba(255,209,0,0.08);
 		color: #FFD100;
 	}
 	.right-panel :global(.rp-checkbox-row) {
@@ -700,7 +702,7 @@
 		align-items: center;
 		gap: 6px;
 		font-size: 11px;
-		color: #666;
+		color: #888;
 		cursor: pointer;
 	}
 	.right-panel :global(.rp-checkbox-row input) { accent-color: #FFD100; }
@@ -711,13 +713,14 @@
 		border: 1px solid rgba(255,255,255,0.08);
 		border-radius: 5px;
 		padding: 5px 8px;
-		background: #fafafa;
+		background: rgba(255,255,255,0.04);
 	}
+	.right-panel :global(.rp-link-row svg) { color: #FFD100; flex-shrink: 0; }
 	.right-panel :global(.rp-link-row input) {
 		border: none;
 		background: transparent;
 		font-size: 11px;
-		color: #333;
+		color: #ddd;
 		outline: none;
 		flex: 1;
 		min-width: 0;
@@ -738,9 +741,9 @@
 		height: 32px;
 		width: 32px;
 		aspect-ratio: 1/1;
-		border: 1px solid #e0e0e0;
+		border: 1px solid rgba(255,255,255,0.08);
 		border-radius: 6px;
-		background: #141414;
+		background: transparent;
 		cursor: pointer;
 		display: flex;
 		align-items: center;
@@ -750,12 +753,12 @@
 		color: #555;
 	}
 	.right-panel :global(.rp-layout-btn:hover) {
-		border-color: #ccc;
-		color: #666;
+		border-color: rgba(255,255,255,0.15);
+		color: #888;
 	}
 	.right-panel :global(.rp-layout-btn.active) {
 		border-color: #FFD100;
-		background: #edf8f4;
+		background: rgba(255,209,0,0.08);
 		color: #FFD100;
 	}
 

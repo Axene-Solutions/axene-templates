@@ -30,7 +30,7 @@
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="cm-overlay" onclick={oncancel}>
-		<div class="cm-card" onclick={(e) => e.stopPropagation()} role="dialog">
+		<div class="cm-card min-w-xl" onclick={(e) => e.stopPropagation()} role="dialog">
 			<div class="cm-title">{title}</div>
 			<div class="cm-message">{message}</div>
 			<div class="cm-actions">

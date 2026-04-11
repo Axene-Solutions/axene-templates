@@ -21,6 +21,30 @@
 		} else if (mod && e.key === 'y') {
 			e.preventDefault();
 			editor.redo();
+		} 
+		// space key to toggle preview
+		else if (e.key === ' ' && !e.repeat) {
+			e.preventDefault();
+			if (!showPreview) editor.compile();
+			showPreview = !showPreview;
+		}
+
+		// Ctrl/Cmd + S to save
+		else if (mod && e.key === 's') {
+			e.preventDefault();
+			editor.saveTemplate();
+		}
+
+		// Ctrl/Cmd + D to duplicate selected block
+		else if (mod && e.key === 'd' && editor.selectedId) {
+			e.preventDefault();
+			editor.duplicateBlock(editor.selectedId);
+		}
+
+		// Delete or Backspace to remove selected block
+		else if ((e.key === 'Delete' || e.key === 'Backspace') && editor.selectedId) {
+			e.preventDefault();
+			editor.removeBlock(editor.selectedId);
 		}
 	}
 
@@ -123,7 +147,12 @@
 		</button>
 
 		<!-- Save -->
-		<button class="tb-save" onclick={() => editor.saveTemplate()}>Save</button>
+		<button class="tb-save" onclick={() => editor.saveTemplate()}>
+			Save
+			<!-- shortcut -->
+			<span class="kbd ml-2!">&#8984;</span>
+			<span class="kbd">S</span>
+		</button>
 	</div>
 
 	<!-- Canvas area -->
