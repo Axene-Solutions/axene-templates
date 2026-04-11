@@ -200,6 +200,19 @@ let compileTimer: ReturnType<typeof setTimeout> | null = null;
 function scheduleCompile() {
 	if (compileTimer) clearTimeout(compileTimer);
 	compileTimer = setTimeout(compile, 300);
+	scheduleAutosave();
+}
+
+// Autosave (debounced, 2 seconds after last change)
+let autosaveTimer: ReturnType<typeof setTimeout> | null = null;
+
+function scheduleAutosave() {
+	if (autosaveTimer) clearTimeout(autosaveTimer);
+	autosaveTimer = setTimeout(async () => {
+		if (dirty && templateId) {
+			await saveTemplate();
+		}
+	}, 2000);
 }
 
 async function compile() {

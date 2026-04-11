@@ -1,34 +1,55 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
+	import { starterTemplates } from '$lib/defaults';
 
 	let { data } = $props();
 
 	let templates = $state(data.templates);
 	let searchQuery = $state('');
 	let deleteTarget = $state<{ id: string; name: string } | null>(null);
-
-	const filtered = $derived(
-		templates.filter((t: any) =>
-			t.name.toLowerCase().includes(searchQuery.toLowerCase())
-		)
-	);
+	let editingId = $state<string | null>(null);
+	let editingName = $state('');
 
 	const gradients = [
-		'linear-gradient(135deg, #1daa82, #15c296)',
-		'linear-gradient(135deg, #059669, #34d399)',
-		'linear-gradient(135deg, #2563eb, #60a5fa)',
-		'linear-gradient(135deg, #7c3aed, #a78bfa)',
+		'linear-gradient(135deg, #1daa82, #0d8f62)',
+		'linear-gradient(135deg, #6366f1, #4f46e5)',
+		'linear-gradient(135deg, #0ea5e9, #0284c7)',
+		'linear-gradient(135deg, #f59e0b, #d97706)',
+		'linear-gradient(135deg, #ef4444, #dc2626)',
+		'linear-gradient(135deg, #8b5cf6, #7c3aed)',
 	];
 
-	function gradientFor(index: number) {
-		return gradients[index % gradients.length];
+	function hashName(name: string): number {
+		let hash = 0;
+		for (let i = 0; i < name.length; i++) {
+			hash = ((hash << 5) - hash + name.charCodeAt(i)) | 0;
+		}
+		return Math.abs(hash);
+	}
+
+	function gradientFor(name: string) {
+		return gradients[hashName(name) % gradients.length];
 	}
 
 	function formatDate(iso: string) {
 		const d = new Date(iso);
 		return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 	}
+
+	const filteredTemplates = $derived(
+		templates.filter((t: any) =>
+			t.name.toLowerCase().includes(searchQuery.toLowerCase())
+		)
+	);
+
+	const filteredStarters = $derived(
+		starterTemplates.filter((t) =>
+			t.name.toLowerCase().includes(searchQuery.toLowerCase())
+		)
+	);
+
+	const totalCount = $derived(filteredTemplates.length + filteredStarters.length);
 
 	async function handleDelete() {
 		if (!deleteTarget) return;
@@ -38,6 +59,53 @@
 			templates = templates.filter((t: any) => t.id !== id);
 		} finally {
 			deleteTarget = null;
+		}
+	}
+
+	async function useStarter(starter: typeof starterTemplates[0]) {
+		const res = await fetch('/api/templates', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				name: starter.name,
+				blocks: starter.blocks,
+			}),
+		});
+		if (res.ok) {
+			const saved = await res.json();
+			goto(`/editor/${saved.id}`);
+		}
+	}
+
+	function startEditing(id: string, name: string) {
+		editingId = id;
+		editingName = name;
+	}
+
+	async function finishEditing(id: string) {
+		const trimmed = editingName.trim();
+		if (!trimmed) {
+			editingId = null;
+			return;
+		}
+		const tpl = templates.find((t: any) => t.id === id);
+		if (tpl && tpl.name !== trimmed) {
+			tpl.name = trimmed;
+			templates = [...templates];
+			await fetch(`/api/templates/${id}`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ name: trimmed }),
+			});
+		}
+		editingId = null;
+	}
+
+	function handleEditKeydown(e: KeyboardEvent, id: string) {
+		if (e.key === 'Enter') {
+			(e.target as HTMLInputElement).blur();
+		} else if (e.key === 'Escape') {
+			editingId = null;
 		}
 	}
 </script>
@@ -50,9 +118,15 @@
 	<div class="topbar">
 		<div class="topbar-left">
 			<h1 class="title">Templates</h1>
-			<span class="count">{filtered.length}</span>
+			<span class="count-badge">{totalCount}</span>
 		</div>
-		<button class="btn-new" onclick={() => goto('/editor')}>New Template</button>
+		<button class="btn-new" onclick={() => goto('/editor')}>
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+				<line x1="12" y1="5" x2="12" y2="19" />
+				<line x1="5" y1="12" x2="19" y2="12" />
+			</svg>
+			New Template
+		</button>
 	</div>
 
 	<div class="search-wrap">
@@ -68,45 +142,90 @@
 		/>
 	</div>
 
-	{#if filtered.length > 0}
-		<div class="grid">
-			{#each filtered as tpl, i (tpl.id)}
-				<div class="card" onclick={() => goto(`/editor/${tpl.id}`)} role="button" tabindex="0" onkeydown={(e) => e.key === 'Enter' && goto(`/editor/${tpl.id}`)}>
-					<div class="card-thumb" style:background={gradientFor(i)}>
-						<span class="card-thumb-name">{tpl.name}</span>
-					</div>
-					<div class="card-info">
-						<div class="card-name">{tpl.name}</div>
-						<div class="card-meta">
-							{tpl.blockCount ?? 0} blocks
-							{#if tpl.updatedAt}
-								<span class="meta-sep">&middot;</span> {formatDate(tpl.updatedAt)}
+	{#if filteredTemplates.length > 0}
+		<section class="section">
+			<h2 class="section-header">Your Templates</h2>
+			<div class="grid">
+				{#each filteredTemplates as tpl (tpl.id)}
+					<div class="card">
+						<div class="card-thumb" style:background={gradientFor(tpl.name)}>
+							<span class="card-thumb-label">{tpl.name}</span>
+						</div>
+						<div class="card-info">
+							{#if editingId === tpl.id}
+								<input
+									class="name-input"
+									type="text"
+									bind:value={editingName}
+									onblur={() => finishEditing(tpl.id)}
+									onkeydown={(e) => handleEditKeydown(e, tpl.id)}
+									autofocus
+								/>
+							{:else}
+								<!-- svelte-ignore a11y_click_events_have_key_events -->
+								<!-- svelte-ignore a11y_no_static_element_interactions -->
+								<div
+									class="card-name"
+									onclick={(e) => { e.stopPropagation(); startEditing(tpl.id, tpl.name); }}
+									title="Click to rename"
+								>{tpl.name}</div>
 							{/if}
-						</div>
-						<div class="card-actions">
-							<button class="action-edit" onclick={(e) => { e.stopPropagation(); goto(`/editor/${tpl.id}`); }}>Edit</button>
-							<button class="action-delete" onclick={(e) => { e.stopPropagation(); deleteTarget = { id: tpl.id, name: tpl.name }; }} aria-label="Delete template">
-								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-									<polyline points="3 6 5 6 21 6" />
-									<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-								</svg>
-							</button>
+							<div class="card-meta">
+								{tpl.blockCount ?? 0} blocks
+								{#if tpl.updatedAt}
+									<span class="dot">&#183;</span>
+									{formatDate(tpl.updatedAt)}
+								{/if}
+							</div>
+							<div class="card-actions">
+								<a
+									class="action-open"
+									href="/editor/{tpl.id}"
+									onclick={(e) => { e.preventDefault(); goto(`/editor/${tpl.id}`); }}
+								>Open in Editor</a>
+								<button
+									class="action-delete"
+									onclick={() => { deleteTarget = { id: tpl.id, name: tpl.name }; }}
+									aria-label="Delete template"
+								>
+									<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+										<polyline points="3 6 5 6 21 6" />
+										<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+									</svg>
+								</button>
+							</div>
 						</div>
 					</div>
-				</div>
-			{/each}
-		</div>
-	{:else}
-		<div class="empty">
-			<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-				<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-				<polyline points="14 2 14 8 20 8" />
-			</svg>
-			<div class="empty-title">No templates yet</div>
-			<div class="empty-desc">Create your first template</div>
-			<button class="btn-new" onclick={() => goto('/editor')}>New Template</button>
-		</div>
+				{/each}
+			</div>
+		</section>
 	{/if}
+
+	<section class="section">
+		<h2 class="section-header">Starter Templates</h2>
+		{#if filteredStarters.length > 0}
+			<div class="grid">
+				{#each filteredStarters as starter (starter.id)}
+					<div class="card">
+						<div class="card-thumb" style:background={starter.gradient}>
+							<span class="card-thumb-label">{starter.name}</span>
+						</div>
+						<div class="card-info">
+							<div class="card-name static">{starter.name}</div>
+							<div class="card-desc">{starter.description}</div>
+							<div class="card-actions">
+								<button class="btn-use" onclick={() => useStarter(starter)}>
+									Use Template
+								</button>
+							</div>
+						</div>
+					</div>
+				{/each}
+			</div>
+		{:else}
+			<div class="no-results">No starter templates match your search.</div>
+		{/if}
+	</section>
 </div>
 
 <ConfirmModal
@@ -124,173 +243,288 @@
 		overflow-y: auto;
 		flex: 1;
 		background: #fff;
-		padding: 32px;
+		padding: 32px 36px 48px;
 		font-family: 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif;
 	}
+
+	/* ---------- Top bar ---------- */
+
 	.topbar {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 	}
+
 	.topbar-left {
 		display: flex;
 		align-items: center;
 		gap: 10px;
 	}
+
 	.title {
-		font-size: 22px;
+		font-size: 24px;
 		font-weight: 700;
 		color: #111;
 		margin: 0;
+		line-height: 1;
 	}
-	.count {
-		font-size: 12px;
-		color: #999;
+
+	.count-badge {
+		font-size: 11px;
+		font-weight: 600;
+		color: #666;
 		background: #f0f0f0;
 		border-radius: 999px;
-		padding: 2px 8px;
+		padding: 2px 9px;
+		line-height: 1.5;
 	}
+
 	.btn-new {
+		display: flex;
+		align-items: center;
+		gap: 6px;
 		background: #1daa82;
 		color: #fff;
 		border: none;
 		border-radius: 8px;
-		padding: 8px 16px;
+		padding: 9px 18px;
 		font-size: 13px;
 		font-weight: 600;
 		cursor: pointer;
 		font-family: inherit;
-		transition: background 0.15s;
+		transition: background 0.15s, box-shadow 0.15s;
 	}
+
 	.btn-new:hover {
-		background: #189e78;
+		background: #179b74;
+		box-shadow: 0 2px 8px rgba(29, 170, 130, 0.25);
 	}
+
+	/* ---------- Search ---------- */
+
 	.search-wrap {
 		position: relative;
-		margin-top: 16px;
-		max-width: 360px;
+		margin-top: 20px;
+		max-width: 400px;
 	}
+
 	.search-icon {
 		position: absolute;
-		left: 10px;
+		left: 12px;
 		top: 50%;
 		transform: translateY(-50%);
 		pointer-events: none;
 	}
+
 	.search-input {
 		width: 100%;
+		box-sizing: border-box;
 		background: #fafafa;
 		border: 1px solid #e8e8e8;
 		border-radius: 8px;
-		padding: 8px 12px 8px 32px;
+		padding: 8px 12px 8px 34px;
 		font-size: 13px;
 		font-family: inherit;
 		color: #333;
 		outline: none;
-		transition: border-color 0.15s;
+		transition: border-color 0.15s, box-shadow 0.15s;
 	}
+
 	.search-input:focus {
 		border-color: #1daa82;
+		box-shadow: 0 0 0 3px rgba(29, 170, 130, 0.1);
 	}
+
 	.search-input::placeholder {
 		color: #bbb;
 	}
+
+	/* ---------- Sections ---------- */
+
+	.section {
+		margin-top: 32px;
+	}
+
+	.section-header {
+		font-size: 13px;
+		font-weight: 600;
+		color: #666;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		margin: 0 0 14px;
+	}
+
+	/* ---------- Grid ---------- */
+
 	.grid {
 		display: grid;
 		grid-template-columns: repeat(3, 1fr);
 		gap: 16px;
-		margin-top: 24px;
 	}
+
+	/* ---------- Card ---------- */
+
 	.card {
 		border: 1px solid #ebebeb;
 		border-radius: 12px;
 		overflow: hidden;
-		cursor: pointer;
-		transition: border-color 0.15s, box-shadow 0.15s;
+		background: #fff;
+		transition: border-color 0.2s, box-shadow 0.2s;
 	}
+
 	.card:hover {
-		border-color: #ccc;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+		border-color: #1daa82;
+		box-shadow: 0 4px 16px rgba(29, 170, 130, 0.1), 0 1px 4px rgba(0, 0, 0, 0.04);
 	}
+
 	.card-thumb {
 		height: 120px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		padding: 16px;
+		overflow: hidden;
+		transition: transform 0.25s;
 	}
-	.card-thumb-name {
+
+	.card:hover .card-thumb {
+		transform: scale(1.03);
+	}
+
+	.card-thumb-label {
 		color: #fff;
 		font-size: 15px;
 		font-weight: 600;
-		text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+		text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 		text-align: center;
+		pointer-events: none;
 	}
+
 	.card-info {
-		padding: 14px;
+		padding: 16px;
 	}
+
 	.card-name {
 		font-size: 14px;
 		font-weight: 600;
 		color: #111;
+		cursor: text;
+		border-radius: 4px;
+		padding: 1px 2px;
+		margin: -1px -2px;
+		transition: background 0.15s;
 	}
+
+	.card-name:hover {
+		background: #f5f5f5;
+	}
+
+	.card-name.static {
+		cursor: default;
+	}
+
+	.card-name.static:hover {
+		background: transparent;
+	}
+
+	.name-input {
+		font-size: 14px;
+		font-weight: 600;
+		color: #111;
+		font-family: inherit;
+		border: 1px solid #1daa82;
+		border-radius: 4px;
+		padding: 1px 4px;
+		margin: -2px -5px;
+		outline: none;
+		width: calc(100% + 10px);
+		background: #fff;
+		box-shadow: 0 0 0 3px rgba(29, 170, 130, 0.1);
+	}
+
 	.card-meta {
 		font-size: 12px;
 		color: #999;
 		margin-top: 4px;
+		display: flex;
+		align-items: center;
+		gap: 0;
 	}
-	.meta-sep {
-		margin: 0 2px;
+
+	.dot {
+		margin: 0 5px;
+		color: #ccc;
 	}
+
+	.card-desc {
+		font-size: 12px;
+		color: #888;
+		line-height: 1.45;
+		margin-top: 4px;
+	}
+
 	.card-actions {
 		display: flex;
 		align-items: center;
-		gap: 8px;
-		margin-top: 10px;
+		justify-content: space-between;
+		margin-top: 12px;
 	}
-	.action-edit {
-		background: none;
-		border: none;
-		color: #1daa82;
+
+	.action-open {
 		font-size: 12px;
 		font-weight: 500;
+		color: #1daa82;
+		text-decoration: none;
 		cursor: pointer;
-		padding: 0;
 		font-family: inherit;
+		transition: color 0.15s;
 	}
-	.action-edit:hover {
+
+	.action-open:hover {
+		color: #158d6a;
 		text-decoration: underline;
 	}
+
 	.action-delete {
 		background: none;
 		border: none;
 		color: #ccc;
 		cursor: pointer;
-		padding: 2px;
+		padding: 4px;
 		display: flex;
 		align-items: center;
-		transition: color 0.15s;
+		border-radius: 6px;
+		transition: color 0.15s, background 0.15s;
 	}
+
 	.action-delete:hover {
 		color: #dc2626;
+		background: #fef2f2;
 	}
-	.empty {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		padding: 80px 24px;
-		gap: 8px;
-	}
-	.empty-title {
-		font-size: 16px;
+
+	.btn-use {
+		background: none;
+		border: 1px solid #1daa82;
+		color: #1daa82;
+		border-radius: 6px;
+		padding: 5px 14px;
+		font-size: 12px;
 		font-weight: 600;
-		color: #666;
-		margin-top: 8px;
+		cursor: pointer;
+		font-family: inherit;
+		transition: background 0.15s, color 0.15s;
 	}
-	.empty-desc {
+
+	.btn-use:hover {
+		background: #1daa82;
+		color: #fff;
+	}
+
+	/* ---------- No results ---------- */
+
+	.no-results {
 		font-size: 13px;
 		color: #999;
-		margin-bottom: 16px;
+		padding: 24px 0;
 	}
 </style>
