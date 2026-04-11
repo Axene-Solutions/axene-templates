@@ -122,6 +122,72 @@
 		</div>
 	</section>
 
+	<!-- ══════ MARQUEE ══════ -->
+	<section class="marquee-section">
+		<div class="container text-center sr-bottom">
+			<h2>Solve every email challenge<span class="accent">.</span></h2>
+			<p class="section-sub" style="margin-left:auto;margin-right:auto;">From transactional to marketing, our templates handle every use case your business needs.</p>
+		</div>
+		<div class="marquee-wrap">
+			<div class="marquee-fade-l"></div>
+			<div class="marquee-fade-r"></div>
+			<div class="marquee-track row1">
+				<span class="marquee-badge">How do I verify new user emails?</span>
+				<span class="marquee-badge">What makes a good welcome email?</span>
+				<span class="marquee-badge">How do I send password reset links?</span>
+				<span class="marquee-badge">What layout works for newsletters?</span>
+				<span class="marquee-badge">How do I verify new user emails?</span>
+				<span class="marquee-badge">What makes a good welcome email?</span>
+				<span class="marquee-badge">How do I send password reset links?</span>
+				<span class="marquee-badge">What layout works for newsletters?</span>
+			</div>
+			<div class="marquee-track row2">
+				<span class="marquee-badge">How do I format invoice receipts?</span>
+				<span class="marquee-badge">Do my emails render in Outlook?</span>
+				<span class="marquee-badge">How do I add an unsubscribe link?</span>
+				<span class="marquee-badge">What's the best button color?</span>
+				<span class="marquee-badge">How do I format invoice receipts?</span>
+				<span class="marquee-badge">Do my emails render in Outlook?</span>
+				<span class="marquee-badge">How do I add an unsubscribe link?</span>
+				<span class="marquee-badge">What's the best button color?</span>
+			</div>
+			<div class="marquee-track row3">
+				<span class="marquee-badge">How do I set up DKIM and SPF?</span>
+				<span class="marquee-badge">Can I preview on mobile and desktop?</span>
+				<span class="marquee-badge">How do I track open rates?</span>
+				<span class="marquee-badge">What image sizes work best?</span>
+				<span class="marquee-badge">How do I set up DKIM and SPF?</span>
+				<span class="marquee-badge">Can I preview on mobile and desktop?</span>
+				<span class="marquee-badge">How do I track open rates?</span>
+				<span class="marquee-badge">What image sizes work best?</span>
+			</div>
+		</div>
+
+		<!-- Feature strip (dashed border grid, 4 cols) -->
+		<div class="feature-strip">
+			<div class="fs-card sr-card">
+				<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" class="fs-icon"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+				<h3>Clean HTML output</h3>
+				<p>Every template compiles to production-ready, table-based HTML that passes validation in all major clients.</p>
+			</div>
+			<div class="fs-card sr-card">
+				<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" class="fs-icon"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+				<h3>Image-first design</h3>
+				<p>Drop in images, logos, and banners. They resize responsively and fall back gracefully when blocked.</p>
+			</div>
+			<div class="fs-card sr-card">
+				<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" class="fs-icon"><path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z"/><path d="M19.6 10.4L18.5 7.7L20 6L18 4L16.3 5.5L13.6 4.4L12.9 2H11L10.3 4.4L7.7 5.5L6 4L4 6L5.5 7.8L4.4 10.4L2 11V13L4.4 13.7L5.5 16.3L4 18L6 20L7.8 18.5L10.4 19.6L11 22H13L13.6 19.6L16.3 18.5C16.7 18.8 18 20 18 20L20 18L18.5 16.2L19.6 13.6L22 13V11L19.6 10.4Z"/></svg>
+				<h3>Full customization</h3>
+				<p>Every pixel is adjustable. Colors, padding, fonts, border radius, alignment - all editable in real time.</p>
+			</div>
+			<div class="fs-card sr-card">
+				<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" class="fs-icon"><path d="M7 12L12 15.5L17 12"/><path d="M2 20V9.13C2 8.43 2.37 7.78 2.97 7.42L10.97 2.62C11.6 2.24 12.4 2.24 13.03 2.62L21.03 7.42C21.63 7.78 22 8.43 22 9.13V20C22 21.1 21.1 22 20 22H4C2.9 22 2 21.1 2 20Z"/></svg>
+				<h3>Ready to send</h3>
+				<p>Export compiled HTML and use it with Axene Mailer, SendGrid, Mailchimp, or any ESP. Copy, paste, done.</p>
+			</div>
+		</div>
+	</section>
+
 	<!-- ══════ HOW IT WORKS ══════ -->
 	<section id="how-it-works" class="section-darker">
 		<div class="container">
@@ -383,6 +449,52 @@
 	.bc-icon.green-icon { background: rgba(29,170,130,0.15); color: #1daa82; }
 
 	/* ═══════════════════════════════════════
+	   MARQUEE SECTION
+	   ═══════════════════════════════════════ */
+	.marquee-section { padding: 96px 0 0; background: #0a0a0a; border-top: 1px solid rgba(255,255,255,0.05); overflow: hidden; }
+	.marquee-wrap { position: relative; margin-top: 40px; overflow: hidden; }
+	.marquee-fade-l, .marquee-fade-r { position: absolute; top: 0; bottom: 0; width: 80px; z-index: 2; pointer-events: none; }
+	.marquee-fade-l { left: 0; background: linear-gradient(to right, #0a0a0a, transparent); }
+	.marquee-fade-r { right: 0; background: linear-gradient(to left, #0a0a0a, transparent); }
+	.marquee-track {
+		display: flex;
+		gap: 10px;
+		white-space: nowrap;
+		animation: marqueeScroll 45s linear infinite;
+		padding: 5px 0;
+	}
+	.marquee-track.row2 { animation-direction: reverse; animation-duration: 50s; }
+	.marquee-track.row3 { animation-duration: 42s; }
+	@keyframes marqueeScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+	.marquee-badge {
+		display: inline-block;
+		padding: 6px 14px;
+		background: rgba(255,255,255,0.04);
+		border: 1px solid rgba(255,255,255,0.07);
+		color: #666;
+		font-size: 12px;
+		font-weight: 500;
+		white-space: nowrap;
+		flex-shrink: 0;
+	}
+
+	/* Feature strip (dashed grid at bottom) */
+	.feature-strip {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		border-top: 1px dashed rgba(255,255,255,0.1);
+		margin-top: 48px;
+	}
+	.fs-card {
+		padding: 32px 24px;
+		border-right: 1px dashed rgba(255,255,255,0.06);
+	}
+	.fs-card:last-child { border-right: none; }
+	.fs-icon { color: #555; margin-bottom: 40px; }
+	.fs-card h3 { font-size: 20px; font-weight: 600; color: #fff; margin: 0 0 8px; letter-spacing: -0.5px; }
+	.fs-card p { font-size: 13px; color: #555; line-height: 1.6; margin: 0; }
+
+	/* ═══════════════════════════════════════
 	   STEPS
 	   ═══════════════════════════════════════ */
 	.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; overflow: hidden; margin-top: 48px; }
@@ -480,6 +592,12 @@
 		.bento-large, .bento-wide { grid-column: span 1; }
 		.steps { grid-template-columns: 1fr; }
 		.tpl-grid { grid-template-columns: 1fr 1fr; }
+		.feature-strip { grid-template-columns: 1fr 1fr; }
+		.fs-card { border-bottom: 1px dashed rgba(255,255,255,0.06); }
 		.nav-links { display: none; }
+	}
+	@media (max-width: 480px) {
+		.feature-strip { grid-template-columns: 1fr; }
+		.tpl-grid { grid-template-columns: 1fr; }
 	}
 </style>
