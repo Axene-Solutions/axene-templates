@@ -44,6 +44,11 @@
 	}
 
 	async function useStarter(starter: any) {
+		// Fetch the full starter template to get its blocks
+		const fullRes = await fetch(`/api/templates/${starter.id}`);
+		if (!fullRes.ok) return;
+		const full = await fullRes.json();
+
 		const newId = starter.id + '-' + Date.now().toString(36);
 		const res = await fetch('/api/templates', {
 			method: 'POST',
@@ -51,7 +56,7 @@
 			body: JSON.stringify({
 				id: newId,
 				name: starter.name,
-				blocks: [], // blocks will be loaded from the starter in the editor
+				blocks: full.blocks,
 			}),
 		});
 		if (res.ok) {
