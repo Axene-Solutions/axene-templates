@@ -9,6 +9,7 @@ export interface StarterTemplate {
 	id: string;
 	name: string;
 	description: string;
+	category: string; 
 	gradient: string;
 	blocks: Block[];
 }
@@ -26,6 +27,7 @@ export const starterTemplates: StarterTemplate[] = [
 		id: 'starter-welcome',
 		name: 'Welcome Email',
 		description: 'Greet new users with a warm welcome and get them started.',
+		category: 'Onboarding',
 		gradient: 'linear-gradient(135deg, #1daa82 0%, #0d8f62 100%)',
 		blocks: [
 			{ id: uid(), type: 'header', props: { logoUrl: 'https://mail.axene.io/email-assets/logo.png', companyName: 'Your Company', tagline: '', backgroundColor: '#1daa82', logoWidth: 40, fontSize: 20, color: '#ffffff', align: 'center', paddingTop: 24, paddingBottom: 24, paddingLeft: 20, paddingRight: 20 } },
@@ -40,6 +42,7 @@ export const starterTemplates: StarterTemplate[] = [
 		id: 'starter-verify',
 		name: 'Email Verification',
 		description: 'Ask users to verify their email address with a one-click button.',
+		category: 'OTP/Passcodes',
 		gradient: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
 		blocks: [
 			{ id: uid(), type: 'header', props: { logoUrl: 'https://mail.axene.io/email-assets/logo.png', companyName: 'Your Company', tagline: '', backgroundColor: '#6366f1', logoWidth: 40, fontSize: 20, color: '#ffffff', align: 'center', paddingTop: 24, paddingBottom: 24, paddingLeft: 20, paddingRight: 20 } },
@@ -54,6 +57,7 @@ export const starterTemplates: StarterTemplate[] = [
 		id: 'starter-newsletter',
 		name: 'Newsletter',
 		description: 'A clean newsletter layout with image, content, and call-to-action.',
+		category: 'General Marketing',
 		gradient: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)',
 		blocks: [
 			{ id: uid(), type: 'header', props: { logoUrl: 'https://mail.axene.io/email-assets/logo.png', companyName: 'Your Company', tagline: 'Weekly Newsletter', backgroundColor: '#0ea5e9', logoWidth: 40, fontSize: 20, color: '#ffffff', align: 'center', paddingTop: 24, paddingBottom: 24, paddingLeft: 20, paddingRight: 20 } },
@@ -69,6 +73,7 @@ export const starterTemplates: StarterTemplate[] = [
 		id: 'starter-invoice',
 		name: 'Invoice / Receipt',
 		description: 'Payment confirmation with a summary table and transaction details.',
+		category: 'Invoices',
 		gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
 		blocks: [
 			{ id: uid(), type: 'header', props: { logoUrl: 'https://mail.axene.io/email-assets/logo.png', companyName: 'Your Company', tagline: '', backgroundColor: '#f59e0b', logoWidth: 40, fontSize: 20, color: '#ffffff', align: 'center', paddingTop: 24, paddingBottom: 24, paddingLeft: 20, paddingRight: 20 } },
@@ -83,6 +88,7 @@ export const starterTemplates: StarterTemplate[] = [
 		id: 'starter-reset',
 		name: 'Password Reset',
 		description: 'Let users reset their password with a secure one-time link.',
+		category: 'Password Reset',
 		gradient: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
 		blocks: [
 			{ id: uid(), type: 'header', props: { logoUrl: 'https://mail.axene.io/email-assets/logo.png', companyName: 'Your Company', tagline: '', backgroundColor: '#ef4444', logoWidth: 40, fontSize: 20, color: '#ffffff', align: 'center', paddingTop: 24, paddingBottom: 24, paddingLeft: 20, paddingRight: 20 } },
@@ -97,6 +103,7 @@ export const starterTemplates: StarterTemplate[] = [
 		id: 'starter-blank',
 		name: 'Blank Template',
 		description: 'Start from scratch with just a header and footer.',
+		category: 'Blank',
 		gradient: 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
 		blocks: [
 			{ id: uid(), type: 'header', props: { logoUrl: 'https://mail.axene.io/email-assets/logo.png', companyName: 'Your Company', tagline: '', backgroundColor: '#1daa82', logoWidth: 40, fontSize: 20, color: '#ffffff', align: 'center', paddingTop: 24, paddingBottom: 24, paddingLeft: 20, paddingRight: 20 } },

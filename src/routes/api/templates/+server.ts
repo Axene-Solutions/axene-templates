@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { db } from '$lib/server/db';
 import { templates } from '$lib/server/db/schema';
-import { eq, or, desc } from 'drizzle-orm';
+import { eq, or, and, desc } from 'drizzle-orm';
 
 // GET /api/templates - list templates visible to the user
 export const GET: RequestHandler = async ({ locals }) => {
@@ -32,6 +32,7 @@ export const GET: RequestHandler = async ({ locals }) => {
 	const result = rows.map((t) => ({
 		id: t.id,
 		name: t.name,
+		category: t.category,
 		blockCount: Array.isArray(t.blocks) ? t.blocks.length : 0,
 		isStarter: t.isStarter,
 		isPublic: t.isPublic,
@@ -50,8 +51,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	}
 
 	const body = await request.json();
-	const { id, name, category, blocks } = body;
-
+const { id, name, category, isPublic, blocks } = body;
 	if (!id || !name || !blocks) {
 		return json({ error: 'id, name, and blocks are required' }, { status: 400 });
 	}
@@ -65,7 +65,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	if (existing.length > 0 && existing[0].userId === user.id) {
 		await db
 			.update(templates)
-			.set({ name, category: category || 'otp', blocks, updatedAt: new Date() })
+			.set({ name, category: category || 'otp', blocks, isPublic, updatedAt: new Date() })
 			.where(and(eq(templates.id, id), eq(templates.userId, user.id)));
 	} else {
 		await db.insert(templates).values({
@@ -75,7 +75,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			category: category || 'otp',
 			blocks,
 			isStarter: false,
-			isPublic: false,
+			isPublic: isPublic || false,
 			updatedAt: new Date(),
 		});
 	}

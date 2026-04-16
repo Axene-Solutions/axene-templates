@@ -13,7 +13,7 @@ services:
       # Override the redirect URL to match your Docker port (3004)
       - OAUTH_REDIRECT_URL=http://localhost:3004/auth/google/callback
       
-      - DATABASE_URL=postgresql://axene_templates:${POSTGRES_PASSWORD}@postgres:5432/axene_templates
+      - DATABASE_URL=postgresql://axene_templates:${POSTGRES_PASSWORD}@postgres:5436/axene_templates
     depends_on:
       - postgres
     restart: unless-stopped
