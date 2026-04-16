@@ -774,3 +774,27 @@
 	}
 	.rp-empty span { font-size: 12px; color: #555; }
 </style>
+
+<div class="rp-section">
+    <h3 class="rp-sec-title">Template Metadata</h3>
+    
+    <!-- Template Name Input -->
+    <label style="font-size: 11px; color: #a1a1aa; display:block; margin-bottom:4px;">Template Name</label>
+    <input 
+        type="text" 
+        style="width: 100%; border:1px solid #3f3f46; background:transparent; color:#fff; border-radius:4px; padding: 6px; font-size: 13px; margin-bottom: 12px;" 
+        bind:value={editor.templateName} 
+    />
+
+    <!-- Template Category Select -->
+    <label style="font-size: 11px; color: #a1a1aa; display:block; margin-bottom:4px;">Category</label>
+    <select 
+        style="width: 100%; border:1px solid #3f3f46; background:transparent; color:#fff; border-radius:4px; padding: 6px; font-size: 13px;" 
+        bind:value={editor.templateCategory}
+    >
+        <option style="color:#000" value="otp">OTP / Passcodes</option>
+        <option style="color:#000" value="invoice">Invoices & Receipts</option>
+        <option style="color:#000" value="marketing">Marketing</option>
+        <option style="color:#000" value="welcome">Welcome Email</option>
+    </select>
+</div>

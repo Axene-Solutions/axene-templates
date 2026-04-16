@@ -4,6 +4,16 @@ services:
     ports:
       - "127.0.0.1:3004:3000"
     env_file: .env
+    environment:
+      # Explicitly pass Google Auth variables from .env
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
+      
+      # Override the redirect URL to match your Docker port (3004)
+      - OAUTH_REDIRECT_URL=http://localhost:3004/auth/google/callback
+      
+      - DATABASE_URL=postgresql://axene_templates:${POSTGRES_PASSWORD}@postgres:5432/axene_templates
     depends_on:
       - postgres
     restart: unless-stopped

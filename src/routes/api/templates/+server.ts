@@ -50,7 +50,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	}
 
 	const body = await request.json();
-	const { id, name, blocks } = body;
+	const { id, name, category, blocks } = body;
 
 	if (!id || !name || !blocks) {
 		return json({ error: 'id, name, and blocks are required' }, { status: 400 });
@@ -65,14 +65,15 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	if (existing.length > 0 && existing[0].userId === user.id) {
 		await db
 			.update(templates)
-			.set({ name, blocks, updatedAt: new Date() })
-			.where(eq(templates.id, id));
+			.set({ name, category: category || 'otp', blocks, updatedAt: new Date() })
+			.where(and(eq(templates.id, id), eq(templates.userId, user.id)));
 	} else {
 		await db.insert(templates).values({
 			id,
-			name,
-			blocks,
 			userId: user.id,
+			name,
+			category: category || 'otp',
+			blocks,
 			isStarter: false,
 			isPublic: false,
 			updatedAt: new Date(),

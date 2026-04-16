@@ -10,8 +10,9 @@ let blocks = $state<Block[]>(defaultBlocks());
 let selectedId = $state<string | null>(null);
 let previewHtml = $state('');
 let compiling = $state(false);
-let templateName = $state('Untitled');
-let templateId = $state('untitled');
+let templateId = $state('');
+let templateName = $state('Untitled Template');
+let templateCategory = $state('otp');
 let dirty = $state(false);
 
 // Undo/Redo history
@@ -234,7 +235,12 @@ async function saveTemplate() {
 	const res = await fetch('/api/templates', {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ id: templateId, name: templateName, blocks }),
+		body: JSON.stringify({ 
+			id: templateId, 
+			name: templateName, 
+			category: templateCategory, 
+			blocks 
+		}),
 	});
 	if (res.ok) dirty = false;
 	return res.ok;
@@ -248,6 +254,8 @@ export const editor = {
 	get compiling() { return compiling; },
 	get templateName() { return templateName; },
 	set templateName(v: string) { templateName = v; dirty = true; },
+	get templateCategory() { return templateCategory; },
+	set templateCategory(v: string) { templateCategory = v; dirty = true; },
 	get templateId() { return templateId; },
 	get dirty() { return dirty; },
 	get mjmlSource() { return mjmlSource; },
