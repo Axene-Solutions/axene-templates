@@ -31,6 +31,8 @@ export const templates = pgTable('templates', {
   id: text('id').primaryKey(),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
+  category: text('category').notNull().default('uncategorized'),  
+  version: text('version').notNull().default('v1'), 
   blocks: jsonb('blocks').notNull(),
   isStarter: boolean('is_starter').notNull().default(false),
   isPublic: boolean('is_public').notNull().default(false),

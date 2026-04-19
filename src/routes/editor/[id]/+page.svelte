@@ -42,7 +42,14 @@
 </div>
 
 <style>
-	.editor-wrap { display: contents; }
+.editor-wrap {
+		display: flex;
+		flex: 1;
+		min-width: 0;
+		min-height: 0;
+		overflow: hidden;
+		height: 100vh;
+	}
 	.mobile-gate { display: none; }
 
 	@media (max-width: 860px) {
