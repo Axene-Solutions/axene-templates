@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { editor } from '$lib/store.svelte';
 	import { blockDefs, type BlockType } from '$lib/blocks';
+	import Icon from './Icon.svelte';
 
 	let activeTab = $state<'layers' | 'blocks'>('blocks');
 	let searchQuery = $state('');
@@ -47,7 +48,7 @@
 	<!-- Header -->
 	<div class="sb-header">
 		<button class="sb-back">
-			<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="7.5,2 3.5,6 7.5,10"/></svg>
+			<Icon name="arrowLeft" width={12} height={12} />
 		</button>
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="sb-title" ondblclick={startNameEdit}>
@@ -61,11 +62,11 @@
 				/>
 			{:else}
 				<span class="sb-name-text" title="Double-click to rename">{editor.templateName}</span>
-				<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#bbb" stroke-width="1.5"><polyline points="2,3.5 5,6.5 8,3.5"/></svg>
+				<div style="color: #bbb;"><Icon name="chevronDown" width={10} height={10} /></div>
 			{/if}
 		</div>
 		<button class="sb-grid">
-			<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="0.5" y="0.5" width="5" height="5" rx="0.8" fill="#ccc"/><rect x="7.5" y="0.5" width="5" height="5" rx="0.8" fill="#ccc"/><rect x="0.5" y="7.5" width="5" height="5" rx="0.8" fill="#ccc"/><rect x="7.5" y="7.5" width="5" height="5" rx="0.8" fill="#ccc"/></svg>
+			<div style="color: #ccc;"><Icon name="grid" width={13} height={13} /></div>
 		</button>
 	</div>
 
@@ -86,16 +87,13 @@
 	<div class="sb-search mt-4!">
 		<input type="text" placeholder="Search..." bind:value={searchQuery} />
 		<div class="sb-shortcut"><span class="kbd">&#8984;</span><span class="kbd">K</span></div>
-		<svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="#ccc" stroke-width="1.5"><circle cx="5.5" cy="5.5" r="4"/><line x1="8.5" y1="8.5" x2="12" y2="12"/></svg>
-	</div>
-
-	<!-- Scrollable content -->
+			<div style="color: #ccc;"><Icon name="search" width={13} height={13} /></div>
 	<div class="sb-scroll overflow-y-scroll! max-h-[90vh]! overflow-x-clip!">
 		{#if activeTab === 'blocks'}
 			<!-- Block section -->
 			<div class="sb-section-hdr">
 				<span>Block</span>
-				<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#bbb" stroke-width="1.5"><polyline points="2,3.5 5,6.5 8,3.5"/></svg>
+				<div style="color: #bbb;"><Icon name="chevronDown" width={10} height={10} /></div>
 			</div>
 
 			<div class="blocks-grid">
@@ -186,7 +184,7 @@
 			<!-- Template section -->
 			<div class="sb-section-hdr" style="margin-top:8px;">
 				<span>Template</span>
-				<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#bbb" stroke-width="1.5"><polyline points="2,3.5 5,6.5 8,3.5"/></svg>
+				<div style="color: #bbb;"><Icon name="chevronDown" width={10} height={10} /></div>
 			</div>
 			<div class="template-grid">
 				<div class="tpl-card">

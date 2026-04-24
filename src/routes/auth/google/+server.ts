@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { GOOGLE_CLIENT_ID, OAUTH_REDIRECT_URL } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import { randomBytes } from 'crypto';
 
 export const GET: RequestHandler = async ({ cookies }) => {
@@ -15,8 +15,8 @@ export const GET: RequestHandler = async ({ cookies }) => {
 	});
 
 	const params = new URLSearchParams({
-		client_id: GOOGLE_CLIENT_ID,
-		redirect_uri: OAUTH_REDIRECT_URL,
+		client_id: env.GOOGLE_CLIENT_ID!,
+		redirect_uri: env.OAUTH_REDIRECT_URL!,
 		response_type: 'code',
 		scope: 'openid email profile',
 		access_type: 'offline',

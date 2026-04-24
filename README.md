@@ -44,6 +44,24 @@ npm install
 
 ### Development
 
+This app needs Postgres.
+
+Option A (recommended): run Postgres with Docker, run the app with `npm run dev`.
+
+```sh
+cp .env.example .env
+docker compose up -d postgres
+npm run db:push
+npm run dev
+```
+
+Option B: run everything with Docker.
+
+```sh
+cp .env.example .env
+docker compose up -d --build
+```
+
 Start the development server:
 
 ```sh

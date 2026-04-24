@@ -1,10 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import {
-	GOOGLE_CLIENT_ID,
-	GOOGLE_CLIENT_SECRET,
-	OAUTH_REDIRECT_URL
-} from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import { db } from '$lib/server/db';
 import { users, oauthAccounts, refreshTokens } from '$lib/server/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -27,9 +23,9 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 		body: new URLSearchParams({
 			code,
-			client_id: GOOGLE_CLIENT_ID,
-			client_secret: GOOGLE_CLIENT_SECRET,
-			redirect_uri: OAUTH_REDIRECT_URL,
+			client_id: env.GOOGLE_CLIENT_ID!,
+			client_secret: env.GOOGLE_CLIENT_SECRET!,
+			redirect_uri: env.OAUTH_REDIRECT_URL!,
 			grant_type: 'authorization_code'
 		})
 	});

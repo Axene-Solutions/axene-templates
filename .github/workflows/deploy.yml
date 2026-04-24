@@ -37,6 +37,7 @@ jobs:
             # Write .env
             cat > .env << EOF
             DATABASE_URL=$DATABASE_URL
+            DATABASE_URL_DOCKER=$DATABASE_URL
             POSTGRES_PASSWORD=$POSTGRES_PASSWORD
             GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID
             GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET

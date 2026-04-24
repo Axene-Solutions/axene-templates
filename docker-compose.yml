@@ -5,11 +5,14 @@ services:
       - "127.0.0.1:3004:3000"
     env_file: .env
     environment:
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - JWT_SECRET=${JWT_SECRET}
-      - OAUTH_REDIRECT_URL=http://localhost:3004/auth/google/callback
-      - DATABASE_URL=postgresql://axene_templates:${POSTGRES_PASSWORD}@postgres:5432/axene_templates
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      JWT_SECRET: ${JWT_SECRET}
+      OAUTH_REDIRECT_URL: http://localhost:3004/auth/google/callback
+
+      # Inside containers, "localhost" points at the container itself.
+      # Use a separate URL that targets the Postgres service on the compose network.
+      DATABASE_URL: ${DATABASE_URL_DOCKER:-postgresql://axene_templates:${POSTGRES_PASSWORD:-axene_templates_dev}@postgres:5432/axene_templates}
     depends_on:
       postgres:
         condition: service_healthy
@@ -20,7 +23,7 @@ services:
     environment:
       POSTGRES_DB: axene_templates
       POSTGRES_USER: axene_templates
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-axene_templates_dev}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:

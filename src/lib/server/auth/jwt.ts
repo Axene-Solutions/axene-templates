@@ -1,13 +1,13 @@
 import jwt from 'jsonwebtoken';
 import { createHash, randomBytes } from 'crypto';
-import { JWT_SECRET } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 
 const ALGORITHM = 'HS256';
 const ACCESS_TOKEN_EXPIRE_MINUTES = 60;
 const REFRESH_TOKEN_EXPIRE_DAYS = 30;
 
 export function createAccessToken(userId: string): string {
-  return jwt.sign({ sub: userId }, JWT_SECRET, {
+  return jwt.sign({ sub: userId }, env.JWT_SECRET!, {
     algorithm: ALGORITHM,
     expiresIn: `${ACCESS_TOKEN_EXPIRE_MINUTES}m`,
   });
@@ -15,7 +15,7 @@ export function createAccessToken(userId: string): string {
 
 export function verifyAccessToken(token: string): { sub: string } | null {
   try {
-    return jwt.verify(token, JWT_SECRET, { algorithms: [ALGORITHM] }) as { sub: string };
+    return jwt.verify(token, env.JWT_SECRET!, { algorithms: [ALGORITHM] }) as { sub: string };
   } catch {
     return null;
   }
