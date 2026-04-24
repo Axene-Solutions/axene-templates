@@ -226,6 +226,7 @@
 		{/if}
 	</div>
 </div>
+</div>
 
 <style>
 	.sidebar {
