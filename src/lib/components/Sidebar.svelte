@@ -88,6 +88,7 @@
 		<input type="text" placeholder="Search..." bind:value={searchQuery} />
 		<div class="sb-shortcut"><span class="kbd">&#8984;</span><span class="kbd">K</span></div>
 			<div style="color: #ccc;"><Icon name="search" width={13} height={13} /></div>
+	</div>
 	<div class="sb-scroll overflow-y-scroll! max-h-[90vh]! overflow-x-clip!">
 		{#if activeTab === 'blocks'}
 			<!-- Block section -->
@@ -225,7 +226,6 @@
 			</div>
 		{/if}
 	</div>
-</div>
 </div>
 
 <style>
