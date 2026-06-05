@@ -13,7 +13,7 @@
 
     // Dynamically extract unique categories from templates using a Set
     let categories = $derived(() => {
-        const uniqueIds = Array.from(new Set(templates.map((t: any) => t.category || 'general')));
+        const uniqueIds: string[] = Array.from(new Set(templates.map((t: any) => String(t.category || 'general'))));
         
         // Optional mapping for pretty labels. 
         // If a category is saved as "invoice", UI outputs "Invoice", etc.
