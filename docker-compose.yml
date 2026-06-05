@@ -8,7 +8,11 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       JWT_SECRET: ${JWT_SECRET}
-      OAUTH_REDIRECT_URL: http://localhost:3004/auth/google/callback
+      # Interpolated, not hardcoded: this same file is rsynced to prod, so a
+      # hardcoded localhost here was sending the live Google callback to
+      # http://localhost:3004. Default to the prod URL; local dev overrides it
+      # via the OAUTH_REDIRECT_URL in ./.env (compose auto-loads it).
+      OAUTH_REDIRECT_URL: ${OAUTH_REDIRECT_URL:-https://templates.axene.io/auth/google/callback}
 
       # Inside containers, "localhost" points at the container itself.
       # Use a separate URL that targets the Postgres service on the compose network.
