@@ -2,13 +2,19 @@
   <img src="https://axene.io/logos/axene_logo_corrected.webp" alt="Axene Logo" width="100" />
 </p>
 
-# Axene Templates – Visual Email Builder
+# Axene Templates: Visual Email Builder
 
-Welcome to **Axene Templates**, an open-source visual email builder powered by SvelteKit. This is one of the first public Axene products-more innovative tools are coming soon! We invite you to explore, use, and contribute.
+[![License: MIT](https://img.shields.io/badge/License-MIT-1F8A5B?style=flat-square&labelColor=101010)](LICENSE)
+[![SvelteKit](https://img.shields.io/badge/SvelteKit-FF3E00?style=flat-square&labelColor=101010&logo=svelte&logoColor=white)](https://kit.svelte.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&labelColor=101010&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-FFD100?style=flat-square&labelColor=101010)](#contributing)
+[![Built in Kenya](https://img.shields.io/badge/Built%20in-Nairobi%2C%20Kenya-101010?style=flat-square&labelColor=101010)](https://axene.io)
+
+Welcome to **Axene Templates**, an open-source visual email builder powered by SvelteKit. This is one of the first public Axene products. More innovative tools are coming soon! We invite you to explore, use, and contribute.
 
 ---
 
-## ? What is Axene Templates?
+## What is Axene Templates?
 
 Axene Templates is a modern, extensible platform for visually designing responsive email templates. Built with SvelteKit, TypeScript, and Tailwind CSS, it offers a fast, intuitive interface for creating, editing, and exporting email layouts.
 
@@ -23,7 +29,7 @@ Axene Templates is a modern, extensible platform for visually designing responsi
 
 ---
 
-## -> Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -97,19 +103,19 @@ The app will be available at [http://localhost:3000](http://localhost:3000).
 
 ---
 
-## 🌍 About Axene Open Source
+## About Axene Open Source
 
-Axene is committed to building high-quality, open-source tools for modern creators and developers. **Axene Templates** is just the beginning-stay tuned for more products and updates!
+Axene is committed to building high-quality, open-source tools for modern creators and developers. **Axene Templates** is just the beginning. Stay tuned for more products and updates!
 
 **Want to contribute?**
 
-- Star ⭐ the repo
+- Star the repo
 - Open issues and pull requests
 - Share feedback and ideas
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License.
 
