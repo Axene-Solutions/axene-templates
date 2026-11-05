@@ -83,7 +83,6 @@
 	<!-- Search -->
 	<div class="sb-search mt-4!">
 		<input type="text" placeholder="Search..." bind:value={searchQuery} />
-		<div class="sb-shortcut"><span class="kbd">&#8984;</span><span class="kbd">K</span></div>
 			<div style="color: #ccc;"><Icon name="search" width={13} height={13} /></div>
 	</div>
 	<div class="sb-scroll overflow-y-scroll! max-h-[90vh]! overflow-x-clip!">
@@ -276,7 +275,6 @@
 	.sb-search { margin: 0 10px 8px; border: 1px solid rgba(255,255,255,0.08); border-radius: 7px; padding: 5px 9px; display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.04); }
 	.sb-search input { border: none; background: transparent; font-size: 11.5px; color: #555; outline: none; flex: 1; width: 0; font-family: inherit; }
 	.sb-search input::placeholder { color: #444; }
-	.sb-shortcut { display: flex; align-items: center; gap: 3px; }
 	.kbd { font-size: 9px; color: #ccc; border: 1px solid #e5e5e526; border-radius: 3px; padding: 1px 4px; line-height: 1.4; }
 
 	/* Section header */

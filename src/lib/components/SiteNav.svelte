@@ -58,7 +58,7 @@
 					{/if}
 				</div>
 			{:else}
-				<a href="/auth/google" class="hidden! md:block! sn-cta">Sign in</a>
+				<a href="/auth/google" class="sn-cta">Sign in</a>
 			{/if}
 		</div>
 	</div>
