@@ -5,6 +5,7 @@ import { db } from "$lib/server/db";
 import { users, templates } from "$lib/server/db/schema";
 import { eq } from "drizzle-orm";
 import { starterTemplates } from "$lib/defaults";
+import { safeNext } from "$lib/safe-next";
 
 // Seed starter templates on first request (idempotent)
 let seeded = false;
@@ -71,7 +72,9 @@ export const handle: Handle = async ({ event, resolve }) => {
   const path = event.url.pathname;
 
 	if ((path.startsWith("/editor") || path.startsWith("/settings")) && !event.locals.user) {
-		throw redirect(302, "/login");
+		// Keep the target so sign in returns here (for example a Mailer deep link). Only a safe relative path is kept.
+		const next = safeNext(path + event.url.search);
+		throw redirect(302, next ? `/login?next=${encodeURIComponent(next)}` : "/login");
 	}
 
   if (path.startsWith("/api/templates") && !event.locals.user) {

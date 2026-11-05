@@ -6,6 +6,7 @@ import { users, oauthAccounts, refreshTokens } from '$lib/server/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { createAccessToken, generateRefreshToken } from '$lib/server/auth/jwt';
 import { setAuthCookies } from '$lib/server/auth/cookies';
+import { safeNext } from '$lib/safe-next';
 
 export const GET: RequestHandler = async ({ url, cookies }) => {
 	const code = url.searchParams.get('code');
@@ -13,6 +14,8 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 	const savedState = cookies.get('oauth_state');
 
 	cookies.delete('oauth_state', { path: '/' });
+	const next = safeNext(cookies.get('oauth_next'));
+	cookies.delete('oauth_next', { path: '/' });
 
 	if (!code || !state || state !== savedState) {
 		throw redirect(302, '/login?error=invalid_state');
@@ -97,5 +100,5 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 
 	setAuthCookies(cookies, accessToken, refresh.raw);
 
-	throw redirect(302, '/templates');
+	throw redirect(302, next ?? '/templates');
 };
