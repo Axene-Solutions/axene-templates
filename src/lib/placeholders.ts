@@ -367,3 +367,36 @@ export function splitForChips(text: string): { text: string; tag?: Tag }[] {
 	if (last < text.length) parts.push({ text: text.slice(last) });
 	return parts;
 }
+
+const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/**
+ * Wraps placeholders in the text parts of an HTML string in <span class="ph ph-..."> for the canvas.
+ * Tags (and so attribute values such as href="{{link:x}}") are left exactly as they are, and the
+ * placeholder text itself stays literal. Cost is linear in the input.
+ */
+export function chipifyHtml(html: string, kindOf: (tag: Tag) => string = (t) => t.kind): string {
+	if (!html.includes('{{')) return html;
+	let out = '';
+	let i = 0;
+	while (i < html.length) {
+		const lt = html.indexOf('<', i);
+		const textEnd = lt === -1 ? html.length : lt;
+		const text = html.slice(i, textEnd);
+		let last = 0;
+		for (const { tag, start, end } of scanTags(text, 200)) {
+			out += text.slice(last, start) + `<span class="ph ph-${kindOf(tag)}">${esc(tag.raw).replace(/&amp;(amp|lt|gt|quot|#\d+);/g, '&$1;')}</span>`;
+			last = end;
+		}
+		out += text.slice(last);
+		if (lt === -1) break;
+		const gt = html.indexOf('>', lt);
+		if (gt === -1) {
+			out += html.slice(lt);
+			break;
+		}
+		out += html.slice(lt, gt + 1);
+		i = gt + 1;
+	}
+	return out;
+}
