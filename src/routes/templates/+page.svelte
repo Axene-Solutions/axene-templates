@@ -5,6 +5,7 @@
     import SiteNav from '$lib/components/SiteNav.svelte';
     import SiteFooter from '$lib/components/SiteFooter.svelte';
     import Icon from '$lib/components/Icon.svelte';
+    import MailerTemplatesTab from '$lib/components/MailerTemplatesTab.svelte';
 
     let { data } = $props();
 
@@ -87,6 +88,7 @@
 
     let activeCategoryFilter = $state('all');
     let searchQuery = $state('');
+    let view = $state<'templates' | 'mailer'>('templates');
     
     let deleteTarget = $state<{ id: string; name: string } | null>(null);
 
@@ -249,7 +251,16 @@
         />
     </div>
 
-    {#if loadError}
+    {#if user}
+        <div class="filter-tabs view-tabs" role="tablist" aria-label="Template source">
+            <button class="filter-tab" role="tab" aria-selected={view === 'templates'} class:active={view === 'templates'} onclick={() => (view = 'templates')}>Templates</button>
+            <button class="filter-tab" role="tab" aria-selected={view === 'mailer'} class:active={view === 'mailer'} onclick={() => (view = 'mailer')}>From Mailer</button>
+        </div>
+    {/if}
+
+    {#if user && view === 'mailer'}
+        <MailerTemplatesTab query={searchQuery} />
+    {:else if loadError}
         <div class="state-card" role="alert">
             <span class="state-icon"><Icon name="warning" width={28} height={28} /></span>
             <h2 class="state-title">Could not load templates</h2>
@@ -465,6 +476,7 @@
         gap: 10px;
         margin: 24px 0 16px;
     }
+    .view-tabs { margin-bottom: 0; }
     .filter-tab {
         background: var(--color-surface-2);
         border: 1px solid var(--color-border-1);
