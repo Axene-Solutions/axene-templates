@@ -7,6 +7,7 @@ import { gate, loadApiKey, readJson } from '$lib/server/mailer/http';
 import { sendEmail } from '$lib/server/mailer/client';
 import { createRateLimiter } from '$lib/server/mailer/guard';
 import {
+	detectVariables,
 	escapeVariables,
 	htmlToText,
 	isValidEmail,
@@ -16,6 +17,8 @@ import {
 	validateVariables,
 } from '$lib/server/mailer/validate';
 import { renderTemplateHtml } from '$lib/server/render';
+
+const INJECTOR_DEFAULTS = new Set(['theme_color', 'logo', 'company_name']);
 
 // 20 send requests per user per hour. In memory: per process, reset on restart.
 const limiter = createRateLimiter(20, 60 * 60 * 1000);
@@ -56,6 +59,17 @@ export const POST: RequestHandler = async (event) => {
 	if (!(t.isStarter || t.userId === auth.user.id)) {
 		if (t.isPublic) return json({ error: 'Copy this template to your account before sending', code: 'copy_required' }, { status: 403 });
 		return json({ error: 'Forbidden' }, { status: 403 });
+	}
+
+	// Every {{variable}} the template uses needs a value, otherwise it would go out blank ("Hi ,").
+	// theme_color, logo and company_name have built-in defaults in the injector.
+	const missing = detectVariables(JSON.stringify(t.blocks)).filter((n) => {
+		if (INJECTOR_DEFAULTS.has(n)) return false;
+		const v = vars.value[n];
+		return v === undefined || (typeof v === 'string' && v.trim() === '');
+	});
+	if (missing.length) {
+		return json({ error: `These variables need a value: ${missing.join(', ')}`, code: 'missing_variables', missing }, { status: 400 });
 	}
 
 	const apiKey = await loadApiKey(auth);
