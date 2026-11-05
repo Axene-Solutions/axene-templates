@@ -39,8 +39,17 @@
 </div>
 
 <style>
+	/* Own flex row, same as /editor/[id]. `display: contents` made the three
+	   columns depend on the parent being a flex row, which the root layout does
+	   not provide when the editor renders outside the app shell (no signed-in
+	   user): they stacked vertically and the right panel fell off-screen. */
 	.editor-wrap {
-		display: contents;
+		display: flex;
+		flex: 1;
+		min-width: 0;
+		min-height: 0;
+		overflow: hidden;
+		height: 100vh;
 	}
 
 	.mobile-gate {
