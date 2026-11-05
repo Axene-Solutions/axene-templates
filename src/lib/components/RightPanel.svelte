@@ -7,9 +7,11 @@
 	import NumberInput from './NumberInput.svelte';
 	import Icon from './Icon.svelte';
 	import SendModal from './SendModal.svelte';
+	import SaveToMailerModal from './SaveToMailerModal.svelte';
 
 	let activeTab = $state<'customize' | 'styles'>('customize');
 	let sendOpen = $state(false);
+	let saveMailerOpen = $state(false);
 
 	function setProp(key: string, value: any) {
 		if (editor.selectedId) editor.updateProp(editor.selectedId, key, value);
@@ -70,6 +72,15 @@
 			</button>
 		</div>
 
+		<button
+			class="rp-save-mail"
+			title={editor.mailerTemplateId ? 'Update the linked template in your Axene Mailer account' : 'Save this template into your Axene Mailer account'}
+			onclick={() => (saveMailerOpen = true)}
+		>
+			<Icon name="save" width={14} height={14} />
+			{editor.mailerTemplateId ? 'Update in Mailer' : 'Save to Mailer'}
+		</button>
+
 		<button class="rp-use-mail" title="Send this template with your Axene Mailer account" onclick={() => (sendOpen = true)}>
 			<Icon name="send" width={14} height={14} />
 			Send
@@ -77,6 +88,7 @@
 	</div>
 
 	<SendModal open={sendOpen} onclose={() => (sendOpen = false)} />
+	<SaveToMailerModal open={saveMailerOpen} onclose={() => (saveMailerOpen = false)} />
 
 	<!-- Tab switcher -->
 	<div class="rp-tab-wrap">
@@ -706,6 +718,31 @@
 	.rp-use-mail:hover:not(:disabled) {
 		background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text));
 		box-shadow: 0 0 14px var(--accent-glow);
+	}
+	/* Secondary action: outlined, so Send stays the primary button. */
+	.rp-save-mail {
+		margin-left: auto;
+		background: transparent;
+		color: var(--color-text);
+		border: 1px solid var(--color-border-1);
+		border-radius: var(--radius-md);
+		padding: 0 10px;
+		height: 26px;
+		font-size: 11.5px;
+		font-weight: 600;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		gap: 5px;
+		white-space: nowrap;
+		font-family: inherit;
+		transition: background 0.12s, border-color 0.12s;
+	}
+	.rp-save-mail:hover {
+		background: var(--bg-hover);
+	}
+	.rp-save-mail + .rp-use-mail {
+		margin-left: 0;
 	}
 	.rp-use-mail:disabled,
 	.rp-icon-btn:disabled {

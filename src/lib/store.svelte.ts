@@ -20,6 +20,9 @@ let templateId = $state("");
 let templateName = $state("Untitled Template");
 let templateCategory = $state("general");
 let templateIsPublic = $state(false);
+// Linked Mailer template (empty until saved to Mailer) and its name as last saved there.
+let mailerTemplateId = $state("");
+let mailerTemplateName = $state("");
 let dirty = $state(false);
 let saveState = $state<"idle" | "saving" | "saved" | "error">("idle");
 let saveError = $state("");
@@ -200,8 +203,10 @@ function setBlocks(newBlocks: Block[]) {
   scheduleCompile();
 }
 
-function setTemplate(id: string, name: string, newBlocks: Block[], isPublic = false, category = "general") {
+function setTemplate(id: string, name: string, newBlocks: Block[], isPublic = false, category = "general", mailerId = "") {
   templateId = id;
+  mailerTemplateId = mailerId;
+  mailerTemplateName = "";
   templateName = name;
   templateCategory = category;
   setBlocks(newBlocks);
@@ -211,6 +216,8 @@ function setTemplate(id: string, name: string, newBlocks: Block[], isPublic = fa
 
 function newTemplate() {
   templateId = "untitled-" + Date.now().toString(36);
+  mailerTemplateId = "";
+  mailerTemplateName = "";
   templateName = "Untitled";
   templateCategory = "general";
   setBlocks(defaultBlocks());
@@ -355,6 +362,16 @@ export const editor = {
   },
   get dirty() {
     return dirty;
+  },
+  get mailerTemplateId() {
+    return mailerTemplateId;
+  },
+  get mailerTemplateName() {
+    return mailerTemplateName;
+  },
+  setMailerLink(id: string, name: string) {
+    mailerTemplateId = id;
+    mailerTemplateName = name;
   },
   get saveState() {
     return saveState;

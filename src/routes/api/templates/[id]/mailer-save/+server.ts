@@ -90,6 +90,8 @@ export const POST: RequestHandler = async (event) => {
 		return json({
 			mailerTemplateId: res.data.id,
 			created,
+			// True when the row now points at this Mailer template. A copy of a shared template is not linked.
+			linked: owner,
 			name: res.data.name,
 			subject: res.data.subject,
 			openUrl: `${getMailerPublicUrl()}/templates`,
