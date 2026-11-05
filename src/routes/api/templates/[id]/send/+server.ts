@@ -51,7 +51,12 @@ export const POST: RequestHandler = async (event) => {
 
 	const [t] = await db.select().from(templates).where(eq(templates.id, event.params.id)).limit(1);
 	if (!t) return json({ error: 'Template not found' }, { status: 404 });
-	if (!(t.isStarter || t.isPublic || t.userId === auth.user.id)) return json({ error: 'Forbidden' }, { status: 403 });
+	// Only your own templates and starters can be sent. Another user's public template can change
+	// after you previewed it, so it must be copied to your account first.
+	if (!(t.isStarter || t.userId === auth.user.id)) {
+		if (t.isPublic) return json({ error: 'Copy this template to your account before sending', code: 'copy_required' }, { status: 403 });
+		return json({ error: 'Forbidden' }, { status: 403 });
+	}
 
 	const apiKey = await loadApiKey(auth);
 	if (apiKey instanceof Response) return apiKey;
