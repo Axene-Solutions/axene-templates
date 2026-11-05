@@ -29,6 +29,7 @@ import link from './svg/link.svg?raw'
 import logout from './svg/logout.svg?raw'
 import mobile from './svg/mobile.svg?raw'
 import monitor from './svg/monitor.svg?raw'
+import mail from './svg/mail.svg?raw'
 import moon from './svg/moon.svg?raw'
 import more from './svg/more.svg?raw'
 import pencil from './svg/pencil.svg?raw'
@@ -36,6 +37,7 @@ import plus from './svg/plus.svg?raw'
 import pointer from './svg/pointer.svg?raw'
 import redo from './svg/redo.svg?raw'
 import refresh from './svg/refresh.svg?raw'
+import save from './svg/save.svg?raw'
 import search from './svg/search.svg?raw'
 import send from './svg/send.svg?raw'
 import settings from './svg/settings.svg?raw'
@@ -70,6 +72,7 @@ export const icons = {
 	logout: logout,
 	mobile: mobile,
 	monitor: monitor,
+	mail: mail,
 	moon: moon,
 	more: more,
 	pencil: pencil,
@@ -77,6 +80,7 @@ export const icons = {
 	pointer: pointer,
 	redo: redo,
 	refresh: refresh,
+	save: save,
 	search: search,
 	send: send,
 	settings: settings,
