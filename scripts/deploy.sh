@@ -226,7 +226,7 @@ draw_initial
 # -- Type check --------------------------------------------------------------
 if [ "$SKIP_CHECK" = false ]; then
   run_step
-  if run_cmd /tmp/axene-check.log npx svelte-check --threshold error; then
+  if run_cmd /tmp/axene-check.log sh -c "npx svelte-kit sync && npx svelte-check --threshold error"; then
     step_done
   else
     printf "\n"
