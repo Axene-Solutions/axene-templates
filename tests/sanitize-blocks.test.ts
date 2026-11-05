@@ -17,14 +17,18 @@ function executable(html: string): string[] {
 	if (/<\s*script/i.test(html)) found.push('script tag');
 	if (/<\s*\/?\s*mj-raw/i.test(html)) found.push('mj-raw');
 	if (/<\s*(svg|iframe|object|embed|math|base|form)\b/i.test(html)) found.push('embed');
-	for (const m of html.matchAll(/<[a-z][^>]*>/gi)) {
-		if (/[\s"'/]on[a-z]+\s*=/i.test(m[0])) found.push('handler: ' + m[0].slice(0, 80));
-		for (const a of m[0].matchAll(/=\s*"([^"]*)"/g)) {
-			const v = a[1].replace(/&#x?[0-9a-f]+;?|&[a-z]+;/gi, (e) => {
+	// Attribute by attribute, the way a browser tokenises a start tag.
+	const startTag = /<[a-z][a-z0-9-]*((?:\s+[^\s"'>/=]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?)*)\s*\/?>/gi;
+	const attr = /([^\s"'>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g;
+	for (const m of html.matchAll(startTag)) {
+		for (const a of m[1].matchAll(attr)) {
+			if (/^on/i.test(a[1])) found.push('handler: ' + m[0].slice(0, 80));
+			const raw = a[2] ?? a[3] ?? a[4] ?? '';
+			const v = raw.replace(/&#x?[0-9a-f]+;?|&[a-z]+;/gi, (e) => {
 				const n = e.startsWith('&#x') || e.startsWith('&#X') ? parseInt(e.slice(3), 16) : e.startsWith('&#') ? parseInt(e.slice(2), 10) : NaN;
 				return Number.isFinite(n) ? String.fromCodePoint(n) : ({ '&colon;': ':', '&tab;': '\t', '&newline;': '\n' } as Record<string, string>)[e.toLowerCase()] ?? e;
 			}).replace(/[\u0000- ]/g, '').toLowerCase();
-			if (/^(javascript|vbscript):|^data:text\/html/.test(v)) found.push('script url: ' + a[1].slice(0, 60));
+			if (/^(javascript|vbscript):|^data:text\/html/.test(v)) found.push('script url: ' + raw.slice(0, 60));
 			if (/url\(\s*['"]?\s*javascript|expression\(/.test(v)) found.push('css script');
 		}
 	}

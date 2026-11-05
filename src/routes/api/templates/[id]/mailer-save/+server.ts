@@ -10,6 +10,7 @@ import { createRateLimiter } from '$lib/server/mailer/guard';
 import { forgetPlans } from '$lib/server/mailer/plancache';
 import { htmlToText, validateSubject } from '$lib/server/mailer/validate';
 import { renderTemplateForMailer } from '$lib/server/render';
+import { compiledHtmlProblem, sanitizeBlocksForRead } from '$lib/server/sanitize-blocks';
 import { buildEnvelope, cleanLine, MAX_SUBJECT_MAILER, MAX_TEMPLATE_NAME } from '$lib/mailer-templates';
 
 // 60 saves per user per hour. In memory: per process, reset on restart.
@@ -51,15 +52,21 @@ export const POST: RequestHandler = async (event) => {
 		return json({ error: 'Too many saves. Try again later.', code: 'rate_limited' }, { status: 429, headers: { 'Retry-After': String(wait) } });
 	}
 
+	// The allowlist runs on read as well, so a row stored before it existed is cleaned here too.
+	const blocks = sanitizeBlocksForRead(t.blocks);
 	let html: string;
 	try {
 		// Placeholders must survive: compile without variable injection.
-		html = renderTemplateForMailer(t.blocks).html;
+		html = renderTemplateForMailer(blocks).html;
 	} catch (e) {
 		console.error('Template render failed for mailer-save:', e instanceof Error ? e.message : 'unknown');
 		return json({ error: 'The template could not be rendered' }, { status: 422 });
 	}
-	const blocks = Array.isArray(t.blocks) ? t.blocks : [];
+	const problem = compiledHtmlProblem(html);
+	if (problem) {
+		console.error('mailer-save refused compiled HTML:', problem);
+		return json({ error: `This template cannot be saved to Mailer because the compiled email failed a safety check (${problem}). Nothing was saved.`, code: 'unsafe_html' }, { status: 422 });
+	}
 	const name = nameOverride ?? (cleanLine(t.name) || 'Untitled').slice(0, MAX_TEMPLATE_NAME);
 	const payload: MailerTemplateInput = {
 		name,

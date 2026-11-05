@@ -4,6 +4,8 @@ import { db } from '$lib/server/db';
 import { templates } from '$lib/server/db/schema';
 import { eq, or, and, desc } from 'drizzle-orm';
 import { randomBytes } from 'node:crypto';
+import { sanitizeBlocks, BlocksValidationError } from '$lib/server/sanitize-blocks';
+import type { Block } from '$lib/blocks';
 
 // GET /api/templates - list templates visible to the user
 export const GET: RequestHandler = async ({ locals }) => {
@@ -56,10 +58,30 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		return json({ error: 'Not authenticated' }, { status: 401 });
 	}
 
-	const body = await request.json();
-const { id, name, category, isPublic, blocks } = body;
-	if (!id || !name || !blocks) {
+	let body: Record<string, unknown>;
+	try {
+		body = await request.json();
+	} catch {
+		return json({ error: 'Invalid JSON body' }, { status: 400 });
+	}
+	if (!body || typeof body !== 'object') return json({ error: 'Invalid JSON body' }, { status: 400 });
+	const { id, name, category, isPublic: rawPublic, blocks: rawBlocks } = body as Record<string, any>;
+	if (!id || !name || !rawBlocks) {
 		return json({ error: 'id, name, and blocks are required' }, { status: 400 });
+	}
+	if (typeof id !== 'string' || !/^[A-Za-z0-9_-]{1,100}$/.test(id)) return json({ error: 'id is invalid' }, { status: 400 });
+	if (typeof name !== 'string' || name.length > 200) return json({ error: 'name is invalid' }, { status: 400 });
+	if (category !== undefined && category !== null && (typeof category !== 'string' || !/^[a-z0-9_-]{0,40}$/i.test(category))) {
+		return json({ error: 'category is invalid' }, { status: 400 });
+	}
+	const isPublic = rawPublic === true;
+	// Every stored block goes through the allowlist: wrong shapes are refused, rich text is cleaned.
+	let blocks: Block[];
+	try {
+		blocks = sanitizeBlocks(rawBlocks, { strict: true });
+	} catch (e) {
+		if (e instanceof BlocksValidationError) return json({ error: `The template content is not valid: ${e.message}`, code: e.code }, { status: 422 });
+		throw e;
 	}
 
 	const existing = await db
@@ -71,7 +93,7 @@ const { id, name, category, isPublic, blocks } = body;
 	if (existing.length > 0 && existing[0].userId === user.id) {
 		await db
 			.update(templates)
-			.set({ name, category: category || existing[0].category, blocks, isPublic, updatedAt: new Date() })
+			.set({ name, category: category || existing[0].category, blocks, isPublic: rawPublic === undefined ? existing[0].isPublic : isPublic, updatedAt: new Date() })
 			.where(and(eq(templates.id, id), eq(templates.userId, user.id)));
 	} else if (existing.length > 0) {
 		// Not yours. A starter or another user's public template is forked into a new private copy
@@ -99,7 +121,7 @@ const { id, name, category, isPublic, blocks } = body;
 			category: category || 'general',
 			blocks,
 			isStarter: false,
-			isPublic: isPublic || false,
+			isPublic,
 			updatedAt: new Date(),
 		});
 	}

@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { db } from '$lib/server/db';
 import { templates } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
+import { sanitizeBlocksForRead } from '$lib/server/sanitize-blocks';
 
 // GET /api/templates/:id - load a template
 export const GET: RequestHandler = async ({ params, locals }) => {
@@ -22,11 +23,11 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 		if (t.isStarter || t.isPublic) {
 			// The Mailer link is only meaningful to (and only shown to) the owner.
 			const mailerTemplateId = locals.user && t.userId === locals.user.id ? t.mailerTemplateId : null;
-			return json({ id: t.id, name: t.name, category: t.category, version: t.version, blocks: t.blocks, isStarter: t.isStarter, isPublic: t.isPublic, mailerTemplateId });
+			return json({ id: t.id, name: t.name, category: t.category, version: t.version, blocks: sanitizeBlocksForRead(t.blocks), isStarter: t.isStarter, isPublic: t.isPublic, mailerTemplateId });
 		}
 
 		if (locals.user && t.userId === locals.user.id) {
-			return json({ id: t.id, name: t.name, category: t.category, version: t.version, blocks: t.blocks, isStarter: t.isStarter, isPublic: t.isPublic, mailerTemplateId: t.mailerTemplateId });
+			return json({ id: t.id, name: t.name, category: t.category, version: t.version, blocks: sanitizeBlocksForRead(t.blocks), isStarter: t.isStarter, isPublic: t.isPublic, mailerTemplateId: t.mailerTemplateId });
 		}
 
 		return json({ error: 'Forbidden' }, { status: 403 });
@@ -104,7 +105,7 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 		return json({ error: 'Invalid JSON body' }, { status: 400 });
 	}
 
-	const changes: { name?: string; isPublic?: boolean } = {};
+	const changes: { name?: string; isPublic?: boolean; blocks?: unknown } = {};
 
 	if (body.name !== undefined) {
 		if (typeof body.name !== 'string' || body.name.trim() === '') {
@@ -119,6 +120,8 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 
 	if (body.isPublic !== undefined) {
 		changes.isPublic = Boolean(body.isPublic);
+		// Publishing shares the row with every viewer: store it in its sanitised form.
+		if (changes.isPublic) changes.blocks = sanitizeBlocksForRead(t.blocks);
 	}
 
 	if (changes.name === undefined && changes.isPublic === undefined) {

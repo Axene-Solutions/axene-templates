@@ -4,13 +4,16 @@ import { randomBytes } from 'node:crypto';
 import { injectVariables } from '$lib/server/injector';
 import { fillSlots, prepareGrammar, type Values } from '$lib/placeholders';
 import { escapeVariables } from '$lib/server/mailer/validate';
+import { sanitizeBlocksForRead } from '$lib/server/sanitize-blocks';
+
+// Every render sanitises first, so rows stored before the allowlist existed are safe too.
 
 /**
  * Blocks -> MJML -> Handlebars variable injection -> HTML.
  * Shared by the public compile endpoint and the Mailer send endpoint.
  */
 export function renderTemplateHtml(blocks: unknown, variables: Record<string, any> = {}) {
-	const rawMjml = blocksToMjml(blocks as any);
+	const rawMjml = blocksToMjml(sanitizeBlocksForRead(blocks));
 	const injectedMjml = injectVariables(rawMjml, variables);
 	return mjml2html(injectedMjml, {
 		keepComments: false,
@@ -24,7 +27,7 @@ export function renderTemplateHtml(blocks: unknown, variables: Record<string, an
  * stay in the output because Mailer fills them in later.
  */
 export function renderTemplateForMailer(blocks: unknown) {
-	return mjml2html(blocksToMjml(blocks as any), {
+	return mjml2html(blocksToMjml(sanitizeBlocksForRead(blocks)), {
 		keepComments: false,
 		minify: true,
 		validationLevel: 'soft',
@@ -47,7 +50,7 @@ export function renderTemplateForSend(
 	links: ReadonlyMap<string, string>,
 ): SendRender {
 	const nonce = randomBytes(6).toString('hex');
-	const prepared = prepareGrammar(blocksToMjml(blocks as any), variables as Values, links, nonce);
+	const prepared = prepareGrammar(blocksToMjml(sanitizeBlocksForRead(blocks)), variables as Values, links, nonce);
 	if (prepared.unknownLinks.length || prepared.badLinks.length) {
 		return { ok: false, unknownLinks: prepared.unknownLinks, badLinks: prepared.badLinks };
 	}

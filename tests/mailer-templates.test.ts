@@ -2,8 +2,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
 	buildEnvelope, themeColorOf, detectUnsupportedSyntax, detectPlaceholders, classifyTag,
-	validateBlocks, readEnvelope, isValidMailerId, MAX_BLOCKS,
+	readEnvelope, isValidMailerId,
 } from '../src/lib/mailer-templates.ts';
+import { sanitizeForOpen, MAX_BLOCKS } from '../src/lib/server/sanitize-blocks.ts';
+
+const validateBlocks = (input: unknown) => readEnvelope({ format: 'axene-blocks', version: 1, blocks: input }, sanitizeForOpen);
 import { safeNext } from '../src/lib/safe-next.ts';
 
 const header = { id: 'b1', type: 'header', props: { companyName: 'Acme', accentColor: '#ff0000', logoUrl: 'https://x.test/l.png' } };
@@ -65,12 +68,13 @@ test('validateBlocks rejects malicious or malformed payloads', () => {
 		['dup ids', [{ id: 'a', type: 'heading', props: {} }, { id: 'a', type: 'heading', props: {} }]],
 		['too many', Array.from({ length: MAX_BLOCKS + 1 }, (_, i) => ({ id: 'i' + i, type: 'heading', props: {} }))],
 		['huge string', [{ id: 'a', type: 'heading', props: { text: 'x'.repeat(20_001) } }]],
-		['proto key', [{ id: 'a', type: 'heading', props: JSON.parse('{"__proto__":{"x":1}}') }]],
-		['constructor key', [{ id: 'a', type: 'heading', props: { n: { constructor: 1 } } }]],
 		['js url', [{ id: 'a', type: 'image', props: { src: 'javascript:alert(1)' } }]],
+		['entity js url', [{ id: 'a', type: 'button', props: { href: 'javascript&#58;alert(1)' } }]],
 		['attr breakout', [{ id: 'a', type: 'header', props: { logoUrl: 'x" onerror="alert(1)' } }]],
-		['too deep', [{ id: 'a', type: 'heading', props: { a: { b: { c: { d: { e: { f: { g: { h: { i: 1 } } } } } } } } } }]],
-		['infinite number', [{ id: 'a', type: 'heading', props: { n: Infinity } }]],
+		['color breakout', [{ id: 'a', type: 'heading', props: { color: '"><mj-raw><script>alert(1)</script></mj-raw>' } }]],
+		['html in text', [{ id: 'a', type: 'content', props: { text: '<img src=x onerror=alert(1)>' } }]],
+		['js href in text', [{ id: 'a', type: 'content', props: { text: '<a href="javascript&#58;alert(1)">x</a>' } }]],
+		['infinite number', [{ id: 'a', type: 'heading', props: { fontSize: Infinity } }]],
 	];
 	for (const [name, input] of bad) assert.equal(validateBlocks(input).ok, false, name);
 });
@@ -80,16 +84,23 @@ test('validateBlocks caps total size', () => {
 	assert.equal(validateBlocks(big).ok, false);
 });
 
+test('unknown and prototype-polluting props are dropped, never copied', () => {
+	const r = validateBlocks([{ id: 'a', type: 'heading', props: { ...JSON.parse('{"__proto__":{"x":1}}'), n: { constructor: 1 }, text: 'Hi' } }]) as any;
+	assert.equal(r.ok, true);
+	assert.deepEqual(r.blocks[0].props, { text: 'Hi' });
+	assert.equal(({} as any).x, undefined);
+});
+
 test('readEnvelope: axene-blocks ok, classic and others refused', () => {
-	const ok = readEnvelope(buildEnvelope([header, heading]));
+	const ok = readEnvelope(buildEnvelope([header, heading]), sanitizeForOpen);
 	assert.equal(ok.ok, true);
-	assert.deepEqual(readEnvelope(null), { ok: false, reason: 'classic' });
-	assert.deepEqual(readEnvelope({ blocks: [{ type: 'text' }] }), { ok: false, reason: 'classic' });
-	assert.deepEqual(readEnvelope({ format: 'grapes', blocks: [] }), { ok: false, reason: 'classic' });
-	assert.deepEqual(readEnvelope([]), { ok: false, reason: 'classic' });
-	assert.equal((readEnvelope({ format: 'axene-blocks', version: 2, blocks: [header] }) as any).reason, 'unsupported_version');
-	assert.equal((readEnvelope({ format: 'axene-blocks', version: 1, blocks: 'nope' }) as any).reason, 'invalid');
-	assert.equal((readEnvelope({ format: 'axene-blocks', version: 1, blocks: [{ id: 'a', type: 'evil', props: {} }] }) as any).reason, 'invalid');
+	assert.deepEqual(readEnvelope(null, sanitizeForOpen), { ok: false, reason: 'classic' });
+	assert.deepEqual(readEnvelope({ blocks: [{ type: 'text' }] }, sanitizeForOpen), { ok: false, reason: 'classic' });
+	assert.deepEqual(readEnvelope({ format: 'grapes', blocks: [] }, sanitizeForOpen), { ok: false, reason: 'classic' });
+	assert.deepEqual(readEnvelope([], sanitizeForOpen), { ok: false, reason: 'classic' });
+	assert.equal((readEnvelope({ format: 'axene-blocks', version: 2, blocks: [header] }, sanitizeForOpen) as any).reason, 'unsupported_version');
+	assert.equal((readEnvelope({ format: 'axene-blocks', version: 1, blocks: 'nope' }, sanitizeForOpen) as any).reason, 'invalid');
+	assert.equal((readEnvelope({ format: 'axene-blocks', version: 1, blocks: [{ id: 'a', type: 'evil', props: {} }] }, sanitizeForOpen) as any).reason, 'invalid');
 });
 
 test('isValidMailerId', () => {

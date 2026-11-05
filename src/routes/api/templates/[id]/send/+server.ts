@@ -19,6 +19,7 @@ import {
 import { sendAll } from '$lib/server/mailer/sendall';
 import { renderTemplateForSend } from '$lib/server/render';
 import { collectUsage, linkFieldNeeds } from '$lib/placeholders';
+import { compiledHtmlProblem, sanitizeBlocksForRead } from '$lib/server/sanitize-blocks';
 
 const INJECTOR_DEFAULTS = new Set(['theme_color', 'logo', 'company_name']);
 
@@ -56,9 +57,11 @@ export const POST: RequestHandler = async (event) => {
 		return json({ error: 'Forbidden' }, { status: 403 });
 	}
 
+	const blocks = sanitizeBlocksForRead(t.blocks);
+
 	// Every {{variable}} the template uses needs a value, otherwise it would go out blank ("Hi ,").
 	// theme_color, logo and company_name have built-in defaults in the injector.
-	const missing = detectVariables(JSON.stringify(t.blocks)).filter((n) => {
+	const missing = detectVariables(JSON.stringify(blocks)).filter((n) => {
 		if (INJECTOR_DEFAULTS.has(n)) return false;
 		const v = vars.value[n];
 		return v === undefined || (typeof v === 'string' && v.trim() === '');
@@ -71,7 +74,7 @@ export const POST: RequestHandler = async (event) => {
 	if (apiKey instanceof Response) return apiKey;
 
 	// Named links the template uses: loaded once per request with the user's key.
-	const usage = collectUsage(t.blocks);
+	const usage = collectUsage(blocks);
 	const links = new Map<string, string>();
 	if (usage.links.size) {
 		const res = await listTemplateLinks(apiKey);
@@ -100,7 +103,7 @@ export const POST: RequestHandler = async (event) => {
 
 	let html: string;
 	try {
-		const out = renderTemplateForSend(t.blocks, vars.value, links);
+		const out = renderTemplateForSend(blocks, vars.value, links);
 		if (!out.ok) {
 			const keys = out.badLinks.map((b) => `{{link:${b.key}}} (${b.error})`).join(', ');
 			return json({ error: `These links cannot be used: ${keys}`, code: 'invalid_links', links: out.badLinks }, { status: 400 });
@@ -109,6 +112,11 @@ export const POST: RequestHandler = async (event) => {
 	} catch (e) {
 		console.error('Template render failed for send:', e instanceof Error ? e.message : 'unknown');
 		return json({ error: 'The template could not be rendered' }, { status: 422 });
+	}
+	const problem = compiledHtmlProblem(html);
+	if (problem) {
+		console.error('send refused compiled HTML:', problem);
+		return json({ error: `This email was not sent because the compiled email failed a safety check (${problem}).`, code: 'unsafe_html' }, { status: 422 });
 	}
 	const text = htmlToText(html);
 

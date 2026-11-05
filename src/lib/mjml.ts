@@ -15,7 +15,8 @@ function rc(val: string): string {
 }
 
 function esc(s: string): string {
-	return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+	// Also used inside attribute values (alt), so quotes are escaped too.
+	return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function pad(b: Block): string {

@@ -4,6 +4,7 @@ import { gate, loadApiKey, mailerFailure } from '$lib/server/mailer/http';
 import { listTemplates } from '$lib/server/mailer/client';
 import { createRateLimiter } from '$lib/server/mailer/guard';
 import { readEnvelope } from '$lib/mailer-templates';
+import { sanitizeForOpen } from '$lib/server/sanitize-blocks';
 
 // 120 list requests per user per hour. In memory: per process, reset on restart.
 const limiter = createRateLimiter(120, 60 * 60 * 1000);
@@ -29,7 +30,7 @@ export const GET: RequestHandler = async (event) => {
 			subject: t.subject,
 			updated_at: t.updatedAt,
 			// Only the envelope's format matters here; the full blocks are validated when opened.
-			isAxeneBlocks: !!t.blocksJson && typeof t.blocksJson === 'object' && (t.blocksJson as any).format === 'axene-blocks' && readEnvelope(t.blocksJson).ok,
+			isAxeneBlocks: !!t.blocksJson && typeof t.blocksJson === 'object' && (t.blocksJson as any).format === 'axene-blocks' && readEnvelope(t.blocksJson, sanitizeForOpen).ok,
 		})),
 	});
 };

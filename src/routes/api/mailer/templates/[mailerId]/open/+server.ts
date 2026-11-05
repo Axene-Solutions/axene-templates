@@ -9,6 +9,7 @@ import { getTemplate } from '$lib/server/mailer/client';
 import { getMailerPublicUrl } from '$lib/server/mailer/config';
 import { createRateLimiter } from '$lib/server/mailer/guard';
 import { cleanLine, isValidMailerId, MAX_TEMPLATE_NAME, readEnvelope } from '$lib/mailer-templates';
+import { sanitizeForOpen } from '$lib/server/sanitize-blocks';
 
 // 60 opens per user per hour. In memory: per process, reset on restart.
 const limiter = createRateLimiter(60, 60 * 60 * 1000);
@@ -38,7 +39,7 @@ export const POST: RequestHandler = async (event) => {
 		const res = await getTemplate(apiKey, mailerId);
 		if (!res.ok) return mailerFailure(res.status, res.error, { openUrl: `${getMailerPublicUrl()}/templates` });
 
-		const env = readEnvelope(res.data.blocksJson);
+		const env = readEnvelope(res.data.blocksJson, sanitizeForOpen);
 		if (!env.ok) {
 			const openUrl = `${getMailerPublicUrl()}/templates`;
 			if (env.reason === 'classic') {
@@ -47,7 +48,7 @@ export const POST: RequestHandler = async (event) => {
 			if (env.reason === 'unsupported_version') {
 				return json({ error: 'This template was made with a newer version of the editor than this app supports', code: 'unsupported_version', openUrl }, { status: 422 });
 			}
-			return json({ error: 'The template content in Mailer is not valid, so it cannot be opened here', code: 'invalid_blocks', openUrl }, { status: 422 });
+			return json({ error: `The template content in Mailer is not valid, so it cannot be opened here (${env.error ?? 'invalid blocks'})`, code: 'invalid_blocks', openUrl }, { status: 422 });
 		}
 
 		const [existing] = await db

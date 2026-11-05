@@ -42,6 +42,11 @@ export interface SanitizeOptions {
 	strict?: boolean;
 	/** Allow an empty block list (the editor can save one). Default true. */
 	allowEmpty?: boolean;
+	/**
+	 * With strict: refuse rich text from which the allowlist had to remove a tag, attribute
+	 * or link, instead of cleaning it. For content from another system (Mailer open).
+	 */
+	rejectUnsafeHtml?: boolean;
 }
 
 // ---- Value checks ----
@@ -101,8 +106,12 @@ export function isHexColor(v: unknown): v is string {
 
 // ---- Rich text ----
 
+const RICH_TAGS = new Set(['b', 'strong', 'i', 'em', 'u', 'br', 'p', 'span', 'a', 'ul', 'ol', 'li']);
+// Set by the transform below when sanitising removes something, so strict callers can refuse.
+let removed = false;
+
 const RICH: SanitizeHtmlOptions = {
-	allowedTags: ['b', 'strong', 'i', 'em', 'u', 'br', 'p', 'span', 'a', 'ul', 'ol', 'li'],
+	allowedTags: [...RICH_TAGS],
 	allowedAttributes: { a: ['href', 'rel', 'target'] },
 	allowedSchemes: ['http', 'https', 'mailto', 'tel'],
 	allowedSchemesAppliedToAttributes: ['href'],
@@ -110,22 +119,35 @@ const RICH: SanitizeHtmlOptions = {
 	disallowedTagsMode: 'discard',
 	parser: { decodeEntities: true, lowerCaseTags: true, lowerCaseAttributeNames: true },
 	transformTags: {
-		a: (tagName: string, attribs: Record<string, string>) => {
+		'*': (tagName: string, attribs: Record<string, string>) => {
+			if (!RICH_TAGS.has(tagName)) {
+				removed = true;
+				return { tagName, attribs };
+			}
+			if (tagName !== 'a') {
+				if (Object.keys(attribs).length) removed = true;
+				return { tagName, attribs: {} };
+			}
 			// attribs arrive entity-decoded, so the scheme check sees what a browser would.
 			const href = safeUrl(attribs.href ?? '');
-			return {
-				tagName,
-				attribs: href ? { href, rel: 'noopener noreferrer', target: '_blank' } : {},
-			};
+			if (href === null || Object.keys(attribs).some((k) => k !== 'href' && k !== 'rel' && k !== 'target')) removed = true;
+			return { tagName, attribs: href ? { href, rel: 'noopener noreferrer', target: '_blank' } : {} };
 		},
 	},
 };
 
 /** Allowlist-sanitises one rich text value. Text without "<" cannot hold markup and is kept as is. */
 export function sanitizeRichText(v: string): string {
+	return cleanRichText(v).html;
+}
+
+/** As sanitizeRichText, and says whether a tag, attribute or link was removed. */
+export function cleanRichText(v: string): { html: string; removed: boolean } {
 	const s = v.replace(CONTROL, '');
-	if (!s.includes('<')) return s;
-	return sanitizeHtml(s, RICH);
+	if (!s.includes('<')) return { html: s, removed: false };
+	removed = false;
+	const html = sanitizeHtml(s, RICH);
+	return { html, removed };
 }
 
 // ---- Schema ----
@@ -238,10 +260,13 @@ function plainText(v: unknown, max: number): Out {
 	return v.replace(ALL_CONTROL, ' ');
 }
 
+let refuseRemoved = false;
+
 function richText(v: unknown, max = MAX_HTML): Out {
 	if (typeof v === 'number') v = String(v);
 	if (typeof v !== 'string' || v.length > max) return INVALID;
-	return sanitizeRichText(v);
+	const r = cleanRichText(v);
+	return refuseRemoved && r.removed ? INVALID : r.html;
 }
 
 function num(v: unknown, r: { min: number; max: number; int?: boolean }, strict: boolean): Out {
@@ -342,6 +367,10 @@ function describe(rule: Rule): string {
 			return `one of ${rule.values.join(', ')}`;
 		case 'bool':
 			return 'true or false';
+		case 'html':
+		case 'htmlList':
+		case 'rows':
+			return refuseRemoved ? 'rich text with only b, strong, i, em, u, br, p, span, a, ul, ol and li, and safe links' : 'valid';
 		default:
 			return 'valid';
 	}
@@ -354,6 +383,7 @@ function describe(rule: Rule): string {
 export function sanitizeBlocks(input: unknown, opts: SanitizeOptions = {}): Block[] {
 	const strict = opts.strict ?? false;
 	const allowEmpty = opts.allowEmpty ?? true;
+	refuseRemoved = strict && (opts.rejectUnsafeHtml ?? false);
 	if (!Array.isArray(input)) throw new BlocksValidationError('blocks must be an array');
 	if (input.length === 0 && !allowEmpty) throw new BlocksValidationError('blocks is empty');
 	if (input.length > MAX_BLOCKS) throw new BlocksValidationError(`at most ${MAX_BLOCKS} blocks are allowed`);
@@ -406,6 +436,11 @@ export function sanitizeBlocks(input: unknown, opts: SanitizeOptions = {}): Bloc
 	return out;
 }
 
+/** Blocks that arrive from Mailer: strict shapes, and markup the allowlist would remove is refused. */
+export function sanitizeForOpen(input: unknown): Block[] {
+	return sanitizeBlocks(input, { strict: true, allowEmpty: false, rejectUnsafeHtml: true });
+}
+
 /** sanitizeBlocks for reads: never throws, a hopeless value becomes an empty list. */
 export function sanitizeBlocksForRead(input: unknown): Block[] {
 	try {
@@ -434,15 +469,19 @@ function decodeRefs(s: string): string {
  * reason it is refused, or null. This never strips anything: if it fires, a sanitiser rule is
  * missing and the request must fail loudly.
  */
+const START_TAG = /<[a-z][a-z0-9-]*((?:\s+[^\s"'>/=]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?)*)\s*\/?>/gi;
+const ATTR = /([^\s"'>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g;
+
 export function compiledHtmlProblem(html: string): string | null {
 	if (/<\s*script\b/i.test(html)) return 'it contains a script tag';
 	if (/<\s*\/?\s*mj-[a-z]/i.test(html)) return 'it contains raw MJML';
 	if (/<\s*(?:iframe|object|embed|base|form|svg|math)\b/i.test(html)) return 'it contains an embedded document or form';
-	for (const m of html.matchAll(/<[a-z][^>]*>/gi)) {
-		const tag = m[0];
-		if (/[\s"'/]on[a-z]+\s*=/i.test(tag)) return 'it contains an event handler attribute';
-		for (const a of tag.matchAll(/=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g)) {
-			const val = decodeRefs(a[1] ?? a[2] ?? a[3] ?? '').replace(/[\u0000- \u007f]/g, '').toLowerCase();
+	// Attribute by attribute, the way a browser tokenises a start tag, so text inside a quoted
+	// value (an alt of 'x" onerror="y', escaped) is not mistaken for an attribute.
+	for (const m of html.matchAll(START_TAG)) {
+		for (const a of m[1].matchAll(ATTR)) {
+			if (/^on/i.test(a[1])) return 'it contains an event handler attribute';
+			const val = decodeRefs(a[2] ?? a[3] ?? a[4] ?? '').replace(/[\u0000- \u007f]/g, '').toLowerCase();
 			if (/^(?:javascript|vbscript):|^data:text\/html/.test(val)) return 'it contains a script URL';
 			if (/url\((?:'|")?(?:javascript|vbscript):|expression\(/.test(val)) return 'it contains script in a style';
 		}
