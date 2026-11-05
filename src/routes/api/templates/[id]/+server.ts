@@ -6,27 +6,32 @@ import { eq } from 'drizzle-orm';
 
 // GET /api/templates/:id - load a template
 export const GET: RequestHandler = async ({ params, locals }) => {
-	const rows = await db
-		.select()
-		.from(templates)
-		.where(eq(templates.id, params.id))
-		.limit(1);
+	try {
+		const rows = await db
+			.select()
+			.from(templates)
+			.where(eq(templates.id, params.id))
+			.limit(1);
 
-	if (rows.length === 0) {
-		return json({ error: 'Template not found' }, { status: 404 });
+		if (rows.length === 0) {
+			return json({ error: 'Template not found' }, { status: 404 });
+		}
+
+		const t = rows[0];
+
+		if (t.isStarter || t.isPublic) {
+			return json({ id: t.id, name: t.name, category: t.category, version: t.version, blocks: t.blocks, isStarter: t.isStarter, isPublic: t.isPublic });
+		}
+
+		if (locals.user && t.userId === locals.user.id) {
+			return json({ id: t.id, name: t.name, category: t.category, version: t.version, blocks: t.blocks, isStarter: t.isStarter, isPublic: t.isPublic });
+		}
+
+		return json({ error: 'Forbidden' }, { status: 403 });
+	} catch (e) {
+		console.error('Load template failed:', e);
+		return json({ error: 'Could not load template' }, { status: 500 });
 	}
-
-	const t = rows[0];
-
-	if (t.isStarter || t.isPublic) {
-		return json({ id: t.id, name: t.name, blocks: t.blocks, isStarter: t.isStarter, isPublic: t.isPublic });
-	}
-
-	if (locals.user && t.userId === locals.user.id) {
-		return json({ id: t.id, name: t.name, blocks: t.blocks, isStarter: t.isStarter, isPublic: t.isPublic });
-	}
-
-	return json({ error: 'Forbidden' }, { status: 403 });
 };
 
 // DELETE /api/templates/:id - delete a template (protected)

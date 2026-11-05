@@ -17,7 +17,7 @@
 		const tpl = data.template;
 		if (!tpl) return;
 		untrack(() => {
-			editor.setTemplate(tpl.id, tpl.name, tpl.blocks, !!tpl.isPublic);
+			editor.setTemplate(tpl.id, tpl.name, tpl.blocks, !!tpl.isPublic, tpl.category || 'general');
 			editor.compile();
 		});
 		ready = true;

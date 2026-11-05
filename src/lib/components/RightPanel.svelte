@@ -564,6 +564,7 @@
 			<div>
 				<label class={labelClass}>Category</label>
 				<select class={inputClass} bind:value={editor.templateCategory}>
+					<option value="general">General</option>
 					<optgroup label="Authentication">
 						<option value="otp">OTP / Passcodes</option>
 						<option value="password-reset">Password Reset</option>

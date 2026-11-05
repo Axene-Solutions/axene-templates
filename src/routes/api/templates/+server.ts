@@ -6,41 +6,46 @@ import { eq, or, and, desc } from 'drizzle-orm';
 
 // GET /api/templates - list templates visible to the user
 export const GET: RequestHandler = async ({ locals }) => {
-	const user = locals.user;
+	try {
+		const user = locals.user;
 
-	let rows;
-	if (user) {
-		rows = await db
-			.select()
-			.from(templates)
-			.where(
-				or(
-					eq(templates.userId, user.id),
-					eq(templates.isPublic, true),
-					eq(templates.isStarter, true)
+		let rows;
+		if (user) {
+			rows = await db
+				.select()
+				.from(templates)
+				.where(
+					or(
+						eq(templates.userId, user.id),
+						eq(templates.isPublic, true),
+						eq(templates.isStarter, true)
+					)
 				)
-			)
-			.orderBy(desc(templates.updatedAt));
-	} else {
-		rows = await db
-			.select()
-			.from(templates)
-			.where(or(eq(templates.isPublic, true), eq(templates.isStarter, true)))
-			.orderBy(desc(templates.updatedAt));
+				.orderBy(desc(templates.updatedAt));
+		} else {
+			rows = await db
+				.select()
+				.from(templates)
+				.where(or(eq(templates.isPublic, true), eq(templates.isStarter, true)))
+				.orderBy(desc(templates.updatedAt));
+		}
+
+		const result = rows.map((t) => ({
+			id: t.id,
+			name: t.name,
+			category: t.category,
+			blockCount: Array.isArray(t.blocks) ? t.blocks.length : 0,
+			isStarter: t.isStarter,
+			isPublic: t.isPublic,
+			updatedAt: t.updatedAt?.toISOString() ?? null,
+			isOwn: user ? t.userId === user.id : false,
+		}));
+
+		return json(result);
+	} catch (e) {
+		console.error('List templates failed:', e);
+		return json({ error: 'Could not load templates' }, { status: 500 });
 	}
-
-	const result = rows.map((t) => ({
-		id: t.id,
-		name: t.name,
-		category: t.category,
-		blockCount: Array.isArray(t.blocks) ? t.blocks.length : 0,
-		isStarter: t.isStarter,
-		isPublic: t.isPublic,
-		updatedAt: t.updatedAt?.toISOString() ?? null,
-		isOwn: user ? t.userId === user.id : false,
-	}));
-
-	return json(result);
 };
 
 // POST /api/templates - save a template (protected)
@@ -65,14 +70,14 @@ const { id, name, category, isPublic, blocks } = body;
 	if (existing.length > 0 && existing[0].userId === user.id) {
 		await db
 			.update(templates)
-			.set({ name, category: category || 'otp', blocks, isPublic, updatedAt: new Date() })
+			.set({ name, category: category || existing[0].category, blocks, isPublic, updatedAt: new Date() })
 			.where(and(eq(templates.id, id), eq(templates.userId, user.id)));
 	} else {
 		await db.insert(templates).values({
 			id,
 			userId: user.id,
 			name,
-			category: category || 'otp',
+			category: category || 'general',
 			blocks,
 			isStarter: false,
 			isPublic: isPublic || false,

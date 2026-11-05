@@ -18,7 +18,7 @@ let compiling = $state(false);
 let compileError = $state("");
 let templateId = $state("");
 let templateName = $state("Untitled Template");
-let templateCategory = $state("otp");
+let templateCategory = $state("general");
 let templateIsPublic = $state(false);
 let dirty = $state(false);
 let saveState = $state<"idle" | "saving" | "saved" | "error">("idle");
@@ -200,9 +200,10 @@ function setBlocks(newBlocks: Block[]) {
   scheduleCompile();
 }
 
-function setTemplate(id: string, name: string, newBlocks: Block[], isPublic = false) {
+function setTemplate(id: string, name: string, newBlocks: Block[], isPublic = false, category = "general") {
   templateId = id;
   templateName = name;
+  templateCategory = category;
   setBlocks(newBlocks);
       templateIsPublic = isPublic; 
 
@@ -211,6 +212,7 @@ function setTemplate(id: string, name: string, newBlocks: Block[], isPublic = fa
 function newTemplate() {
   templateId = "untitled-" + Date.now().toString(36);
   templateName = "Untitled";
+  templateCategory = "general";
   setBlocks(defaultBlocks());
 }
 

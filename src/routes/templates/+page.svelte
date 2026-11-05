@@ -44,6 +44,7 @@
         const idToLabel = (id: string) => {
             const labels: Record<string, string> = {
                 // Phase 1
+                'general': 'General',
                 'otp': 'OTP / Passcodes',
                 'invoice': 'Invoices & Receipts',
                 'marketing': 'Marketing',
@@ -140,6 +141,7 @@
                 body: JSON.stringify({
                     id: newId,
                     name: starter.name,
+                    category: full.category || starter.category,
                     blocks: full.blocks,
                 }),
             });
