@@ -131,7 +131,7 @@
 				<div id="ml-url-hint" class="ml-hint">http, https or mailto. Use {'{{field}}'} or {'{{field|fallback}}'} for values. Values are URL-encoded when sent.</div>
 
 				<label class="ml-label" for="ml-key">Key</label>
-				<input id="ml-key" class="ml-input ml-mono" type="text" maxlength="64" bind:value={key} oninput={() => (keyTouched = true)} placeholder={suggestLinkKey(label) || 'pay_now'} spellcheck="false" aria-invalid={!!keyErr} />
+				<input id="ml-key" class="ml-input ml-mono" type="text" maxlength="40" bind:value={key} oninput={() => (keyTouched = true)} placeholder={suggestLinkKey(label) || 'pay_now'} spellcheck="false" aria-invalid={!!keyErr} />
 				{#if keyErr}<div class="ml-err-text">{keyErr}</div>{/if}
 				<div class="ml-preview" aria-live="polite">
 					<span class="ml-muted">Use it as</span>

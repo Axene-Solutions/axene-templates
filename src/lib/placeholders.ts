@@ -20,9 +20,10 @@ export const BUILTIN_FIELDS: readonly { key: string; label: string }[] = [
 export const BUILTIN_KEYS: ReadonlySet<string> = new Set(BUILTIN_FIELDS.map((f) => f.key));
 
 const FIELD_KEY = /^[A-Za-z_][A-Za-z0-9_]*$/;
-const LINK_KEY_LOOSE = /^[A-Za-z0-9_-]{1,64}$/;
-/** Keys for new named links: lowercase, starts with a letter. */
-export const LINK_KEY_RE = /^[a-z][a-z0-9_]{0,63}$/;
+/** Keys Mailer accepts in {{link:key}} (template_render.py _LINK_KEY), exactly. */
+const LINK_KEY_MAILER = /^[a-z0-9][a-z0-9_]{0,39}$/;
+/** Keys for new named links: lowercase, starts with a letter, at most 40 characters like Mailer. */
+export const LINK_KEY_RE = /^[a-z][a-z0-9_]{0,39}$/;
 
 export type Tag =
 	| { kind: 'field'; raw: string; key: string; fallback: string | null }
@@ -75,9 +76,13 @@ function parseInner(raw: string, inner: string, triple: boolean): Tag {
 	if (c === '&' || c === '@') return bad('this syntax is not supported');
 	if (s === 'else' || s.startsWith('else ')) return bad('else is not supported');
 
+	// Mailer's rule: lowercase "link:" with nothing between "link" and the colon, then a key of
+	// lowercase letters, digits and underscores (at most 40, not starting with _).
 	if (/^link\s*:/i.test(s)) {
 		const key = s.slice(s.indexOf(':') + 1).trim();
-		if (!LINK_KEY_LOOSE.test(key)) return bad('link keys use letters, digits, underscores and hyphens');
+		if (!s.startsWith('link:') || !LINK_KEY_MAILER.test(key)) {
+			return bad('named links are written {{link:key}}, with a lowercase key of letters, digits and underscores (at most 40 characters)');
+		}
 		return { kind: 'link', raw, key };
 	}
 
@@ -279,8 +284,8 @@ export function linkLabelError(label: string): string | null {
 
 /** Slug the server would derive from a label when no key is given. */
 export function suggestLinkKey(label: string): string {
-	const k = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 64);
-	return /^[a-z]/.test(k) ? k : k ? 'l_' + k.slice(0, 62) : '';
+	const k = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40).replace(/_+$/, '');
+	return /^[a-z]/.test(k) ? k : k ? 'l_' + k.slice(0, 38).replace(/_+$/, '') : '';
 }
 
 // ---- Local rendering (Templates' own Send flow) ----

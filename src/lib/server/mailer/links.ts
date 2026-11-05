@@ -20,7 +20,7 @@ export function validateLinkInput(body: Record<string, unknown>, requireAll: boo
 	}
 	if (body.key !== undefined && body.key !== null && body.key !== '') {
 		if (typeof body.key !== 'string' || !LINK_KEY_RE.test(body.key)) {
-			return { ok: false, error: 'The key must start with a lowercase letter and use only lowercase letters, digits and underscores (64 characters at most)' };
+			return { ok: false, error: 'The key must start with a lowercase letter and use only lowercase letters, digits and underscores (40 characters at most)' };
 		}
 		out.key = body.key;
 	}
