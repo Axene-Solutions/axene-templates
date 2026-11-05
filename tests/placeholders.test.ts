@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-	parseTag, scanTags, analyzePlaceholders, expandLink, prepareGrammar, fillSlots, linkUrlError,
+	parseTag, scanTags, analyzePlaceholders, expandLink, prepareGrammar, fillSlots, linkUrlError, renderSubject,
 	fallbackError, suggestLinkKey, formatField, formatLink, splitForChips, linkFieldNeeds,
 } from '../src/lib/placeholders.ts';
 import { detectUnsupportedSyntax, classifyTag } from '../src/lib/mailer-templates.ts';
@@ -158,4 +158,17 @@ test('prepareGrammar: a fallback or value that would set the scheme of an href o
 	const ok = prepareGrammar('<a href="{{site|https://ok.test}}">{{label|Read: more}}</a> <a href="https://x.test/?q={{q|a:b}}">y</a> <a href="mailto:{{email|a@b.test}}">m</a>', {}, none, 'n');
 	assert.deepEqual(ok.badUrls, []);
 	assert.equal(fillSlots(ok.template, ok.slots, 'n'), '<a href="https://ok.test">Read: more</a> <a href="https://x.test/?q=a:b">y</a> <a href="mailto:a@b.test">m</a>');
+});
+
+test('renderSubject merges fields, fallbacks and links as plain text and reports what it cannot fill', () => {
+	const links = new Map([['pay', 'https://p.example.com/o/{{order_id}}']]);
+	assert.deepEqual(renderSubject('Hi {{name|friend}}, order {{order_id}} {{link:pay}}', { order_id: 'A 1' }, links), {
+		ok: true,
+		subject: 'Hi friend, order A 1 https://p.example.com/o/A%201',
+	});
+	assert.deepEqual(renderSubject('x\u2028{{v}}', { v: 'a\nb' }, links), { ok: true, subject: 'x a b' });
+	assert.deepEqual(renderSubject('{{a}} {{link:nope}} {{#if x}}', {}, links), {
+		ok: false, missing: ['a'], unknownLinks: ['nope'], badLinks: [], unsupported: ['{{#if x}}'],
+	});
+	assert.equal(renderSubject('No tags here', {}, links).ok, true);
 });

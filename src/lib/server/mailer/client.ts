@@ -1,5 +1,5 @@
 import { getMailerBaseUrl } from './config';
-import { mapContactsStatus, mapLinkStatus, mapMailerStatus, mapTemplateStatus, type MappedError } from './errors';
+import { mapContactsStatus, mapLinkStatus, mapMailerStatus, mapRejection, mapTemplateStatus, type MappedError } from './errors';
 
 export interface MailerSender {
 	email: string;
@@ -58,7 +58,7 @@ export interface OutgoingEmail {
 
 /** Exactly one recipient per call, so recipients never see each other. */
 export async function sendEmail(apiKey: string, m: OutgoingEmail, timeoutMs?: number): Promise<MailerCall<null>> {
-	const { status } = await call(apiKey, 'POST', '/emails/', {
+	const { status, json } = await call(apiKey, 'POST', '/emails/', {
 		from_: m.from,
 		to: [{ email: m.to }],
 		subject: m.subject,
@@ -67,7 +67,14 @@ export async function sendEmail(apiKey: string, m: OutgoingEmail, timeoutMs?: nu
 		...(m.replyTo ? { reply_to: { email: m.replyTo } } : {}),
 		tags: ['axene-templates'],
 	}, timeoutMs);
-	if (status >= 200 && status < 300) return { ok: true, data: null };
+	if (status >= 200 && status < 300) {
+		// Mailer answers 202 even when it refuses the message (unverified or unregistered sender
+		// domain, restricted account): the body then says status "rejected" with a rejection_reason.
+		if ((json as any)?.status === 'rejected') {
+			return { ok: false, status, error: mapRejection((json as any)?.rejection_reason) };
+		}
+		return { ok: true, data: null };
+	}
 	return { ok: false, status, error: mapMailerStatus(status) };
 }
 

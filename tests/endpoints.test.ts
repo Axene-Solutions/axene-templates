@@ -113,3 +113,52 @@ test('connection GET with no env key still answers, and DELETE works without it'
 	assert.equal(del.status, 200);
 	assert.equal((await del.json()).connected, false);
 });
+
+// Seen against the real Mailer: an unverified or unregistered sender domain is answered with 202 and
+// { status: 'rejected', rejection_reason }, so a 2xx alone does not mean the message was accepted.
+function connectedSend(blocks: unknown[], reply: (body: any) => { status: number; json: unknown }) {
+	const sent: any[] = [];
+	(globalThis as any).__dbQueue = [[row({ userId: 'u-me', blocks })], [{ apiKeyEncrypted: encryptSecret('axm_k_testkey0001', Buffer.from(KEY, 'base64')) }]];
+	(globalThis as any).fetch = async (_url: string, init: RequestInit) => {
+		const body = JSON.parse(String(init.body));
+		sent.push(body);
+		const r = reply(body);
+		return new Response(JSON.stringify(r.json), { status: r.status, headers: { 'content-type': 'application/json' } });
+	};
+	return sent;
+}
+
+test('send: a 202 that Mailer stored as rejected is reported as not sent, with its reason', async () => {
+	connectedSend([{ id: 'a', type: 'content', props: { text: 'Hello' } }], () => ({
+		status: 202,
+		json: { id: 'e1', status: 'rejected', message_id: null, rejection_reason: "Domain 'pending.example.com' is not verified. Complete DNS verification first." },
+	}));
+	const res = await send(ev({ body: goodBody }));
+	assert.equal(res.status, 200);
+	const body = await res.json();
+	assert.equal(body.results[0].ok, false);
+	assert.equal(body.results[0].status, 202);
+	assert.equal(body.results[0].error, "Mailer rejected the message: Domain 'pending.example.com' is not verified. Complete DNS verification first.");
+});
+
+test('send: a queued 202 is still a success', async () => {
+	connectedSend([{ id: 'a', type: 'content', props: { text: 'Hello' } }], () => ({ status: 202, json: { id: 'e1', status: 'queued', rejection_reason: null } }));
+	const body = await (await send(ev({ body: goodBody }))).json();
+	assert.equal(body.results[0].ok, true);
+});
+
+test('send: the subject is merged with the same values, as plain text', async () => {
+	const sent = connectedSend([{ id: 'a', type: 'content', props: { text: 'Order {{order_id}}' } }], () => ({ status: 202, json: { status: 'queued' } }));
+	const res = await send(ev({ body: { ...goodBody, subject: 'Order {{order_id}} for {{name|friend}}', variables: { order_id: 'A<1>&\r\nBcc: x' } } }));
+	assert.equal(res.status, 200);
+	assert.equal(sent[0].subject, 'Order A<1>&  Bcc: x for friend');
+});
+
+test('send: a plain {{name}} used only in the subject needs a value', async () => {
+	connectedSend([{ id: 'a', type: 'content', props: { text: 'Hello' } }], () => ({ status: 202, json: { status: 'queued' } }));
+	const res = await send(ev({ body: { ...goodBody, subject: 'Hi {{first_name}}' } }));
+	assert.equal(res.status, 400);
+	const body = await res.json();
+	assert.equal(body.code, 'missing_variables');
+	assert.deepEqual(body.missing, ['first_name']);
+});
