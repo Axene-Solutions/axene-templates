@@ -120,3 +120,43 @@ test('htmlToText is linear on pathological input', () => {
 	assert.equal(htmlToText('a'.repeat(300_000)).length, 200_000);
 	assert.equal(htmlToText('<p>a</p><!-- c --><br>b<script>x</script>c'), 'a\n\nbc');
 });
+
+import { sendAll, TIME_LIMIT_MESSAGE } from '../src/lib/server/mailer/sendall.ts';
+
+test('sendAll: at most 5 in flight, results keep input order', async () => {
+	let inFlight = 0, peak = 0;
+	const addrs = Array.from({ length: 25 }, (_, i) => `u${i}@x.test`);
+	const res = await sendAll(addrs, async () => {
+		inFlight++; peak = Math.max(peak, inFlight);
+		await new Promise((r) => setTimeout(r, 5));
+		inFlight--;
+		return { ok: true };
+	});
+	assert.equal(peak, 5);
+	assert.deepEqual(res.map((r) => r.to), addrs);
+	assert.ok(res.every((r) => r.ok));
+});
+
+test('sendAll: recipients not reached before the deadline are reported as not sent', async () => {
+	let t = 0;
+	const addrs = Array.from({ length: 12 }, (_, i) => `u${i}@x.test`);
+	const res = await sendAll(addrs, async () => { t += 20_000; return { ok: true }; }, { concurrency: 2, deadlineMs: 45_000, now: () => t });
+	const sent = res.filter((r) => r.ok).length;
+	assert.ok(sent > 0 && sent < 12);
+	for (const r of res.filter((r) => !r.ok)) assert.equal(r.error, TIME_LIMIT_MESSAGE);
+	assert.equal(res.length, 12);
+});
+
+test('sendAll: the per-call timeout never exceeds the time left', async () => {
+	let t = 0;
+	const seen: number[] = [];
+	await sendAll(['a@x.test', 'b@x.test'], async (_to, timeout) => { seen.push(timeout); t += 40_000; return { ok: true }; }, { concurrency: 1, deadlineMs: 45_000, now: () => t });
+	assert.deepEqual(seen, [15_000, 5_000]);
+});
+
+test('sendAll: a 401 or 429 stops the remaining recipients', async () => {
+	const res = await sendAll(['a@x.test', 'b@x.test', 'c@x.test'], async () => ({ ok: false, status: 429, message: 'slow down' }), { concurrency: 1 });
+	assert.equal(res[0].status, 429);
+	assert.equal(res[1].error, 'Not sent: slow down');
+	assert.equal(res[2].error, 'Not sent: slow down');
+});

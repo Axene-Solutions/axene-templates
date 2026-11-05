@@ -16,19 +16,13 @@ import {
 	validateSubject,
 	validateVariables,
 } from '$lib/server/mailer/validate';
+import { sendAll } from '$lib/server/mailer/sendall';
 import { renderTemplateHtml } from '$lib/server/render';
 
 const INJECTOR_DEFAULTS = new Set(['theme_color', 'logo', 'company_name']);
 
 // 20 send requests per user per hour. In memory: per process, reset on restart.
 const limiter = createRateLimiter(20, 60 * 60 * 1000);
-
-interface Result {
-	to: string;
-	ok: boolean;
-	status?: number;
-	error?: string;
-}
 
 // POST /api/templates/:id/send
 export const POST: RequestHandler = async (event) => {
@@ -90,23 +84,12 @@ export const POST: RequestHandler = async (event) => {
 	}
 	const text = htmlToText(html);
 
-	// One Mailer request per recipient, sequentially, so recipients never see each other.
-	const results: Result[] = [];
-	let stopped: string | null = null;
-	for (const addr of to.value) {
-		if (stopped) {
-			results.push({ to: addr, ok: false, error: stopped });
-			continue;
-		}
-		const res = await sendEmail(apiKey, { from: from.value, to: addr, subject: subject.value, html, text, replyTo });
-		if (res.ok) {
-			results.push({ to: addr, ok: true, status: 202 });
-			continue;
-		}
-		results.push({ to: addr, ok: false, status: res.status || undefined, error: res.error.message });
-		// A dead key or a rate limit will fail every remaining message: stop hammering Mailer.
-		if (res.status === 401 || res.status === 429) stopped = 'Not sent: ' + res.error.message;
-	}
+	// One Mailer request per recipient (so recipients never see each other), 5 at a time, within a
+	// 45 s budget that stays under the proxy timeout. Recipients not reached are reported as not sent.
+	const results = await sendAll(to.value, async (addr, timeoutMs) => {
+		const res = await sendEmail(apiKey, { from: from.value, to: addr, subject: subject.value, html, text, replyTo }, timeoutMs);
+		return res.ok ? { ok: true } : { ok: false, status: res.status, message: res.error.message };
+	});
 
 	return json({ results, keyInvalid: results.some((r) => r.status === 401) });
 };

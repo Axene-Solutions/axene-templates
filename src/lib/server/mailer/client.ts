@@ -8,7 +8,7 @@ export interface MailerSender {
 
 export type MailerCall<T> = { ok: true; data: T } | { ok: false; status: number; error: MappedError };
 
-async function call(apiKey: string, method: string, path: string, body?: unknown): Promise<{ status: number; json: unknown }> {
+async function call(apiKey: string, method: string, path: string, body?: unknown, timeoutMs = 15_000): Promise<{ status: number; json: unknown }> {
 	try {
 		const res = await fetch(`${getMailerBaseUrl()}/v1${path}`, {
 			method,
@@ -18,7 +18,7 @@ async function call(apiKey: string, method: string, path: string, body?: unknown
 				...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
 			},
 			body: body === undefined ? undefined : JSON.stringify(body),
-			signal: AbortSignal.timeout(15_000),
+			signal: AbortSignal.timeout(timeoutMs),
 			redirect: 'error',
 		});
 		const json = await res.json().catch(() => null);
@@ -57,7 +57,7 @@ export interface OutgoingEmail {
 }
 
 /** Exactly one recipient per call, so recipients never see each other. */
-export async function sendEmail(apiKey: string, m: OutgoingEmail): Promise<MailerCall<null>> {
+export async function sendEmail(apiKey: string, m: OutgoingEmail, timeoutMs?: number): Promise<MailerCall<null>> {
 	const { status } = await call(apiKey, 'POST', '/emails/', {
 		from_: m.from,
 		to: [{ email: m.to }],
@@ -66,7 +66,7 @@ export async function sendEmail(apiKey: string, m: OutgoingEmail): Promise<Maile
 		text: m.text,
 		...(m.replyTo ? { reply_to: { email: m.replyTo } } : {}),
 		tags: ['axene-templates'],
-	});
+	}, timeoutMs);
 	if (status >= 200 && status < 300) return { ok: true, data: null };
 	return { ok: false, status, error: mapMailerStatus(status) };
 }
