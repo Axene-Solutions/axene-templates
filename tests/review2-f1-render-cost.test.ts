@@ -7,6 +7,7 @@ import * as R from '../src/lib/server/render.ts';
 import { sanitizeBlocks, sanitizeRichText } from '../src/lib/server/sanitize-blocks.ts';
 import { POST as send } from '../src/routes/api/templates/[id]/send/+server.ts';
 import { POST as mailerSave } from '../src/routes/api/templates/[id]/mailer-save/+server.ts';
+import { POST as saveTemplate } from '../src/routes/api/templates/+server.ts';
 import { content, ev, queue, sendBody, setup } from './support/endpoint.ts';
 
 const nest = (depth: number, inner = 'x') => '<b><i>'.repeat(depth) + inner + '</i></b>'.repeat(depth);
@@ -102,4 +103,12 @@ test('F1: the Send and Mailer renders are not minified but carry no indentation 
 	const s = R.renderTemplateForSend([content('<p>hi</p>')], {}, new Map()) as any;
 	const m = R.renderTemplateForMailer([content('<p>hi</p>')]).html;
 	for (const html of [s.html, m]) assert.ok(!/\n[ \t]+/.test(html), 'indentation after a newline was collapsed');
+});
+
+test('F1: saving the reproduction through POST /api/templates is a 422 naming the limit, never a 500', async () => {
+	const res = await saveTemplate(ev({ id: 'deep1', name: 'Deep', blocks: reproduction() }));
+	assert.equal(res.status, 422);
+	const j = await res.json();
+	assert.equal(j.code, 'invalid_blocks');
+	assert.match(j.error, /more than 32 levels deep/);
 });
