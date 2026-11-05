@@ -14,7 +14,7 @@
 
 import sanitizeHtml, { type SanitizeHtmlOptions } from 'sanitize-html';
 import { blockDefs, type Block, type BlockType } from '$lib/blocks';
-import { firstUnsupported, isSafeLiteralUrl, LITERAL_BRACES_HINT, MAX_SCAN_TAGS, scanTagsLimited } from '$lib/placeholders';
+import { firstUnsupported, isSafeLiteralUrl, LITERAL_BRACES_HINT, MAX_SCAN_TAGS, scanTagsLimited, urlValueBlocked } from '$lib/placeholders';
 
 export const MAX_BLOCKS = 200;
 export const MAX_BLOCKS_BYTES = 1_000_000;
@@ -680,4 +680,22 @@ export function compiledHtmlProblem(html: string): string | null {
 		}
 		i = p + 1;
 	}
+}
+
+const URL_ATTR = /\s(href|xlink:href|src|background|poster|action|formaction|cite|srcset|ping)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/gi;
+
+/**
+ * The scheme policy on compiled HTML: the first URL attribute whose value (each candidate, for
+ * srcset and ping) has a refused scheme, as "attr: value excerpt", or null. Link attributes refuse
+ * javascript, data, vbscript, file, about and blob; source attributes allow only http, https and
+ * relative URLs. For output built from caller data that never went through the block sanitiser.
+ */
+export function unsafeUrlInHtml(html: string): string | null {
+	for (const m of html.matchAll(URL_ATTR)) {
+		const attr = m[1].toLowerCase();
+		const value = m[2] ?? m[3] ?? m[4] ?? '';
+		const parts = attr === 'srcset' ? value.split(',').map((c) => c.trim().split(/\s+/)[0]) : attr === 'ping' ? value.split(/\s+/) : [value];
+		for (const part of parts) if (part && urlValueBlocked(part, attr === 'ping' ? 'src' : attr)) return `${attr}: ${part.slice(0, 40)}`;
+	}
+	return null;
 }
