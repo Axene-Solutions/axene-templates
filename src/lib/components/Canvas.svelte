@@ -244,8 +244,8 @@
 
 	.toolbar {
 		height: 44px;
-		background: #141414;
-		border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+		background: var(--color-surface);
+		border-bottom: 1px solid var(--color-border-1);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -263,8 +263,8 @@
 		display: flex;
 		align-items: center;
 		gap: 1px;
-		background: rgba(255, 255, 255, 0.04);
-		border: 1px solid rgba(255, 255, 255, 0.08);
+		background: var(--color-surface-2);
+		border: 1px solid var(--color-border-1);
 		border-radius: 8px;
 		padding: 3px;
 	}
@@ -278,18 +278,18 @@
 		align-items: center;
 		justify-content: center;
 		cursor: pointer;
-		color: #888;
+		color: var(--color-muted);
 		background: transparent;
 		transition: all 0.15s;
 	}
 	.tb-btn:hover {
-		color: #ccc;
+		color: var(--color-text);
 	}
 	.tb-btn.active {
-		background: #141414;
-		border-color: rgba(255, 255, 255, 0.12);
-		color: #ccc;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+		background: var(--color-surface);
+		border-color: var(--color-border-1);
+		color: var(--color-text);
+		box-shadow: 0 1px 3px color-mix(in srgb, var(--color-text) 20%, transparent);
 	}
 
 
@@ -297,28 +297,28 @@
 		display: flex;
 		align-items: center;
 		gap: 5px;
-		border: 1px solid rgba(255, 255, 255, 0.08);
+		border: 1px solid var(--color-border-1);
 		border-radius: 6px;
 		padding: 4px 10px;
 		font-size: 11.5px;
-		color: #999;
+		color: var(--color-muted);
 		cursor: pointer;
-		background: #141414;
+		background: var(--color-surface);
 		height: 28px;
 		transition: all 0.15s;
 	}
 	.tb-preview:hover {
-		background: rgba(255, 255, 255, 0.03);
+		background: var(--color-surface-2);
 	}
 	.tb-preview.active {
-		background: #222;
-		color: #fff;
-		border-color: #1a1a1a;
+		background: var(--color-surface-2);
+		color: var(--color-text);
+		border-color: var(--color-surface-2);
 	}
 
 	.preview-error {
-		background: #141414;
-		color: #aaa;
+		background: var(--color-surface);
+		color: var(--color-muted);
 		padding: 32px 20px;
 		text-align: center;
 		font-size: 13px;
@@ -327,24 +327,24 @@
 		align-items: center;
 		gap: 12px;
 	}
-	.preview-error p { margin: 0; color: #ef4444; }
+	.preview-error p { margin: 0; color: var(--color-danger); }
 
 	.tb-action {
 		display: flex;
 		align-items: center;
 		gap: 5px;
-		border: 1px solid rgba(255, 255, 255, 0.08);
+		border: 1px solid var(--color-border-1);
 		border-radius: 6px;
 		padding: 4px 10px;
 		font-size: 11.5px;
-		color: #999;
+		color: var(--color-muted);
 		cursor: pointer;
-		background: #141414;
+		background: var(--color-surface);
 		height: 28px;
 	}
 	.tb-action:hover {
-		background: rgba(255, 255, 255, 0.04);
-		color: #ccc;
+		background: var(--color-surface-2);
+		color: var(--color-text);
 	}
 	.tb-action:disabled {
 		opacity: 0.4;
@@ -352,7 +352,7 @@
 	}
 	.tb-save-error {
 		font-size: 11.5px;
-		color: #ef4444;
+		color: var(--color-danger);
 		white-space: nowrap;
 	}
 	.tb-kbd {
@@ -361,8 +361,8 @@
 		opacity: 0.55;
 	}
 	.tb-save.error {
-		background: #ef4444;
-		color: #fff;
+		background: var(--color-danger);
+		color: var(--color-bg);
 	}
 	.tb-save:disabled {
 		opacity: 0.6;
@@ -370,8 +370,8 @@
 	}
 
 	.tb-save {
-		background: #ffd100;
-		color: #000;
+		background: var(--color-accent);
+		color: #101010;
 		border: none;
 		border-radius: 7px;
 		padding: 6px 14px;
@@ -384,7 +384,7 @@
 		transition: background 0.15s;
 	}
 	.tb-save:hover {
-		background: #e6bc00;
+		background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text));
 	}
 
 	.tb-undo-redo {
@@ -396,7 +396,7 @@
 		border: 1px solid transparent;
 		border-radius: 6px;
 		cursor: pointer;
-		color: #999;
+		color: var(--color-muted);
 		font-family: inherit;
 		transition:
 			background 0.12s,
@@ -404,9 +404,9 @@
 			border-color 0.12s;
 	}
 	.tb-undo-redo:hover {
-		background: rgba(255, 255, 255, 0.04);
-		color: #ccc;
-		border-color: #e8e8e8;
+		background: var(--color-surface-2);
+		color: var(--color-text);
+		border-color: var(--color-border-1);
 	}
 	.tb-undo-redo.disabled {
 		opacity: 0.25;
@@ -415,24 +415,24 @@
 	}
 	.tb-shortcut {
 		font-size: 10px;
-		color: #bbb;
+		color: var(--color-muted);
 		font-weight: 500;
 		letter-spacing: 0.3px;
 	}
 	.tb-undo-redo:hover .tb-shortcut {
-		color: #666;
+		color: var(--color-muted);
 	}
 
 	.tb-sep {
 		width: 1px;
 		height: 18px;
-		background: #e8e8e8;
+		background: var(--color-border-1);
 		margin: 0 4px;
 	}
 
 	.canvas {
 		flex: 1;
-		background: #222;
+		background: var(--color-surface-2);
 		display: flex;
 		align-items: flex-start;
 		justify-content: center;
@@ -443,12 +443,12 @@
 		width: 6px;
 	}
 	.canvas::-webkit-scrollbar-thumb {
-		background: #bbb;
+		background: var(--color-muted-soft);
 		border-radius: 3px;
 	}
 
 	.email-wrap {
-		border: 2px dashed rgba(255, 209, 0, 0.3);
+		border: 2px dashed var(--color-accent);
 		border-radius: 3px;
 		width: 100%;
 		background: transparent;

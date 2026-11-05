@@ -77,18 +77,18 @@
 		align-items: center;
 		gap: 2px;
 		padding: 3px 4px;
-		background: #1e1e1e;
-		border: 1px solid rgba(255,255,255,0.1);
+		background: var(--color-surface-2);
+		border: 1px solid var(--color-border-1);
 		border-radius: 8px;
-		box-shadow: 0 2px 8px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.04);
+		box-shadow: 0 2px 8px color-mix(in srgb, var(--color-text) 10%, transparent), 0 0 0 1px color-mix(in srgb, var(--color-text) 4%, transparent);
 		font-family: 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif;
 	}
 
 	.at-badge {
 		font-size: 10px;
 		font-weight: 600;
-		color: #FFD100;
-		background: rgba(255,209,0,0.1);
+		color: var(--color-accent-ink);
+		background: var(--color-accent-soft);
 		padding: 2px 7px;
 		border-radius: 4px;
 		text-transform: capitalize;
@@ -98,7 +98,7 @@
 	.at-sep {
 		width: 1px;
 		height: 14px;
-		background: rgba(255,255,255,0.12);
+		background: var(--color-border-1);
 		margin: 0 2px;
 	}
 
@@ -112,15 +112,15 @@
 		border: none;
 		border-radius: 5px;
 		cursor: pointer;
-		color: #aaa;
+		color: var(--color-muted);
 		transition: background 0.12s, color 0.12s;
 	}
-	.at-btn:hover { background: rgba(255,255,255,0.06); color: #ccc; }
+	.at-btn:hover { background: var(--color-surface-2); color: var(--color-text); }
 	.at-btn.disabled {
 		opacity: 0.25;
 		cursor: not-allowed;
 		pointer-events: none;
 	}
 
-	.at-btn-danger:hover { background: rgba(220,38,38,0.1); color: #dc2626; }
+	.at-btn-danger:hover { background: var(--color-danger-soft); color: var(--color-danger); }
 </style>

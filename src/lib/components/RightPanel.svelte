@@ -612,18 +612,18 @@
 <style>
 	/* ─── Design tokens ─────────────────────────────────────────── */
 	.right-panel {
-		--accent:       #FFD100;
-		--accent-dim:   rgba(255, 209, 0, 0.08);
-		--accent-glow:  rgba(255, 209, 0, 0.18);
-		--bg:           #111111;
-		--bg-surface:   #181818;
-		--bg-raised:    #1f1f1f;
-		--bg-hover:     rgba(255,255,255,0.035);
-		--border:       rgba(255,255,255,0.07);
-		--border-focus: rgba(255, 209, 0, 0.5);
-		--text-hi:      #f0f0f0;
-		--text-mid:     #888;
-		--text-lo:      #444;
+		--accent:       var(--color-accent);
+		--accent-dim:   var(--color-accent-soft);
+		--accent-glow:  var(--color-accent-soft);
+		--bg:           var(--color-surface);
+		--bg-surface:   var(--color-surface);
+		--bg-raised:    var(--color-surface-2);
+		--bg-hover:     var(--color-surface-2);
+		--border:       var(--color-border-1);
+		--border-focus: var(--color-accent);
+		--text-hi:      var(--color-text);
+		--text-mid:     var(--color-muted);
+		--text-lo:      var(--color-muted-soft);
 		--radius-sm:    4px;
 		--radius-md:    6px;
 		--radius-lg:    8px;
@@ -645,8 +645,8 @@
 	}
 	.right-panel::-webkit-scrollbar { width: 3px; }
 	.right-panel::-webkit-scrollbar-track { background: transparent; }
-	.right-panel::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 99px; }
-	.right-panel::-webkit-scrollbar-thumb:hover { background: #383838; }
+	.right-panel::-webkit-scrollbar-thumb { background: var(--color-surface-2); border-radius: 99px; }
+	.right-panel::-webkit-scrollbar-thumb:hover { background: var(--color-surface-2); }
 
 	/* ─── Top bar ────────────────────────────────────────────────── */
 	.rp-topbar {
@@ -677,13 +677,13 @@
 	}
 	.rp-icon-btn:hover:not(:disabled) {
 		background: var(--bg-hover);
-		color: #ddd;
-		border-color: rgba(255,255,255,0.12);
+		color: var(--color-text);
+		border-color: var(--color-border-1);
 	}
 	.rp-use-mail {
 		margin-left: auto;
 		background: var(--accent);
-		color: #000;
+		color: #101010;
 		border: none;
 		border-radius: var(--radius-md);
 		padding: 0 11px;
@@ -700,7 +700,7 @@
 		font-family: inherit;
 	}
 	.rp-use-mail:hover:not(:disabled) {
-		background: #ffe033;
+		background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text));
 		box-shadow: 0 0 14px var(--accent-glow);
 	}
 	.rp-use-mail:disabled,
@@ -767,7 +767,7 @@
 	}
 	.right-panel :global(textarea.rp-input) { resize: none; line-height: 1.55; }
 	.right-panel :global(select.rp-input) { color: var(--text-mid); cursor: pointer; }
-	.right-panel :global(select.rp-input option) { background: #1c1c1c; color: var(--text-hi); }
+	.right-panel :global(select.rp-input option) { background: var(--color-surface-2); color: var(--text-hi); }
 
 	.right-panel :global(.rp-label) {
 		display: block;
@@ -780,7 +780,7 @@
 	}
 	.right-panel :global(.rp-label-hint) {
 		font-size: 9px;
-		color: #3a3a3a;
+		color: var(--color-muted-soft);
 		text-transform: none;
 		letter-spacing: 0;
 	}
@@ -788,7 +788,7 @@
 	/* ─── Add / Delete buttons ────────────────────────────────────── */
 	.right-panel :global(.rp-add-btn) {
 		font-size: 11px;
-		color: var(--accent);
+		color: var(--color-accent-ink);
 		font-weight: 500;
 		cursor: pointer;
 		background: none;
@@ -817,8 +817,8 @@
 		transition: color 0.1s, background 0.1s;
 	}
 	.right-panel :global(.rp-del-btn:hover) {
-		color: #e55;
-		background: rgba(220, 50, 50, 0.08);
+		color: var(--color-danger);
+		background: var(--color-danger-soft);
 	}
 
 	/* ─── Pill buttons ────────────────────────────────────────────── */
@@ -837,14 +837,14 @@
 		transition: all 0.12s;
 	}
 	.right-panel :global(.rp-width-pill:hover) {
-		border-color: rgba(255,255,255,0.14);
-		color: #bbb;
+		border-color: var(--color-border-1);
+		color: var(--color-muted);
 		background: var(--bg-hover);
 	}
 	.right-panel :global(.rp-width-pill.active) {
-		border-color: rgba(255, 209, 0, 0.45);
+		border-color: var(--color-accent);
 		background: var(--accent-dim);
-		color: var(--accent);
+		color: var(--color-accent-ink);
 	}
 
 	/* ─── Checkbox row ────────────────────────────────────────────── */
@@ -858,7 +858,7 @@
 		user-select: none;
 	}
 	.right-panel :global(.rp-checkbox-row input[type="checkbox"]) {
-		accent-color: var(--accent);
+		accent-color: var(--color-accent-ink);
 		width: 12px;
 		height: 12px;
 		cursor: pointer;
@@ -879,7 +879,7 @@
 		border-color: var(--border-focus);
 		box-shadow: 0 0 0 2px var(--accent-dim);
 	}
-	.right-panel :global(.rp-link-row svg) { color: var(--accent); flex-shrink: 0; opacity: 0.7; }
+	.right-panel :global(.rp-link-row svg) { color: var(--color-accent-ink); flex-shrink: 0; opacity: 0.7; }
 	.right-panel :global(.rp-link-row input) {
 		border: none;
 		background: transparent;
@@ -922,14 +922,14 @@
 		color: var(--text-lo);
 	}
 	.right-panel :global(.rp-layout-btn:hover) {
-		border-color: rgba(255,255,255,0.14);
+		border-color: var(--color-border-1);
 		color: var(--text-mid);
 		background: var(--bg-hover);
 	}
 	.right-panel :global(.rp-layout-btn.active) {
-		border-color: rgba(255, 209, 0, 0.45);
+		border-color: var(--color-accent);
 		background: var(--accent-dim);
-		color: var(--accent);
+		color: var(--color-accent-ink);
 	}
 
 	/* ─── Empty state ─────────────────────────────────────────────── */

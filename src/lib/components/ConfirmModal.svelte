@@ -49,16 +49,16 @@
 		position: fixed;
 		inset: 0;
 		z-index: 1000;
-		background: rgba(0, 0, 0, 0.25);
+		background: color-mix(in srgb, var(--color-bg) 70%, transparent);
 		backdrop-filter: blur(4px);
 		display: flex;
 		align-items: center;
 		justify-content: center;
 	}
 	.cm-card {
-		background: #1e1e1e;
+		background: var(--color-surface-2);
 		border-radius: 12px;
-		box-shadow: 0 4px 24px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.04);
+		box-shadow: 0 4px 24px color-mix(in srgb, var(--color-text) 12%, transparent), 0 0 0 1px color-mix(in srgb, var(--color-text) 4%, transparent);
 		max-width: 400px;
 		width: 90%;
 		padding: 24px;
@@ -67,12 +67,12 @@
 	.cm-title {
 		font-size: 16px;
 		font-weight: 600;
-		color: #e0e0e0;
+		color: var(--color-text);
 		margin-bottom: 8px;
 	}
 	.cm-message {
 		font-size: 14px;
-		color: #888;
+		color: var(--color-muted);
 		line-height: 1.5;
 		margin-bottom: 20px;
 	}
@@ -92,19 +92,19 @@
 		transition: background 0.15s, opacity 0.15s;
 	}
 	.cm-btn-cancel {
-		background: #1e1e1e;
-		color: #888;
-		border: 1px solid rgba(255,255,255,0.1);
+		background: var(--color-surface-2);
+		color: var(--color-muted);
+		border: 1px solid var(--color-border-1);
 	}
-	.cm-btn-cancel:hover { background: rgba(255,255,255,0.06); }
+	.cm-btn-cancel:hover { background: var(--color-surface-2); }
 	.cm-btn-confirm {
-		background: #FFD100;
-		color: #000;
+		background: var(--color-accent);
+		color: #101010;
 	}
-	.cm-btn-confirm:hover { background: #e6bc00; }
+	.cm-btn-confirm:hover { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text)); }
 	.cm-btn-danger {
-		background: #dc2626;
-		color: #fff;
+		background: var(--color-danger);
+		color: var(--color-bg);
 	}
-	.cm-btn-danger:hover { background: #b91c1c; }
+	.cm-btn-danger:hover { background: color-mix(in srgb, var(--color-danger) 85%, var(--color-text)); }
 </style>

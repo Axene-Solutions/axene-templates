@@ -27,7 +27,7 @@
 
 <style>
 	.prop-section {
-		border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+		border-bottom: 1px solid var(--color-border-1);
 	}
 	.prop-header {
 		display: flex;
@@ -41,15 +41,15 @@
 		font-family: inherit;
 	}
 	.prop-header:hover {
-		background: rgba(255, 255, 255, 0.03);
+		background: var(--color-surface-2);
 	}
 	.prop-title {
 		font-size: 11.5px;
 		font-weight: 600;
-		color: #e0e0e0;
+		color: var(--color-text);
 	}
 	.prop-chevron {
-		color: #555;
+		color: var(--color-muted-soft);
 		transition: transform 0.2s;
 	}
 	.prop-chevron.closed {

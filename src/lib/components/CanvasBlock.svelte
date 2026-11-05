@@ -226,7 +226,7 @@
 
 <style>
 	.selected {
-		outline: 2px dashed #9aabee;
+		outline: 2px dashed var(--color-info);
 		outline-offset: 4px;
 	}
 
@@ -234,8 +234,8 @@
 		position: absolute;
 		width: 7px;
 		height: 7px;
-		background: white;
-		border: 1.5px solid #7c6af5;
+		background: var(--color-surface);
+		border: 1.5px solid var(--color-info);
 		box-sizing: border-box;
 		z-index: 10;
 	}

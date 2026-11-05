@@ -74,29 +74,29 @@
 		gap: 4px;
 	}
 	.sp-cell {
-		border: 1px solid rgba(255, 255, 255, 0.08);
+		border: 1px solid var(--color-border-1);
 		border-radius: 4px;
 		padding: 4px 6px;
-		background: rgba(255, 255, 255, 0.04);
+		background: var(--color-surface-2);
 		display: flex;
 		align-items: center;
 		gap: 4px;
 	}
 	.sp-icon {
-		color: #666;
+		color: var(--color-muted);
 		display: flex;
 		align-items: center;
 		justify-content: center;
 	}
 	.sp-label {
 		font-size: 9px;
-		color: #555;
+		color: var(--color-muted-soft);
 	}
 	.sp-input {
 		border: none;
 		background: transparent;
 		font-size: 11px;
-		color: #ddd;
+		color: var(--color-text);
 		width: 100%;
 		text-align: right;
 		outline: none;

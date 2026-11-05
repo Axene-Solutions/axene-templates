@@ -3,6 +3,8 @@
 
 	let { value, onchange }: { value: string; onchange: (hex: string) => void } = $props()
 
+	// A white swatch needs a visible outline on a themed surface.
+	const isWhite = (c: string) => c.toLowerCase() === '#ffffff'
 	const isTransparent = $derived(value === 'transparent')
 	let hexInput = $state('')
 
@@ -31,12 +33,12 @@
 				></button>
 			{:else}
 				{@const active = !isTransparent && value.toLowerCase() === color.toLowerCase()}
-				{@const ringColor = color.toLowerCase() === '#ffffff' ? '#999' : color}
+				{@const ringColor = isWhite(color) ? 'var(--color-muted)' : color}
 				<button
 					class="cp-swatch"
-					style="background-color:{color};{color.toLowerCase() === '#ffffff'
-						? 'border:1.5px solid #ddd;'
-						: ''}{active ? `box-shadow:0 0 0 2px #fff,0 0 0 3.5px ${ringColor};` : ''}"
+					style="background-color:{color};{isWhite(color)
+						? 'border:1.5px solid var(--color-border-1);'
+						: ''}{active ? `box-shadow:0 0 0 2px var(--color-surface),0 0 0 3.5px ${ringColor};` : ''}"
 					title={color}
 					onclick={() => onchange(color)}
 				></button>
@@ -50,8 +52,8 @@
 		{:else}
 			<div
 				class="cp-preview"
-				style="background-color:{value};{value.toLowerCase() === '#ffffff'
-					? 'border:1px solid #ddd;'
+				style="background-color:{value};{isWhite(value)
+					? 'border:1px solid var(--color-border-1);'
 					: ''}"
 			></div>
 			<div class="cp-hex-input">
@@ -91,23 +93,23 @@
 
 	/* Transparent / None swatch - checkerboard pattern */
 	.cp-none {
-		background-image: linear-gradient(45deg, #d0d0d0 25%, transparent 25%),
-			linear-gradient(-45deg, #d0d0d0 25%, transparent 25%),
-			linear-gradient(45deg, transparent 75%, #d0d0d0 75%),
-			linear-gradient(-45deg, transparent 75%, #d0d0d0 75%);
+		background-image: linear-gradient(45deg, var(--color-muted-soft) 25%, transparent 25%),
+			linear-gradient(-45deg, var(--color-muted-soft) 25%, transparent 25%),
+			linear-gradient(45deg, transparent 75%, var(--color-muted-soft) 75%),
+			linear-gradient(-45deg, transparent 75%, var(--color-muted-soft) 75%);
 		background-size: 6px 6px;
 		background-position:
 			0 0,
 			0 3px,
 			3px -3px,
 			-3px 0;
-		background-color: #fff;
-		border: 1.5px solid #ddd !important;
+		background-color: var(--color-surface);
+		border: 1.5px solid var(--color-border-1) !important;
 	}
 	.cp-none.cp-active {
 		box-shadow:
-			0 0 0 2px #fff,
-			0 0 0 3.5px #999;
+			0 0 0 2px var(--color-surface),
+			0 0 0 3.5px var(--color-muted);
 	}
 
 	/* Hex input row */
@@ -124,43 +126,43 @@
 		flex-shrink: 0;
 	}
 	.cp-preview-none {
-		background-image: linear-gradient(45deg, #d0d0d0 25%, transparent 25%),
-			linear-gradient(-45deg, #d0d0d0 25%, transparent 25%),
-			linear-gradient(45deg, transparent 75%, #d0d0d0 75%),
-			linear-gradient(-45deg, transparent 75%, #d0d0d0 75%);
+		background-image: linear-gradient(45deg, var(--color-muted-soft) 25%, transparent 25%),
+			linear-gradient(-45deg, var(--color-muted-soft) 25%, transparent 25%),
+			linear-gradient(45deg, transparent 75%, var(--color-muted-soft) 75%),
+			linear-gradient(-45deg, transparent 75%, var(--color-muted-soft) 75%);
 		background-size: 6px 6px;
 		background-position:
 			0 0,
 			0 3px,
 			3px -3px,
 			-3px 0;
-		background-color: #fff;
-		border: 1px solid rgba(255, 255, 255, 0.1);
+		background-color: var(--color-surface);
+		border: 1px solid var(--color-border-1);
 	}
 
 	.cp-none-label {
 		font-size: 11px;
-		color: #666;
+		color: var(--color-muted);
 	}
 
 	.cp-hex-input {
 		display: flex;
 		align-items: center;
-		background: rgba(255, 255, 255, 0.04);
-		border: 1px solid rgba(255, 255, 255, 0.08);
+		background: var(--color-surface-2);
+		border: 1px solid var(--color-border-1);
 		border-radius: 5px;
 		padding: 3px 7px;
 		flex: 1;
 	}
 	.cp-hash {
 		font-size: 11px;
-		color: #555;
+		color: var(--color-muted-soft);
 	}
 	.cp-hex-input input {
 		border: none;
 		background: transparent;
 		font-size: 11px;
-		color: #ddd;
+		color: var(--color-text);
 		outline: none;
 		width: 100%;
 		margin-left: 2px;
