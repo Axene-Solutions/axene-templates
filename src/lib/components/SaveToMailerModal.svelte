@@ -1,10 +1,14 @@
 <script lang="ts">
 	import { editor } from '$lib/store.svelte';
 	import { mailer } from '$lib/mailer.svelte';
-	import { detectUnsupportedSyntax, MAX_SUBJECT_MAILER, MAX_TEMPLATE_NAME } from '$lib/mailer-templates';
+	import { MAX_SUBJECT_MAILER, MAX_TEMPLATE_NAME } from '$lib/mailer-templates';
+	import { mailerData } from '$lib/mailer-data.svelte';
+	import { saveBlockedReason, PRICING_URL } from '$lib/mailer-plan';
 	import { trapFocus } from '$lib/focus';
 	import Icon from './Icon.svelte';
 	import MailerConnectCard from './MailerConnectCard.svelte';
+	import MailerPlanCard from './MailerPlanCard.svelte';
+	import PlaceholderWarnings from './PlaceholderWarnings.svelte';
 
 	let { open = false, onclose }: { open: boolean; onclose: () => void } = $props();
 
@@ -16,10 +20,11 @@
 	let error = $state('');
 	let result = $state<Result | null>(null);
 
-	const unsupported = $derived(open ? detectUnsupportedSyntax(editor.blocks) : []);
 	const linked = $derived(!!editor.mailerTemplateId);
 	const verb = $derived(linked ? 'Update in Mailer' : 'Save to Mailer');
-	const canSave = $derived(!saving && subject.trim().length > 0 && subject.length <= MAX_SUBJECT_MAILER && name.trim().length > 0);
+	// Saving a new template can exceed the plan; updating one that already lives in Mailer never adds one.
+	const blocked = $derived(saveBlockedReason(mailerData.plan, linked));
+	const canSave = $derived(!saving && !blocked && subject.trim().length > 0 && subject.length <= MAX_SUBJECT_MAILER && name.trim().length > 0);
 
 	const subjectKey = () => `axene.mailerSubject.${editor.templateId}`;
 	function rememberedSubject(): string {
@@ -49,6 +54,7 @@
 		subject = rememberedSubject() || editor.templateName;
 		name = editor.templateName;
 		await mailer.load();
+		if (mailer.status === 'connected') mailerData.loadPlan(true);
 	}
 
 	async function save() {
@@ -71,6 +77,7 @@
 				result = data as Result;
 				if (data.linked) editor.setMailerLink(data.mailerTemplateId, data.name ?? name);
 				remember(subject);
+				mailerData.refreshPlan();
 			} else if (res.status === 409 && (data.code === 'not_connected' || data.code === 'mailer_key_unreadable')) {
 				await mailer.load();
 			} else if (res.status === 429) {
@@ -118,25 +125,21 @@
 					<p class="mt-text">Creates this template in your Mailer account so you can use it in campaigns. Placeholders such as {'{{name}}'} are kept for Mailer to fill in.</p>
 				{/if}
 
+				<div class="mt-plan"><MailerPlanCard compact /></div>
+				{#if blocked}
+					<div class="mt-note mt-note-err" role="alert">
+						<Icon name="warning" width={16} height={16} />
+						<span>{blocked} <a class="mt-open" href={PRICING_URL} target="_blank" rel="noopener noreferrer">Compare plans</a></span>
+					</div>
+				{/if}
+
 				<label class="mt-label" for="mt-name">Template name in Mailer</label>
 				<input id="mt-name" class="mt-input" type="text" maxlength={MAX_TEMPLATE_NAME} bind:value={name} />
 
 				<label class="mt-label" for="mt-subj">Subject</label>
 				<input id="mt-subj" class="mt-input" type="text" maxlength={MAX_SUBJECT_MAILER} bind:value={subject} />
 
-				{#if unsupported.length}
-					<div class="mt-note mt-note-warn" role="status">
-						<Icon name="warning" width={16} height={16} />
-						<div>
-							<strong>These will not work in Mailer.</strong> Mailer only fills in plain placeholders such as <span class="mt-mono">{'{{name}}'}</span>. You can still save, but this syntax will stay as written in the sent email:
-							<ul class="mt-list">
-								{#each unsupported as u}
-									<li><span class="mt-mono">{u.text}</span> <span class="mt-muted">({u.reason})</span></li>
-								{/each}
-							</ul>
-						</div>
-					</div>
-				{/if}
+				<PlaceholderWarnings variant="dialog" />
 
 				{#if error}
 					<div class="mt-note mt-note-err" role="alert"><Icon name="warning" width={16} height={16} /><span>{error}</span></div>
@@ -194,9 +197,9 @@
 	.mt-title { font-size: 16px; font-weight: 600; }
 	.mt-x { background: none; border: none; color: var(--mt-muted); cursor: pointer; display: flex; padding: 4px; border-radius: 6px; }
 	.mt-x:hover { color: var(--mt-text); }
+	.mt-plan { margin-top: 12px; }
 	.mt-text { line-height: 1.5; color: var(--mt-muted); margin: 0; }
 	.mt-muted { color: var(--mt-muted); font-size: 12px; }
-	.mt-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; }
 	.mt-linked { display: flex; gap: 8px; align-items: flex-start; color: var(--mt-ok); line-height: 1.45; }
 	.mt-linked span { color: var(--mt-text); }
 	.mt-label { display: block; font-size: 11.5px; font-weight: 600; color: var(--mt-muted); margin: 12px 0 5px; }
@@ -212,8 +215,6 @@
 	.mt-note-err { border-color: var(--mt-err); background: color-mix(in srgb, var(--mt-err) 12%, transparent); color: var(--mt-err); }
 	.mt-note-ok { border-color: var(--mt-ok); background: color-mix(in srgb, var(--mt-ok) 10%, transparent); color: var(--mt-ok); }
 	.mt-note-ok span { color: var(--mt-text); }
-	.mt-note-warn { border-color: var(--mt-accent); background: var(--mt-warn-bg); color: var(--mt-warn-ink); }
-	.mt-list { margin: 6px 0 0 16px; padding: 0; list-style: disc; display: flex; flex-direction: column; gap: 3px; }
 	.mt-open { color: var(--color-accent-ink); font-weight: 600; text-decoration: underline; margin-left: 4px; }
 	.mt-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 16px; }
 	.mt-btn {

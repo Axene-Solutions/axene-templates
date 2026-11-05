@@ -2,9 +2,12 @@
 	import { page } from '$app/state';
 	import { editor } from '$lib/store.svelte';
 	import { mailer } from '$lib/mailer.svelte';
+	import { mailerData } from '$lib/mailer-data.svelte';
+	import { collectUsage, linkFieldNeeds } from '$lib/placeholders';
 	import { autofocus, trapFocus } from '$lib/focus';
 	import Icon from './Icon.svelte';
 	import MailerConnectCard from './MailerConnectCard.svelte';
+	import PlaceholderWarnings from './PlaceholderWarnings.svelte';
 
 	let { open = false, onclose }: { open: boolean; onclose: () => void } = $props();
 
@@ -31,14 +34,20 @@
 	);
 	const tooMany = $derived(recipients.length > MAX);
 
-	// {{names}} the template uses, so the Variables box only shows when it matters.
+	// What the template uses: plain {{names}} need a value, {{name|fallback}} may have one, and a
+	// named link brings the fields inside its URL along.
+	const usage = $derived(collectUsage(editor.blocks));
+	const usedLinks = $derived(new Map(mailerData.links.filter((l) => usage.links.has(l.key)).map((l) => [l.key, l.url])));
 	const variableNames = $derived.by(() => {
 		const names = new Set<string>();
 		for (const m of JSON.stringify(editor.blocks).matchAll(/\{\{\{?\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}?\}\}/g)) names.add(m[1]);
+		for (const n of linkFieldNeeds(usage.links, usedLinks)) names.add(n);
 		// These three have built-in defaults on the server.
 		for (const d of ['theme_color', 'logo', 'company_name']) names.delete(d);
 		return [...names];
 	});
+	const optionalNames = $derived([...usage.fields].filter(([k, v]) => v.hasFallback && !variableNames.includes(k)).map(([k]) => k));
+	const usesGrammar = $derived(usage.links.size > 0 || optionalNames.length > 0);
 
 	let wasOpen = false;
 	$effect(() => {
@@ -57,8 +66,9 @@
 		results = [];
 		confirming = false;
 		subject = editor.templateName;
-		varValues = Object.fromEntries(variableNames.map((n) => [n, '']));
+		varValues = Object.fromEntries([...variableNames, ...optionalNames].map((n) => [n, '']));
 		await mailer.load();
+		if (mailer.status === 'connected' && usage.links.size) mailerData.loadLinks();
 	}
 
 	async function loadSenders() {
@@ -92,7 +102,7 @@
 	async function send() {
 		formError = '';
 		results = [];
-		const variables = variableNames.length ? { ...varValues } : undefined;
+		const variables = variableNames.length || optionalNames.length ? Object.fromEntries(Object.entries(varValues).filter(([k, v]) => variableNames.includes(k) || v.trim() !== '')) : undefined;
 		sending = true;
 		try {
 			// Pending edits and brand new templates are saved first (the server sends the saved copy).
@@ -199,6 +209,27 @@
 						{/each}
 					</div>
 				{/if}
+
+				{#if optionalNames.length}
+					<div class="sm-label">Optional values (leave empty to use the fallback)</div>
+					<div class="sm-vars">
+						{#each optionalNames as n (n)}
+							<label class="sm-var" for="sm-opt-{n}">
+								<span class="sm-mono sm-var-name">{n}</span>
+								<input id="sm-opt-{n}" class="sm-input" type="text" bind:value={varValues[n]} />
+							</label>
+						{/each}
+					</div>
+				{/if}
+
+				{#if usesGrammar}
+					<p class="sm-note sm-note-info" role="note">
+						<Icon name="link" width={16} height={16} />
+						<span>This send fills {'{{name|fallback}}'} and {'{{link:key}}'} here: named links come from your Mailer account and values are URL-encoded inside links. In a Mailer broadcast, Mailer fills them in per contact.</span>
+					</p>
+				{/if}
+
+				<PlaceholderWarnings variant="dialog" />
 
 				{#if formError}
 					<div class="sm-note sm-note-err" role="alert"><Icon name="warning" width={16} height={16} /><span>{formError}</span></div>
@@ -313,6 +344,7 @@
 		margin-top: 12px; padding: 9px 10px; border-radius: 7px; line-height: 1.45;
 		border: 1px solid transparent;
 	}
+	.sm-note-info { border-color: var(--color-info); background: var(--color-info-soft); color: var(--color-text); }
 	.sm-note-err { border-color: var(--sm-err); background: color-mix(in srgb, var(--sm-err) 12%, transparent); color: var(--sm-err); }
 	.sm-results { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
 	.sm-res {

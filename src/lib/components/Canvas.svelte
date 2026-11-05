@@ -3,6 +3,7 @@
 	import CanvasBlock from './CanvasBlock.svelte'
 	import ActionToolbar from './ActionToolbar.svelte'
 	import Icon from './Icon.svelte'
+	import { collectUsage } from '$lib/placeholders'
 
 	let viewMode = $state<'desktop' | 'mobile'>('desktop')
 	let showPreview = $state(false)
@@ -63,6 +64,11 @@
 			copied = false
 		}
 	}
+
+	const usesGrammar = $derived.by(() => {
+		const u = collectUsage(editor.blocks)
+		return u.links.size > 0 || [...u.fields.values()].some((f) => f.hasFallback)
+	})
 
 	const saveLabel = $derived(
 		editor.saveState === 'saving'
@@ -205,6 +211,11 @@
 					</button>
 				</div>
 			{:else if showPreview}
+				{#if usesGrammar}
+					<p class="preview-note" role="note">
+						Preview shows placeholders as written. Fallbacks and named links are filled in when you send: here with your Mailer links, in a broadcast by Mailer per contact.
+					</p>
+				{/if}
 				<iframe
 					srcdoc={editor.previewHtml}
 					title="Email preview"
@@ -316,6 +327,7 @@
 		border-color: var(--color-surface-2);
 	}
 
+	.preview-note { background: var(--color-info-soft); color: var(--color-text); border: 1px solid var(--color-info); border-radius: 6px; padding: 6px 10px; margin: 0 0 8px; font-size: 11.5px; line-height: 1.45; }
 	.preview-error {
 		background: var(--color-surface);
 		color: var(--color-muted);
