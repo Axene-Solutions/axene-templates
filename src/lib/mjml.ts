@@ -10,9 +10,12 @@ import { resolveColor } from './colors';
 // Theme color extracted from blocks at serialization time
 let _theme = '#1daa82';
 
+/** Every colour sink goes through this, so theme tokens never reach the output as words. */
 function rc(val: string): string {
 	return resolveColor(val, _theme);
 }
+
+const HEX_THEME = /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 
 function esc(s: string): string {
 	// Also used inside attribute values (alt), so quotes are escaped too.
@@ -33,11 +36,11 @@ function blockToMjml(block: Block): string {
 	switch (block.type) {
 		case 'header': {
 			const layout = p.layout ?? 'logo-left';
-			const bgAttr = p.backgroundColor === 'transparent' ? '' : ` background-color="${p.backgroundColor}"`;
+			const bgAttr = p.backgroundColor === 'transparent' ? '' : ` background-color="${rc(p.backgroundColor)}"`;
 			const tagline = p.tagline
-				? `<div style="font-size:12px;color:${p.color};opacity:0.75;margin-top:3px">${esc(p.tagline)}</div>`
+				? `<div style="font-size:12px;color:${rc(p.color)};opacity:0.75;margin-top:3px">${esc(p.tagline)}</div>`
 				: '';
-			const nameBlock = `<div style="font-size:${p.fontSize}px;font-weight:700;color:${p.color};font-family:Inter,Arial,sans-serif">${esc(p.companyName)}</div>${tagline}`;
+			const nameBlock = `<div style="font-size:${p.fontSize}px;font-weight:700;color:${rc(p.color)};font-family:Inter,Arial,sans-serif">${esc(p.companyName)}</div>${tagline}`;
 			const logoWidth = p.logoWidth || 40;
 
 			if (layout === 'logo-only') {
@@ -71,43 +74,43 @@ function blockToMjml(block: Block): string {
 		}
 
 		case 'heading':
-			return `<mj-section padding="0"><mj-column><mj-text padding="${pad(block)}" font-size="${p.fontSize}px" font-weight="${p.fontWeight}" color="${p.color}" align="${p.align}" font-family="Inter, Arial, sans-serif">${p.text}</mj-text></mj-column></mj-section>`;
+			return `<mj-section padding="0"><mj-column><mj-text padding="${pad(block)}" font-size="${p.fontSize}px" font-weight="${p.fontWeight}" color="${rc(p.color)}" align="${p.align}" font-family="Inter, Arial, sans-serif">${p.text}</mj-text></mj-column></mj-section>`;
 
 		case 'subheading':
-			return `<mj-section padding="0"><mj-column><mj-text padding="${pad(block)}" font-size="${p.fontSize}px" font-weight="${p.fontWeight}" color="${p.color}" align="${p.align}" line-height="${p.lineHeight}" font-family="Inter, Arial, sans-serif">${p.text}</mj-text></mj-column></mj-section>`;
+			return `<mj-section padding="0"><mj-column><mj-text padding="${pad(block)}" font-size="${p.fontSize}px" font-weight="${p.fontWeight}" color="${rc(p.color)}" align="${p.align}" line-height="${p.lineHeight}" font-family="Inter, Arial, sans-serif">${p.text}</mj-text></mj-column></mj-section>`;
 
 		case 'content':
-			return `<mj-section padding="0"><mj-column><mj-text padding="${pad(block)}" font-size="${p.fontSize}px" font-weight="${p.fontWeight || 'normal'}" color="${p.color}" align="${p.align}" line-height="${p.lineHeight}" font-family="Inter, Arial, sans-serif">${p.text}</mj-text></mj-column></mj-section>`;
+			return `<mj-section padding="0"><mj-column><mj-text padding="${pad(block)}" font-size="${p.fontSize}px" font-weight="${p.fontWeight || 'normal'}" color="${rc(p.color)}" align="${p.align}" line-height="${p.lineHeight}" font-family="Inter, Arial, sans-serif">${p.text}</mj-text></mj-column></mj-section>`;
 
 		case 'image':
 			return `<mj-section padding="0"><mj-column><mj-image padding="${pad(block)}" src="${p.src}" alt="${esc(p.alt)}" width="${p.width}px"${p.href ? ` href="${p.href}"` : ''} /></mj-column></mj-section>`;
 
 		case 'button': {
 			const widthAttr = p.width === -1 ? ' width="100%"' : p.width > 0 ? ` width="${p.width}px"` : '';
-			return `<mj-section padding="0"><mj-column><mj-button padding="${pad(block)}" inner-padding="${p.innerPadding}" background-color="${rc(p.backgroundColor)}" color="${p.color}" font-size="${p.fontSize}px" font-weight="${p.fontWeight}" border-radius="${p.borderRadius}px" align="${p.align}" href="${p.href}"${widthAttr} font-family="Inter, Arial, sans-serif">${p.text}</mj-button></mj-column></mj-section>`;
+			return `<mj-section padding="0"><mj-column><mj-button padding="${pad(block)}" inner-padding="${p.innerPadding}" background-color="${rc(p.backgroundColor)}" color="${rc(p.color)}" font-size="${p.fontSize}px" font-weight="${p.fontWeight}" border-radius="${p.borderRadius}px" align="${p.align}" href="${p.href}"${widthAttr} font-family="Inter, Arial, sans-serif">${p.text}</mj-button></mj-column></mj-section>`;
 		}
 
 		case 'list': {
-			const items = (p.items as string[])
-				.map(item => `<li style="margin-bottom:6px;color:${p.color}">${item}</li>`)
+			const items = (Array.isArray(p.items) ? (p.items as string[]) : [])
+				.map(item => `<li style="margin-bottom:6px;color:${rc(p.color)}">${item}</li>`)
 				.join('');
-			return `<mj-section padding="0"><mj-column><mj-text padding="${pad(block)}" font-size="${p.fontSize}px" color="${p.color}" font-family="Inter, Arial, sans-serif"><ul style="padding-left:20px;margin:0">${items}</ul></mj-text></mj-column></mj-section>`;
+			return `<mj-section padding="0"><mj-column><mj-text padding="${pad(block)}" font-size="${p.fontSize}px" color="${rc(p.color)}" font-family="Inter, Arial, sans-serif"><ul style="padding-left:20px;margin:0">${items}</ul></mj-text></mj-column></mj-section>`;
 		}
 
 		case 'table': {
 			let tableHtml = '<table style="width:100%;border-collapse:collapse;" cellpadding="0" cellspacing="0">';
 			if (p.headerRow) {
-				tableHtml += `<tr><td style="background:${p.headerBg};color:${p.headerColor};padding:10px 14px;border:1px solid ${p.borderColor};font-weight:600;font-size:${p.fontSize}px;">${esc(p.col1Header)}</td><td style="background:${p.headerBg};color:${p.headerColor};padding:10px 14px;border:1px solid ${p.borderColor};font-weight:600;font-size:${p.fontSize}px;">${esc(p.col2Header)}</td></tr>`;
+				tableHtml += `<tr><td style="background:${rc(p.headerBg)};color:${rc(p.headerColor)};padding:10px 14px;border:1px solid ${rc(p.borderColor)};font-weight:600;font-size:${p.fontSize}px;">${esc(p.col1Header)}</td><td style="background:${rc(p.headerBg)};color:${rc(p.headerColor)};padding:10px 14px;border:1px solid ${rc(p.borderColor)};font-weight:600;font-size:${p.fontSize}px;">${esc(p.col2Header)}</td></tr>`;
 			}
-			for (const row of p.rows ?? []) {
-				tableHtml += `<tr><td style="padding:10px 14px;color:${p.cellColor};border:1px solid ${p.borderColor};font-size:${p.fontSize}px;">${row.col1}</td><td style="padding:10px 14px;color:${p.cellColor};border:1px solid ${p.borderColor};font-size:${p.fontSize}px;">${row.col2}</td></tr>`;
+			for (const row of Array.isArray(p.rows) ? p.rows : []) {
+				tableHtml += `<tr><td style="padding:10px 14px;color:${rc(p.cellColor)};border:1px solid ${rc(p.borderColor)};font-size:${p.fontSize}px;">${row.col1}</td><td style="padding:10px 14px;color:${rc(p.cellColor)};border:1px solid ${rc(p.borderColor)};font-size:${p.fontSize}px;">${row.col2}</td></tr>`;
 			}
 			tableHtml += '</table>';
 			return `<mj-section padding="0"><mj-column><mj-table padding="${pad(block)}">${tableHtml}</mj-table></mj-column></mj-section>`;
 		}
 
 		case 'section': {
-			const bg = p.backgroundColor === 'transparent' ? '' : ` background-color="${p.backgroundColor}"`;
+			const bg = p.backgroundColor === 'transparent' ? '' : ` background-color="${rc(p.backgroundColor)}"`;
 			return `<mj-section padding="${pad(block)}"${bg}><mj-column><mj-text font-size="1px" padding="0" color="transparent">&#8203;</mj-text></mj-column></mj-section>`;
 		}
 
@@ -117,7 +120,7 @@ function blockToMjml(block: Block): string {
 			if (p.companyAddress) footerContent += `<p style="margin:0 0 10px">${esc(p.companyAddress)}</p>`;
 			footerContent += `<p style="margin:0 0 12px;line-height:1.6">${p.text}</p>`;
 			const linkParts: string[] = [];
-			for (const link of p.links ?? []) {
+			for (const link of Array.isArray(p.links) ? p.links : []) {
 				linkParts.push(`<a href="${link.url}" style="color:${rc(p.linkColor || 'theme-dark')};text-decoration:underline">${esc(link.label)}</a>`);
 			}
 			if (p.unsubUrl) {
@@ -125,7 +128,7 @@ function blockToMjml(block: Block): string {
 			}
 			if (linkParts.length) footerContent += `<p style="margin:8px 0 0">${linkParts.join(' &nbsp;|&nbsp; ')}</p>`;
 			const divider = p.showDivider ? '<p style="border-top:1px solid #e5e7eb;margin:0 0 16px;font-size:1px;line-height:1px">&nbsp;</p>' : '';
-			return `<mj-section padding="0"><mj-column><mj-text padding="${pad(block)}" font-size="${p.fontSize}px" color="${p.color}" align="${p.align}" font-family="Inter, Arial, sans-serif">${divider}${footerContent}</mj-text></mj-column></mj-section>`;
+			return `<mj-section padding="0"><mj-column><mj-text padding="${pad(block)}" font-size="${p.fontSize}px" color="${rc(p.color)}" align="${p.align}" font-family="Inter, Arial, sans-serif">${divider}${footerContent}</mj-text></mj-column></mj-section>`;
 		}
 
 		default:
@@ -136,7 +139,9 @@ function blockToMjml(block: Block): string {
 export function blocksToMjml(blocks: Block[], bodyBg = '#f5f5f5'): string {
 	// Extract theme color from header block before serializing
 	const headerBlock = blocks.find(b => b.type === 'header');
-	_theme = headerBlock?.props.accentColor ?? headerBlock?.props.backgroundColor ?? '#1daa82';
+	const accent = headerBlock?.props.accentColor;
+	const headerBg = headerBlock?.props.backgroundColor;
+	_theme = HEX_THEME.test(accent ?? '') ? accent : HEX_THEME.test(headerBg ?? '') ? headerBg : '#1daa82';
 	const inner = blocks.map(blockToMjml).join('\n');
 	return `<mjml>
   <mj-head>

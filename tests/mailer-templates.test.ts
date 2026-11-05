@@ -87,7 +87,9 @@ test('validateBlocks caps total size', () => {
 test('unknown and prototype-polluting props are dropped, never copied', () => {
 	const r = validateBlocks([{ id: 'a', type: 'heading', props: { ...JSON.parse('{"__proto__":{"x":1}}'), n: { constructor: 1 }, text: 'Hi' } }]) as any;
 	assert.equal(r.ok, true);
-	assert.deepEqual(r.blocks[0].props, { text: 'Hi' });
+	// Missing props take the heading defaults; the unknown and prototype keys are not copied.
+	assert.equal(r.blocks[0].props.text, 'Hi');
+	for (const k of ['n', 'x', '__proto__']) assert.equal(Object.hasOwn(r.blocks[0].props, k), false, k);
 	assert.equal(({} as any).x, undefined);
 });
 

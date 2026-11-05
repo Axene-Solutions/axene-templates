@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import mjml2html from 'mjml';
 import {
 	sanitizeBlocks, sanitizeBlocksForRead, sanitizeRichText, safeUrl, isColor, compiledHtmlProblem,
-	BlocksValidationError, MAX_BLOCKS,
+	BlocksValidationError, MAX_BLOCKS, BLOCK_SCHEMA,
 } from '../src/lib/server/sanitize-blocks.ts';
 import { blocksToMjml } from '../src/lib/mjml.ts';
 import { starterTemplates } from '../src/lib/defaults.ts';
@@ -124,7 +124,9 @@ test('attribute breakouts in non-HTML props are rejected when strict and default
 
 test('fontFamily and other unknown props are dropped', () => {
 	const [b] = sanitizeBlocks(BLOCK('content', { text: 'x', fontFamily: '"><mj-raw><script>1</script>', __proto__x: 1, onclick: 'x' }), { strict: true });
-	assert.deepEqual(Object.keys(b.props), ['text']);
+	// Only schema props remain (missing ones filled with the content defaults).
+	assert.deepEqual(Object.keys(b.props).sort(), Object.keys(BLOCK_SCHEMA.content).sort());
+	assert.equal(b.props.text, 'x');
 });
 
 test('URL props: unsafe schemes and obfuscations are refused, safe forms survive', () => {
@@ -176,7 +178,14 @@ test('legitimate content survives sanitising unchanged in meaning', () => {
 test('every starter template passes strict sanitising unchanged and the tripwire', () => {
 	for (const s of starterTemplates) {
 		const clean = sanitizeBlocks(s.blocks, { strict: true });
-		assert.deepEqual(clean, JSON.parse(JSON.stringify(s.blocks)), s.id);
+		// Unchanged apart from props the starter leaves out, which take the block defaults (a
+		// header's missing accent colour is its background, so the theme stays the same).
+		const expected = JSON.parse(JSON.stringify(s.blocks)).map((b: any) => {
+			const props = { ...blockDefs.find((d) => d.type === b.type)!.defaultProps, ...b.props };
+			if (b.type === 'header' && !b.props.accentColor) props.accentColor = b.props.backgroundColor;
+			return { ...b, props };
+		});
+		assert.deepEqual(clean, expected, s.id);
 		assert.equal(compiledHtmlProblem(compile(clean)), null, s.id);
 	}
 	for (const d of blockDefs) {

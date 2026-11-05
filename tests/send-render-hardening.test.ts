@@ -192,6 +192,27 @@ test('F3: the verified bypasses never produce a script or data URL', () => {
 
 const TYPES = blockDefs.map((d) => d.type) as BlockType[];
 
+test('F4: every block type with empty props passes strict save and renders with no undefined', () => {
+	for (const type of TYPES) {
+		const blocks = sanitizeBlocks([{ id: 'a', type, props: {} }], { strict: true });
+		const mjml = blocksToMjml(blocks);
+		assert.doesNotMatch(mjml, /undefined|NaN/, type);
+		assert.doesNotThrow(() => renderTemplateForMailer(blocks), type);
+		const r = renderTemplateForSend(blocks, {}, new Map()) as any;
+		assert.equal(r.ok, true, type);
+	}
+});
+
+test('F4: blocksToMjml tolerates missing arrays', () => {
+	for (const type of ['list', 'table', 'footer'] as BlockType[]) {
+		const b = createBlock(type);
+		delete b.props.items;
+		delete b.props.rows;
+		delete b.props.links;
+		assert.doesNotThrow(() => blocksToMjml([b]), type);
+	}
+});
+
 // ---- Finding 5: the tripwire is linear and refuses what it cannot read ----
 
 // ---- Finding 6: the tag cap refuses instead of ignoring ----
@@ -237,6 +258,23 @@ test('F8: sanitised output above 1.5 MB is refused in strict and normal mode', (
 // ---- Finding 10: colour tokens are resolved at every sink ----
 
 const COLOR_PROPS = ['backgroundColor', 'color', 'bulletColor', 'headerBg', 'headerColor', 'cellColor', 'borderColor', 'linkColor'];
+
+test('F10: no emitted attribute holds theme, undefined or null, for every block type, in both themes', () => {
+	for (const accent of ['#ffd100', '#333533']) {
+		for (const token of [null, 'theme', 'theme-light', 'theme-dark']) {
+			for (const type of TYPES) {
+				const header = createBlock('header');
+				header.props.accentColor = accent;
+				const b = createBlock(type);
+				if (token) for (const k of COLOR_PROPS) if (k in b.props) b.props[k] = token;
+				const mjml = blocksToMjml(type === 'header' ? [Object.assign(b, { props: { ...b.props, accentColor: accent } })] : [header, b]);
+				for (const attr of mjml.match(/[a-z-]+="[^"]*"/g) ?? []) {
+					assert.doesNotMatch(attr, /\b(?:theme|undefined|null|NaN)\b/, `${type} ${token} ${accent}: ${attr}`);
+				}
+			}
+		}
+	}
+});
 
 // ---- Finding 11: memory cap for the app container ----
 

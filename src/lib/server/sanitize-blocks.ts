@@ -434,7 +434,12 @@ export function sanitizeBlocks(input: unknown, opts: SanitizeOptions = {}): Bloc
 		const src = (props && typeof props === 'object' && !Array.isArray(props) ? props : {}) as Record<string, unknown>;
 		const schema = BLOCK_SCHEMA[type as BlockType];
 		const defaults = DEFAULTS.get(type as BlockType) ?? {};
+		// Every prop the renderer reads is present: missing ones take the block type's default.
 		const clean: Record<string, unknown> = {};
+		for (const key of Object.keys(schema)) {
+			if (Object.hasOwn(defaults, key)) clean[key] = structuredClone(defaults[key]);
+			else if (ARRAY_RULES.has(schema[key].kind)) clean[key] = [];
+		}
 		for (const [key, rule] of Object.entries(schema)) {
 			if (!Object.hasOwn(src, key) || src[key] === undefined || src[key] === null) continue;
 			if (strict) {
@@ -449,7 +454,10 @@ export function sanitizeBlocks(input: unknown, opts: SanitizeOptions = {}): Bloc
 				continue;
 			}
 			if (strict) throw new BlocksValidationError(`${type}.${key} must be ${describe(rule)}`);
-			if (Object.hasOwn(defaults, key)) clean[key] = structuredClone(defaults[key]);
+		}
+		// A header without an accent colour keeps taking the theme from its background, as before.
+		if (type === 'header' && !(Object.hasOwn(src, 'accentColor') && src.accentColor) && isHexColor(clean.backgroundColor)) {
+			clean.accentColor = clean.backgroundColor;
 		}
 		cleanSize += JSON.stringify(clean).length;
 		if (cleanSize > MAX_CLEAN_BYTES) throw new BlocksValidationError('blocks are too large once cleaned');
@@ -457,6 +465,8 @@ export function sanitizeBlocks(input: unknown, opts: SanitizeOptions = {}): Bloc
 	});
 	return out;
 }
+
+const ARRAY_RULES = new Set<Rule['kind']>(['htmlList', 'rows', 'links']);
 
 function countTags(v: unknown, depth = 0): number {
 	if (typeof v === 'string') return v.includes('{{') ? scanTagsLimited(v).tags.length : 0;

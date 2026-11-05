@@ -10,6 +10,7 @@ import { POST as open } from '../src/routes/api/mailer/templates/[mailerId]/open
 import { POST as mailerSave } from '../src/routes/api/templates/[id]/mailer-save/+server.ts';
 import { POST as send } from '../src/routes/api/templates/[id]/send/+server.ts';
 import { POST as compileTpl } from '../src/routes/api/templates/compile/+server.ts';
+import { blockDefs } from '../src/lib/blocks.ts';
 
 const ENC = randomBytes(32);
 const SECRET = 'axm_k_testonlykey00000001';
@@ -279,6 +280,8 @@ test('mailer-save: a template deleted in Mailer is created again and relinked', 
 // ---- Mailer open: create, reuse, refresh, conflict ----
 
 const goodBlocks = [{ id: 'a', type: 'heading', props: { text: 'From <b>Mailer</b>' } }];
+// What is stored: the same block with the heading defaults filled in.
+const storedBlocks = [{ id: 'a', type: 'heading', props: { ...blockDefs.find((d) => d.type === 'heading')!.defaultProps, text: 'From <b>Mailer</b>' } }];
 const insertedId = () => writes().find((w) => w.op === 'insert')!.data.id;
 
 test('open: first open creates a row for the caller with the sanitised blocks and Mailer version', async () => {
@@ -294,7 +297,7 @@ test('open: first open creates a row for the caller with the sanitised blocks an
 	assert.equal(ins.userId, 'u-me');
 	assert.equal(ins.mailerTemplateId, 'm1');
 	assert.equal(ins.mailerSyncedAt, '2026-11-01T10:00:00Z');
-	assert.deepEqual(ins.blocks, goodBlocks);
+	assert.deepEqual(ins.blocks, storedBlocks);
 });
 
 test("open: user B opening user A's Mailer id gets B's own new row, never A's", async () => {
@@ -330,7 +333,7 @@ test('open: Mailer newer and no local edits refreshes the local copy', async () 
 	const body = await (await open(openEv('m1'))).json();
 	assert.equal(body.state, 'refreshed');
 	const upd = writes().find((w) => w.op === 'update')!.data;
-	assert.deepEqual(upd.blocks, goodBlocks);
+	assert.deepEqual(upd.blocks, storedBlocks);
 	assert.equal(upd.mailerSyncedAt, '2026-11-03T00:00:00Z');
 });
 
