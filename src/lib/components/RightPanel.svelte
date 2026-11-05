@@ -744,6 +744,13 @@
 	.rp-save-mail + .rp-use-mail {
 		margin-left: 0;
 	}
+	/* The panel is narrow: let the two actions share the row and wrap onto a second one if needed. */
+	.rp-topbar { flex-wrap: wrap; row-gap: 6px; }
+	.rp-save-mail,
+	.rp-save-mail + .rp-use-mail {
+		flex: 1 1 auto;
+		justify-content: center;
+	}
 	.rp-use-mail:disabled,
 	.rp-icon-btn:disabled {
 		opacity: 0.4;
