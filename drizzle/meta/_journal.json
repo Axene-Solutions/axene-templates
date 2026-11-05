@@ -15,6 +15,13 @@
       "when": 1793902130418,
       "tag": "0001_add_mailer_connections",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793902798391,
+      "tag": "0002_add_template_mailer_id",
+      "breakpoints": true
     }
   ]
 }

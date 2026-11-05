@@ -1,0 +1,1 @@
+ALTER TABLE "templates" ADD COLUMN "mailer_template_id" text;

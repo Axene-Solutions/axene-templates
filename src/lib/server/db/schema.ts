@@ -36,6 +36,8 @@ export const templates = pgTable('templates', {
   blocks: jsonb('blocks').notNull(),
   isStarter: boolean('is_starter').notNull().default(false),
   isPublic: boolean('is_public').notNull().default(false),
+  // Id of the linked template in the owner's Axene Mailer account, if saved there.
+  mailerTemplateId: text('mailer_template_id'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
