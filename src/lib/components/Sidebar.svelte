@@ -47,9 +47,9 @@
 <div class="sidebar">
 	<!-- Header -->
 	<div class="sb-header">
-		<button class="sb-back">
-			<Icon name="arrowLeft" width={12} height={12} />
-		</button>
+		<a class="sb-back" href="/templates" title="Back to templates" aria-label="Back to templates">
+			<Icon name="chevron-left" width={14} height={14} />
+		</a>
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="sb-title" ondblclick={startNameEdit}>
 			{#if editingName}
@@ -62,12 +62,9 @@
 				/>
 			{:else}
 				<span class="sb-name-text" title="Double-click to rename">{editor.templateName}</span>
-				<div style="color: #bbb;"><Icon name="chevronDown" width={10} height={10} /></div>
+				<div style="color: #bbb;"><Icon name="chevron-down" width={10} height={10} /></div>
 			{/if}
 		</div>
-		<button class="sb-grid">
-			<div style="color: #ccc;"><Icon name="grid" width={13} height={13} /></div>
-		</button>
 	</div>
 
 	<!-- Tabs -->
@@ -94,7 +91,7 @@
 			<!-- Block section -->
 			<div class="sb-section-hdr">
 				<span>Block</span>
-				<div style="color: #bbb;"><Icon name="chevronDown" width={10} height={10} /></div>
+				<div style="color: #bbb;"><Icon name="chevron-down" width={10} height={10} /></div>
 			</div>
 
 			<div class="blocks-grid">
@@ -185,7 +182,7 @@
 			<!-- Template section -->
 			<div class="sb-section-hdr" style="margin-top:8px;">
 				<span>Template</span>
-				<div style="color: #bbb;"><Icon name="chevronDown" width={10} height={10} /></div>
+				<div style="color: #bbb;"><Icon name="chevron-down" width={10} height={10} /></div>
 			</div>
 			<div class="template-grid">
 				<div class="tpl-card">
@@ -248,7 +245,8 @@
 		align-items: center;
 		gap: 5px;
 	}
-	.sb-back { color: #555; background: none; border: none; cursor: pointer; display: flex; align-items: center; padding: 0; }
+	.sb-back { color: #888; background: none; border: none; cursor: pointer; display: flex; align-items: center; padding: 0; text-decoration: none; transition: color 0.15s; }
+	.sb-back:hover { color: #ffd100; }
 	.sb-title { font-size: 13px; font-weight: 500; color: #e0e0e0; display: flex; align-items: center; gap: 3px; flex: 1; overflow: hidden; white-space: nowrap; cursor: default; }
 	.sb-name-text { overflow: hidden; text-overflow: ellipsis; }
 	.sb-name-input {
@@ -263,7 +261,6 @@
 		background: #141414;
 		font-family: inherit;
 	}
-	.sb-grid { background: none; border: none; cursor: pointer; padding: 0; color: #444; display: flex; }
 
 	/* Tabs */
 	.sb-tabs { display: flex; gap: 18px; padding: 9px 13px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }

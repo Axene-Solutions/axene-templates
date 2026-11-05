@@ -15,7 +15,7 @@
 	<button class="prop-header" onclick={() => (isOpen = !isOpen)}>
 		<span class="prop-title">{title}</span>
 		<div class="prop-chevron" class:closed={!isOpen}>
-			<Icon name="chevronDown" width={10} height={10} />
+			<Icon name="chevron-down" width={10} height={10} />
 		</div>
 	</button>
 	{#if isOpen}

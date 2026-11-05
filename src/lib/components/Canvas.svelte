@@ -49,11 +49,30 @@
 		}
 	}
 
-	function handleCopyHtml() {
-		if (editor.previewHtml) {
-			navigator.clipboard.writeText(editor.previewHtml)
+	let copied = $state(false)
+	let copyTimer: ReturnType<typeof setTimeout> | undefined
+
+	async function handleCopyHtml() {
+		if (!editor.previewHtml) return
+		try {
+			await navigator.clipboard.writeText(editor.previewHtml)
+			copied = true
+			clearTimeout(copyTimer)
+			copyTimer = setTimeout(() => (copied = false), 1800)
+		} catch {
+			copied = false
 		}
 	}
+
+	const saveLabel = $derived(
+		editor.saveState === 'saving'
+			? 'Saving...'
+			: editor.saveState === 'saved' && !editor.dirty
+				? 'Saved'
+				: editor.saveState === 'error'
+					? 'Retry save'
+					: 'Save'
+	)
 
 	function handleDragover(e: DragEvent) {
 		e.preventDefault()
@@ -81,22 +100,7 @@
 			onclick={() => editor.undo()}
 			title="Undo"
 		>
-			<svg
-				width="16"
-				height="16"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="1.5"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-			>
-				<path d="M5 5V8V11" />
-				<path
-					d="M8.5 8C12.5 8 11 8 15 8C15 8 15 8 15 8C15 8 20 8 20 12.706C20 18 15 18 15 18C11.571 18 9.714 18 6.286 18"
-				/>
-				<path d="M11.5 11.5C10.133 10.133 9.367 9.367 8 8C9.367 6.633 10.133 5.867 11.5 4.5" />
-			</svg>
+			<Icon name="undo" width={16} height={16} />
 			<span class="tb-shortcut">&#8984;Z</span>
 		</button>
 
@@ -107,22 +111,7 @@
 			onclick={() => editor.redo()}
 			title="Redo"
 		>
-			<svg
-				width="16"
-				height="16"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="1.5"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-			>
-				<path d="M19 5V8V11" />
-				<path
-					d="M15.5 8C11.5 8 13 8 9 8C9 8 9 8 9 8C9 8 4 8 4 12.706C4 18 9 18 9 18C12.429 18 14.286 18 17.714 18"
-				/>
-				<path d="M12.5 11.5C13.867 10.133 14.633 9.367 16 8C14.633 6.633 13.867 5.867 12.5 4.5" />
-			</svg>
+			<Icon name="redo" width={16} height={16} />
 			<span class="tb-shortcut">&#8984;&#8679;Z</span>
 		</button>
 
@@ -144,16 +133,9 @@
 				onclick={() => (viewMode = 'mobile')}
 				title="Mobile"
 			>
-				<Icon name="monitor" width={10} height={14} />
+				<Icon name="mobile" width={14} height={14} />
 			</button>
 		</div>
-
-		<!-- Language / locale -->
-		<button class="tb-lang">
-			<Icon name="domains" width={12} height={12} />
-			<span>En</span>
-			<Icon name="chevronDown" width={8} height={8} class="text-gray-400" />
-		</button>
 
 		<!-- Preview / Edit toggle -->
 		<button
@@ -165,39 +147,10 @@
 			}}
 		>
 			{#if showPreview}
-				<!-- Edit icon (pencil) -->
-				<svg
-					width="14"
-					height="14"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="1.5"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-				>
-					<path
-						d="M14.3632 5.65156L15.8431 4.17157C16.6242 3.39052 17.8905 3.39052 18.6716 4.17157L20.0858 5.58579C20.8668 6.36683 20.8668 7.63316 20.0858 8.41421L18.6058 9.8942M14.3632 5.65156L4.74749 15.2672C4.41542 15.5993 4.21079 16.0376 4.16947 16.5054L3.92738 19.2459C3.87261 19.8659 4.39148 20.3848 5.0115 20.33L7.75191 20.0879C8.21972 20.0466 8.65806 19.8419 8.99013 19.5099L18.6058 9.8942M14.3632 5.65156L18.6058 9.8942"
-					/>
-				</svg>
+				<Icon name="pencil" width={14} height={14} />
 				Edit
 			{:else}
-				<!-- Preview icon (eye) -->
-				<svg
-					width="14"
-					height="14"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="1.5"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-				>
-					<path d="M3 13C6.6 5 17.4 5 21 13" />
-					<path
-						d="M12 17C10.3431 17 9 15.6569 9 14C9 12.3431 10.3431 11 12 11C13.6569 11 15 12.3431 15 14C15 15.6569 13.6569 17 12 17Z"
-					/>
-				</svg>
+				<Icon name="eye" width={14} height={14} />
 				Preview
 			{/if}
 		</button>
@@ -205,35 +158,37 @@
 		<div style="flex:1"></div>
 
 		<!-- Copy HTML -->
-		<button class="tb-action" onclick={handleCopyHtml}>
-			<Icon name="copy" width={12} height={12} />
-			Copy HTML
+		<button class="tb-action" onclick={handleCopyHtml} disabled={!editor.previewHtml}>
+			<Icon name="copy" width={14} height={14} />
+			{copied ? 'Copied' : 'Copy HTML'}
 		</button>
 
 		<!-- Download -->
-		<button class="tb-action" onclick={handleCopyHtml} title="Download HTML">
-			<svg
-				width="14"
-				height="14"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="1.5"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-			>
-				<path d="M6 20L18 20" />
-				<path d="M12 4V16M12 16L15.5 12.5M12 16L8.5 12.5" />
-			</svg>
+		<button
+			class="tb-action"
+			onclick={() => editor.downloadHtml()}
+			disabled={!editor.previewHtml}
+			title="Download HTML"
+			aria-label="Download HTML"
+		>
+			<Icon name="download" width={14} height={14} />
 		</button>
 
+		{#if editor.saveState === 'error'}
+			<span class="tb-save-error" role="alert">{editor.saveError}</span>
+		{/if}
+
 		<!-- Save -->
-		<button class="tb-save" onclick={() => editor.saveTemplate()}>
-			Save
-			<!-- shortcut -->
-			<span class="kbd ml-2!">&#8984;</span>
-			<span class="kbd">S</span>
+		<button
+			class="tb-save"
+			class:error={editor.saveState === 'error'}
+			onclick={() => editor.saveTemplate()}
+			disabled={editor.saveState === 'saving'}
+		>
+			{saveLabel}
+			<span class="tb-kbd">&#8984;S</span>
 		</button>
+
 	</div>
 
 	<!-- Canvas area -->
@@ -241,7 +196,15 @@
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div class="canvas" onclick={handleCanvasClick} ondragover={handleDragover} ondrop={handleDrop}>
 		<div class="email-wrap" style="max-width:{viewMode === 'desktop' ? 465 : 375}px;">
-			{#if showPreview}
+			{#if showPreview && editor.compileError && !editor.previewHtml}
+				<div class="preview-error" role="alert">
+					<p>{editor.compileError}</p>
+					<button class="tb-action" onclick={() => editor.compile()}>
+						<Icon name="refresh" width={14} height={14} />
+						Retry
+					</button>
+				</div>
+			{:else if showPreview}
 				<iframe
 					srcdoc={editor.previewHtml}
 					title="Email preview"
@@ -315,12 +278,12 @@
 		align-items: center;
 		justify-content: center;
 		cursor: pointer;
-		color: #666;
+		color: #888;
 		background: transparent;
 		transition: all 0.15s;
 	}
 	.tb-btn:hover {
-		color: #666;
+		color: #ccc;
 	}
 	.tb-btn.active {
 		background: #141414;
@@ -329,22 +292,6 @@
 		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 	}
 
-	.tb-lang {
-		display: flex;
-		align-items: center;
-		gap: 4px;
-		border: 1px solid rgba(255, 255, 255, 0.08);
-		border-radius: 6px;
-		padding: 4px 9px;
-		font-size: 11.5px;
-		color: #666;
-		cursor: pointer;
-		background: #141414;
-		height: 28px;
-	}
-	.tb-lang:hover {
-		background: rgba(255, 255, 255, 0.03);
-	}
 
 	.tb-preview {
 		display: flex;
@@ -354,7 +301,7 @@
 		border-radius: 6px;
 		padding: 4px 10px;
 		font-size: 11.5px;
-		color: #666;
+		color: #999;
 		cursor: pointer;
 		background: #141414;
 		height: 28px;
@@ -369,6 +316,19 @@
 		border-color: #1a1a1a;
 	}
 
+	.preview-error {
+		background: #141414;
+		color: #aaa;
+		padding: 32px 20px;
+		text-align: center;
+		font-size: 13px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 12px;
+	}
+	.preview-error p { margin: 0; color: #ef4444; }
+
 	.tb-action {
 		display: flex;
 		align-items: center;
@@ -377,7 +337,7 @@
 		border-radius: 6px;
 		padding: 4px 10px;
 		font-size: 11.5px;
-		color: #666;
+		color: #999;
 		cursor: pointer;
 		background: #141414;
 		height: 28px;
@@ -385,6 +345,28 @@
 	.tb-action:hover {
 		background: rgba(255, 255, 255, 0.04);
 		color: #ccc;
+	}
+	.tb-action:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+	.tb-save-error {
+		font-size: 11.5px;
+		color: #ef4444;
+		white-space: nowrap;
+	}
+	.tb-kbd {
+		margin-left: 8px;
+		font-size: 10px;
+		opacity: 0.55;
+	}
+	.tb-save.error {
+		background: #ef4444;
+		color: #fff;
+	}
+	.tb-save:disabled {
+		opacity: 0.6;
+		cursor: progress;
 	}
 
 	.tb-save {
@@ -414,7 +396,7 @@
 		border: 1px solid transparent;
 		border-radius: 6px;
 		cursor: pointer;
-		color: #666;
+		color: #999;
 		font-family: inherit;
 		transition:
 			background 0.12s,

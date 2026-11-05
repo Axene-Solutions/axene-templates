@@ -1,24 +1,19 @@
 <script lang="ts">
+	import Icon from './Icon.svelte';
 	let { value, onchange }: { value: string; onchange: (align: string) => void } = $props();
 </script>
 
 <div class="ap">
 	<button class="ap-pill" class:active={value === 'left'} onclick={() => onchange('left')}>
-		<svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" stroke-width="1.2">
-			<line x1="1" y1="2.5" x2="8" y2="2.5"/><line x1="1" y1="4.5" x2="6" y2="4.5"/><line x1="1" y1="6.5" x2="7" y2="6.5"/>
-		</svg>
+		<Icon name="align-left" width={12} height={12} />
 		Left
 	</button>
 	<button class="ap-pill" class:active={value === 'center'} onclick={() => onchange('center')}>
-		<svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" stroke-width="1.2">
-			<line x1="1" y1="2.5" x2="8" y2="2.5"/><line x1="2" y1="4.5" x2="7" y2="4.5"/><line x1="1.5" y1="6.5" x2="7.5" y2="6.5"/>
-		</svg>
+		<Icon name="align-center" width={12} height={12} />
 		Center
 	</button>
 	<button class="ap-pill" class:active={value === 'right'} onclick={() => onchange('right')}>
-		<svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" stroke-width="1.2">
-			<line x1="1" y1="2.5" x2="8" y2="2.5"/><line x1="3" y1="4.5" x2="8" y2="4.5"/><line x1="2" y1="6.5" x2="8" y2="6.5"/>
-		</svg>
+		<Icon name="align-right" width={12} height={12} />
 		Right
 	</button>
 </div>

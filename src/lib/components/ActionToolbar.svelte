@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { editor } from '$lib/store.svelte';
 	import ConfirmModal from './ConfirmModal.svelte';
+	import Icon from './Icon.svelte';
 
 	let { blockId }: { blockId: string } = $props();
 
@@ -35,18 +36,12 @@
 
 	<!-- Move up -->
 	<button class="at-btn" class:disabled={!canMoveUp} onclick={moveUp} title="Move up">
-		<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-			<line x1="6" y1="10" x2="6" y2="2.5"/>
-			<polyline points="3,5 6,2 9,5"/>
-		</svg>
+		<Icon name="chevron-up" width={14} height={14} />
 	</button>
 
 	<!-- Move down -->
 	<button class="at-btn" class:disabled={!canMoveDown} onclick={moveDown} title="Move down">
-		<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-			<line x1="6" y1="2" x2="6" y2="9.5"/>
-			<polyline points="3,7 6,10 9,7"/>
-		</svg>
+		<Icon name="chevron-down" width={14} height={14} />
 	</button>
 
 	<span class="at-sep"></span>
@@ -54,10 +49,7 @@
 	<!-- Duplicate -->
 	{#if !isHeaderOrFooter}
 		<button class="at-btn" onclick={duplicate} title="Duplicate">
-			<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
-				<rect x="3.5" y="3.5" width="7" height="7" rx="1.2"/>
-				<path d="M8.5 3.5V2.3a.8.8 0 00-.8-.8H2.3a.8.8 0 00-.8.8v5.4a.8.8 0 00.8.8h1.2"/>
-			</svg>
+			<Icon name="copy" width={14} height={14} />
 		</button>
 	{/if}
 
@@ -65,10 +57,7 @@
 
 	<!-- Delete -->
 	<button class="at-btn at-btn-danger" onclick={askDelete} title="Delete block">
-		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-			<path d="M20 9L18.005 20.3463C17.8369 21.3026 17.0062 22 16.0353 22H7.96474C6.99379 22 6.1631 21.3026 5.99496 20.3463L4 9"/>
-			<path d="M21 6L15.375 6M3 6L8.625 6M8.625 6V4C8.625 2.89543 9.52043 2 10.625 2H13.375C14.4796 2 15.375 2.89543 15.375 4V6M8.625 6L15.375 6"/>
-		</svg>
+		<Icon name="trash" width={14} height={14} />
 	</button>
 </div>
 
@@ -109,7 +98,7 @@
 	.at-sep {
 		width: 1px;
 		height: 14px;
-		background: #e8e8e8;
+		background: rgba(255,255,255,0.12);
 		margin: 0 2px;
 	}
 
@@ -123,7 +112,7 @@
 		border: none;
 		border-radius: 5px;
 		cursor: pointer;
-		color: #666;
+		color: #aaa;
 		transition: background 0.12s, color 0.12s;
 	}
 	.at-btn:hover { background: rgba(255,255,255,0.06); color: #ccc; }

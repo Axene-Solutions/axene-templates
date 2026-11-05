@@ -102,7 +102,7 @@
 				<div class="bento-card bento-large sr-card">
 					<div class="bento-glow"></div>
 					<div class="bc-icon glass">
-						<Icon name="codeBrackets" width={22} height={22} />
+						<Icon name="code" width={22} height={22} />
 					</div>
 					<h3>MJML Rendering</h3>
 					<p>
@@ -190,7 +190,7 @@
 		<!-- Feature strip (dashed border grid, 4 cols) -->
 		<div class="feature-strip">
 			<div class="fs-card sr-card">
-				<Icon name="codeBrackets" width={32} height={32} class="fs-icon" />
+				<Icon name="code" width={32} height={32} class="fs-icon" />
 				<h3>Clean HTML output</h3>
 				<p>
 					Every template compiles to production-ready, table-based HTML that passes validation in
@@ -206,7 +206,7 @@
 				</p>
 			</div>
 			<div class="fs-card sr-card">
-				<Icon name="gear" width={32} height={32} class="fs-icon" />
+				<Icon name="settings" width={32} height={32} class="fs-icon" />
 				<h3>Full customization</h3>
 				<p>
 					Every pixel is adjustable. Colors, padding, fonts, border radius, alignment - all editable
@@ -399,20 +399,7 @@
 								class="tw-bd"
 								style="display:flex;align-items:center;justify-content:center;flex:1"
 							>
-								<svg
-									width="20"
-									height="20"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="rgba(255,255,255,0.35)"
-									stroke-width="1.5"
-									><line x1="12" y1="5" x2="12" y2="19" /><line
-										x1="5"
-										y1="12"
-										x2="19"
-										y2="12"
-									/></svg
-								>
+								<span style="color: rgba(255,255,255,0.35); display: flex"><Icon name="plus" width={20} height={20} /></span>
 							</div>
 						</div>
 						<span class="tpl-pill">Use</span>
@@ -814,7 +801,7 @@
 	.fs-card:last-child {
 		border-right: none;
 	}
-	.fs-icon {
+	:global(.fs-icon) {
 		color: #555;
 		margin-bottom: 40px;
 	}

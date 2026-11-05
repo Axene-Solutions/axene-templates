@@ -15,11 +15,14 @@ let blocks = $state<Block[]>(defaultBlocks());
 let selectedId = $state<string | null>(null);
 let previewHtml = $state("");
 let compiling = $state(false);
+let compileError = $state("");
 let templateId = $state("");
 let templateName = $state("Untitled Template");
 let templateCategory = $state("otp");
 let templateIsPublic = $state(false);
 let dirty = $state(false);
+let saveState = $state<"idle" | "saving" | "saved" | "error">("idle");
+let saveError = $state("");
 
 // Undo/Redo history
 let undoStack = $state<string[]>([]);
@@ -192,6 +195,8 @@ function setBlocks(newBlocks: Block[]) {
   blocks = newBlocks;
   selectedId = null;
   dirty = false;
+  saveState = "idle";
+  saveError = "";
   scheduleCompile();
 }
 
@@ -238,30 +243,69 @@ async function compile() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mjml: mjmlSource }),
     });
-    const data = await res.json();
-    if (data.html) previewHtml = data.html;
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.html) {
+      previewHtml = data.html;
+      compileError = "";
+    } else {
+      compileError = data.error || "Preview failed to render (error " + res.status + ")";
+    }
   } catch {
+    compileError = "Preview failed to render, check your connection";
   } finally {
     compiling = false;
   }
 }
 
+// Download the compiled email HTML as a file
+function downloadHtml() {
+  if (!previewHtml) return;
+  const blob = new Blob([previewHtml], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const slug = templateName
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+  a.href = url;
+  a.download = (slug || "template") + ".html";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // Save template
 async function saveTemplate() {
-  const res = await fetch("/api/templates", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      id: templateId,
-      name: templateName,
-      category: templateCategory,
-      isPublic: templateIsPublic,
+  if (saveState === "saving") return false;
+  saveState = "saving";
+  saveError = "";
+  try {
+    const res = await fetch("/api/templates", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: templateId,
+        name: templateName,
+        category: templateCategory,
+        isPublic: templateIsPublic,
 
-      blocks,
-    }),
-  });
-  if (res.ok) dirty = false;
-  return res.ok;
+        blocks,
+      }),
+    });
+    if (res.ok) {
+      dirty = false;
+      saveState = "saved";
+      return true;
+    }
+    saveError =
+      res.status === 401
+        ? "Sign in again to save"
+        : "Could not save (error " + res.status + ")";
+  } catch {
+    saveError = "Could not save, check your connection";
+  }
+  saveState = "error";
+  return false;
 }
 
 export const editor = {
@@ -279,6 +323,9 @@ export const editor = {
   },
   get compiling() {
     return compiling;
+  },
+  get compileError() {
+    return compileError;
   },
   get templateName() {
     return templateName;
@@ -307,6 +354,12 @@ export const editor = {
   get dirty() {
     return dirty;
   },
+  get saveState() {
+    return saveState;
+  },
+  get saveError() {
+    return saveError;
+  },
   get mjmlSource() {
     return mjmlSource;
   },
@@ -334,5 +387,6 @@ export const editor = {
   setTemplate,
   newTemplate,
   compile,
+  downloadHtml,
   saveTemplate,
 };

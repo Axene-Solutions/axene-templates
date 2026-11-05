@@ -5,6 +5,7 @@
 	import AlignmentPills from './AlignmentPills.svelte';
 	import SpacingEditor from './SpacingEditor.svelte';
 	import NumberInput from './NumberInput.svelte';
+	import Icon from './Icon.svelte';
 
 	let activeTab = $state<'customize' | 'styles'>('customize');
 
@@ -56,30 +57,19 @@
 	<!-- Top bar -->
 	<div class="rp-topbar">
 		<div class="rp-icon-group">
-			<button class="rp-icon-btn" title="Settings">
-				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-					<path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z"/>
-					<path d="M19.6224 10.3954L18.5247 7.7448L20 6L18 4L16.2647 5.48295L13.5578 4.36974L12.9353 2H10.981L10.3491 4.40113L7.70441 5.51596L6 4L4 6L5.45337 7.78885L4.3725 10.4463L2 11V13L4.40111 13.6555L5.51575 16.2997L4 18L6 20L7.79116 18.5403L10.397 19.6123L11 22H13L13.6045 19.6132L16.2551 18.5155C16.6969 18.8313 18 20 18 20L20 18L18.5159 16.2494L19.6139 13.598L21.9999 12.9772L22 11L19.6224 10.3954Z"/>
-				</svg>
-			</button>
-			<button class="rp-icon-btn" title="Download HTML">
-				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-					<path d="M6 20L18 20"/>
-					<path d="M12 4V16M12 16L15.5 12.5M12 16L8.5 12.5"/>
-				</svg>
-			</button>
-			<button class="rp-icon-btn" title="More options">
-				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-					<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
-				</svg>
+			<button
+				class="rp-icon-btn"
+				title="Download HTML"
+				aria-label="Download HTML"
+				onclick={() => editor.downloadHtml()}
+				disabled={!editor.previewHtml}
+			>
+				<Icon name="download" width={14} height={14} />
 			</button>
 		</div>
 
-		<button class="rp-use-mail">
-			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-				<path d="M22 12L3 20L6.5625 12L3 4L22 12Z"/>
-				<path d="M6.5 12L22 12"/>
-			</svg>
+		<button class="rp-use-mail" disabled title="Sending from Axene Mailer is not available yet">
+			<Icon name="send" width={14} height={14} />
 			Use Mail
 		</button>
 	</div>
@@ -103,9 +93,7 @@
 	{#if !editor.selected}
 		<div class="rp-empty">
 			<div class="rp-empty-icon">
-				<svg width="20" height="20" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.3">
-					<path d="M17 24l-1.5-5.5m0 0l-2.5 2.2.6-9.5 5.2 7.9-3.3-.6ZM14 3v2.5m5.8.2-1.6 1.6M22.5 11H20M8.8 16.7l-1.6 1.6M7 11H4.5m4-4.2L6.9 5.2"/>
-				</svg>
+				<Icon name="pointer" width={22} height={22} />
 			</div>
 			<span class="rp-empty-title">Nothing selected</span>
 			<span class="rp-empty-sub">Click a block on the canvas to edit its properties</span>
@@ -224,9 +212,7 @@
 					<div>
 						<label class={labelClass}>Link URL</label>
 						<div class="rp-link-row">
-							<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-								<path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
-							</svg>
+							<Icon name="link" width={14} height={14} />
 							<input type="text" value={props.href ?? ''} oninput={(e) => setProp('href', (e.target as HTMLInputElement).value)} />
 						</div>
 					</div>
@@ -281,9 +267,7 @@
 					<div>
 						<label class={labelClass}>Link URL</label>
 						<div class="rp-link-row">
-							<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-								<path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
-							</svg>
+							<Icon name="link" width={14} height={14} />
 							<input type="text" value={props.href ?? ''} oninput={(e) => setProp('href', (e.target as HTMLInputElement).value)} />
 						</div>
 					</div>
@@ -315,9 +299,7 @@
 									setProp('items', updated);
 								}}
 							>
-								<svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8">
-									<line x1="3" y1="3" x2="9" y2="9"/><line x1="9" y1="3" x2="3" y2="9"/>
-								</svg>
+								<Icon name="close" width={12} height={12} />
 							</button>
 						</div>
 					{/each}
@@ -326,9 +308,7 @@
 						class="rp-add-btn"
 						onclick={() => setProp('items', [...(props.items ?? []), 'New item'])}
 					>
-						<svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2">
-							<line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/>
-						</svg>
+						<Icon name="plus" width={12} height={12} />
 						Add item
 					</button>
 				</div>
@@ -390,18 +370,14 @@
 								const rows = (props.rows ?? []).filter((_: any, j: number) => j !== i);
 								setProp('rows', rows);
 							}}>
-								<svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8">
-									<line x1="3" y1="3" x2="9" y2="9"/><line x1="9" y1="3" x2="3" y2="9"/>
-								</svg>
+								<Icon name="close" width={12} height={12} />
 							</button>
 						</div>
 					{/each}
 					<button class="rp-add-btn" onclick={() => {
 						setProp('rows', [...(props.rows ?? []), { col1: 'Item', col2: 'Description' }]);
 					}}>
-						<svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2">
-							<line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/>
-						</svg>
+						<Icon name="plus" width={12} height={12} />
 						Add row
 					</button>
 				</div>
@@ -468,18 +444,14 @@
 								const links = (props.links ?? []).filter((_: any, j: number) => j !== i);
 								setProp('links', links);
 							}}>
-								<svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8">
-									<line x1="3" y1="3" x2="9" y2="9"/><line x1="9" y1="3" x2="3" y2="9"/>
-								</svg>
+								<Icon name="close" width={12} height={12} />
 							</button>
 						</div>
 					{/each}
 					<button class="rp-add-btn" onclick={() => {
 						setProp('links', [...(props.links ?? []), { label: 'Link', url: 'https://' }]);
 					}}>
-						<svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2">
-							<line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/>
-						</svg>
+						<Icon name="plus" width={12} height={12} />
 						Add link
 					</button>
 				</div>
@@ -579,11 +551,7 @@
 	<!-- ======================== TEMPLATE METADATA ======================== -->
 	<div class="rp-meta-section">
 		<div class="rp-meta-header">
-			<svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-				<rect x="2" y="2" width="12" height="12" rx="2"/>
-				<line x1="5" y1="6" x2="11" y2="6"/>
-				<line x1="5" y1="9" x2="8" y2="9"/>
-			</svg>
+			<Icon name="edit" width={12} height={12} />
 			Template
 		</div>
 
@@ -702,13 +670,13 @@
 		align-items: center;
 		justify-content: center;
 		cursor: pointer;
-		color: var(--text-lo);
+		color: var(--text-mid);
 		background: transparent;
 		transition: background 0.12s, color 0.12s, border-color 0.12s;
 	}
-	.rp-icon-btn:hover {
+	.rp-icon-btn:hover:not(:disabled) {
 		background: var(--bg-hover);
-		color: var(--text-mid);
+		color: #ddd;
 		border-color: rgba(255,255,255,0.12);
 	}
 	.rp-use-mail {
@@ -730,9 +698,14 @@
 		white-space: nowrap;
 		font-family: inherit;
 	}
-	.rp-use-mail:hover {
+	.rp-use-mail:hover:not(:disabled) {
 		background: #ffe033;
 		box-shadow: 0 0 14px var(--accent-glow);
+	}
+	.rp-use-mail:disabled,
+	.rp-icon-btn:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
 	}
 
 	/* ─── Tabs ────────────────────────────────────────────────────── */
@@ -1012,7 +985,7 @@
 		color: var(--text-lo);
 		border-bottom: 1px solid var(--border);
 	}
-	.rp-meta-header svg { opacity: 0.6; }
+	.rp-meta-header :global(.icon-wrapper) { opacity: 0.6; }
 	.rp-meta-body {
 		padding: 11px 12px 14px;
 		display: flex;

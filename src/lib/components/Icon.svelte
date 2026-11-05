@@ -1,26 +1,29 @@
 <script lang="ts">
-	import { icons } from '$lib/icons/icons'
+	import { icons, type IconName } from '$lib/icons'
 
 	interface Props {
-		name: keyof typeof icons
+		name: IconName
 		width?: string | number
 		height?: string | number
 		class?: string
+		label?: string
 	}
 
-	let { name, width = 24, height = 24, class: className = '' }: Props = $props()
+	let { name, width = 24, height = 24, class: className = '', label }: Props = $props()
 
-	const svgString = icons[name]
-	const computedWidth = typeof width === 'number' ? `${width}px` : width
-	const computedHeight = typeof height === 'number' ? `${height}px` : height
+	const px = (v: string | number) => (typeof v === 'number' ? `${v}px` : v)
+	const svg = $derived(icons[name])
 </script>
 
-<div
+<span
 	class={`icon-wrapper ${className}`}
-	style="--icon-width: {computedWidth}; --icon-height: {computedHeight};"
+	style="--icon-width: {px(width)}; --icon-height: {px(height)};"
+	role={label ? 'img' : undefined}
+	aria-label={label}
+	aria-hidden={label ? undefined : 'true'}
 >
-	{@html svgString}
-</div>
+	{@html svg}
+</span>
 
 <style>
 	.icon-wrapper {
@@ -30,10 +33,12 @@
 		width: var(--icon-width, 24px);
 		height: var(--icon-height, 24px);
 		flex-shrink: 0;
+		line-height: 0;
 	}
 
-	:global(.icon-wrapper svg) {
+	.icon-wrapper :global(svg) {
 		width: 100%;
 		height: 100%;
+		display: block;
 	}
 </style>
