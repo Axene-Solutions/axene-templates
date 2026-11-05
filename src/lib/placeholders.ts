@@ -368,7 +368,8 @@ export function isSafeLiteralUrl(u: string): boolean {
 
 /** Attributes whose value is a link a reader can follow, and attributes that load a resource. */
 const LINK_ATTRS = new Set(['href', 'xlink:href', 'action', 'formaction', 'cite']);
-const SRC_ATTRS = new Set(['src', 'background', 'poster', 'srcset']);
+// ping sends a request to every URL it lists when the link is followed, so it takes the source policy.
+const SRC_ATTRS = new Set(['src', 'background', 'poster', 'srcset', 'ping']);
 const BLOCKED_SCHEMES = new Set(['javascript', 'data', 'vbscript', 'file', 'about', 'blob', 'livescript', 'mocha', 'view-source']);
 const SRC_SCHEMES = new Set(['http', 'https']);
 // Ignored before the colon, the way browsers drop them: "java\tscript:" is "javascript:".
@@ -456,50 +457,78 @@ function encodeIllegal(s: string): string {
 type Ctx =
 	| { kind: 'text' }
 	| { kind: 'tag' }
-	| { kind: 'attr'; attr: string; quoted: boolean; started: boolean; settled: boolean; head: string; cssUrl: boolean };
+	| { kind: 'raw' }
+	| { kind: 'attr'; tag: string; attr: string; quoted: boolean; started: boolean; settled: boolean; head: string };
 
 const TEXT: Ctx = { kind: 'text' };
 const TAG: Ctx = { kind: 'tag' };
+const RAW: Ctx = { kind: 'raw' };
+/** Elements whose body is not HTML text (CSS, script): a value there is never written. */
+const RAW_TEXT_TAGS = new Set(['style', 'script']);
 
 /**
  * Tiny resumable tokenizer: enough to know whether the next placeholder is in text, inside a tag,
- * or in an attribute value, and what that value already holds. Fed the literal pieces between
- * placeholders and told what each placeholder produced. One forward pass, linear time.
+ * in an attribute value (and of which element), or in a <style>/<script> body, and what an
+ * attribute value already holds. Fed the literal pieces between placeholders and told what each
+ * placeholder produced. One forward pass, linear time.
  */
 class HtmlCtx {
-	state: 'text' | 'lt' | 'comment' | 'tagname' | 'tag' | 'aname' | 'aafter' | 'abefore' | 'vq' | 'vu' = 'text';
+	state: 'text' | 'lt' | 'comment' | 'tagname' | 'tag' | 'aname' | 'aafter' | 'abefore' | 'vq' | 'vu' | 'raw' = 'text';
+	tag = '';
 	attr = '';
 	quote = '';
 	started = false;
 	settled = false;
 	/** The value text written before its scheme is settled (by the first : / ? or #), capped. */
 	head = '';
-	css = '';
 
 	context(): Ctx {
 		const s = this.state;
 		if (s === 'text' || s === 'comment') return TEXT;
-		if (s === 'abefore') return { kind: 'attr', attr: this.attr, quoted: false, started: false, settled: false, head: '', cssUrl: false };
+		if (s === 'raw') return RAW;
+		if (s === 'abefore') return { kind: 'attr', tag: this.tag, attr: this.attr, quoted: false, started: false, settled: false, head: '' };
 		if (s === 'vq' || s === 'vu') {
-			let cssUrl = false;
-			if (this.attr === 'style') {
-				const low = this.css.toLowerCase();
-				cssUrl = low.lastIndexOf('url(') > low.lastIndexOf(')');
-			}
-			return { kind: 'attr', attr: this.attr, quoted: s === 'vq', started: this.started, settled: this.settled, head: this.head, cssUrl };
+			return { kind: 'attr', tag: this.tag, attr: this.attr, quoted: s === 'vq', started: this.started, settled: this.settled, head: this.head };
 		}
 		return TAG;
 	}
 
+	/** A start tag ended: its body is text, or raw text for <style> and <script>. */
+	private endTag(): void {
+		this.state = RAW_TEXT_TAGS.has(this.tag) ? 'raw' : 'text';
+	}
+
+	private resetValue(): void {
+		this.started = false;
+		this.settled = false;
+		this.head = '';
+	}
+
 	private valueText(piece: string): void {
 		if (!piece) return;
+		// srcset is a comma separated list of candidates and ping a space separated list of URLs:
+		// each candidate starts a new URL and is judged like the start of a value.
+		if (this.attr === 'srcset' || this.attr === 'ping') {
+			let k = -1;
+			for (let i = piece.length - 1; i >= 0; i--) {
+				if (this.attr === 'srcset' ? piece[i] === ',' : /\s/.test(piece[i])) {
+					k = i;
+					break;
+				}
+			}
+			if (k !== -1) {
+				this.resetValue();
+				piece = piece.slice(k + 1);
+			}
+			if (!this.started) piece = piece.replace(/^\s+/, '');
+			if (!piece) return;
+		}
 		this.started = true;
 		if (!this.settled && this.head.length < 300) {
 			const k = piece.search(/[:/?#]/);
 			this.head += k === -1 ? piece.slice(0, 300) : piece.slice(0, k + 1);
 		}
 		if (/[:/?#]/.test(piece)) this.settled = true;
-		if (this.attr === 'style' && this.css.length < 4096) this.css += piece.slice(0, 4096);
 	}
 
 	/** A placeholder produced `text` (its raw value) at the current position. */
@@ -507,10 +536,7 @@ class HtmlCtx {
 		const s = this.state;
 		if (s === 'abefore') {
 			this.state = 'vu';
-			this.started = false;
-			this.settled = false;
-			this.head = '';
-			this.css = '';
+			this.resetValue();
 		} else if (s === 'lt') {
 			this.state = 'text';
 			return;
@@ -528,24 +554,41 @@ class HtmlCtx {
 				if (j === -1) return;
 				this.state = 'lt';
 				i = j + 1;
+			} else if (s === 'raw') {
+				// The body ends at the matching end tag, in any case.
+				const j = seg.toLowerCase().indexOf('</' + this.tag, i);
+				if (j === -1) return;
+				this.state = 'text';
+				i = j;
 			} else if (s === 'lt') {
 				const c = seg[i];
 				if (c === '!' || c === '?') {
 					this.state = 'comment';
 					i++;
-				} else if (c === '/' || /[A-Za-z]/.test(c)) this.state = 'tagname';
-				else this.state = 'text';
+				} else if (c === '/' || /[A-Za-z]/.test(c)) {
+					this.state = 'tagname';
+					this.tag = '';
+				} else this.state = 'text';
 			} else if (s === 'comment') {
 				const j = seg.indexOf('>', i);
 				if (j === -1) return;
 				this.state = 'text';
 				i = j + 1;
 			} else if (s === 'tagname') {
-				while (i < n && !/[\s/>]/.test(seg[i])) i++;
+				while (i < n && !/[\s/>]/.test(seg[i])) {
+					if (this.tag.length < 16) this.tag += seg[i].toLowerCase();
+					i++;
+				}
+				// "</style" reads as tag "" then "/": keep the slash out of the name, closing tags are not raw.
+				if (i < n && seg[i] === '/' && this.tag === '') {
+					this.tag = '/';
+					i++;
+					continue;
+				}
 				if (i < n) this.state = 'tag';
 			} else if (s === 'tag') {
 				const c = seg[i];
-				if (c === '>') this.state = 'text';
+				if (c === '>') this.endTag();
 				else if (!/[\s/]/.test(c)) {
 					this.state = 'aname';
 					this.attr = '';
@@ -555,7 +598,7 @@ class HtmlCtx {
 			} else if (s === 'aname') {
 				const c = seg[i];
 				if (c === '=') this.state = 'abefore';
-				else if (c === '>') this.state = 'text';
+				else if (c === '>') this.endTag();
 				else if (/\s/.test(c)) this.state = 'aafter';
 				else if (c === '/') this.state = 'tag';
 				else if (this.attr.length < 32) this.attr += c.toLowerCase();
@@ -567,7 +610,7 @@ class HtmlCtx {
 					this.state = 'abefore';
 					i++;
 				} else if (c === '>') {
-					this.state = 'text';
+					this.endTag();
 					i++;
 				} else this.state = 'tag';
 			} else if (s === 'abefore') {
@@ -576,20 +619,14 @@ class HtmlCtx {
 				else if (c === '"' || c === "'") {
 					this.state = 'vq';
 					this.quote = c;
-					this.started = false;
-					this.settled = false;
-					this.head = '';
-					this.css = '';
+					this.resetValue();
 					i++;
 				} else if (c === '>') {
-					this.state = 'text';
+					this.endTag();
 					i++;
 				} else {
 					this.state = 'vu';
-					this.started = false;
-					this.settled = false;
-					this.head = '';
-					this.css = '';
+					this.resetValue();
 				}
 			} else if (s === 'vq') {
 				const j = seg.indexOf(this.quote, i);
@@ -603,7 +640,7 @@ class HtmlCtx {
 			} else {
 				const c = seg[i];
 				if (/\s/.test(c)) this.state = 'tag';
-				else if (c === '>') this.state = 'text';
+				else if (c === '>') this.endTag();
 				else this.valueText(c);
 				i++;
 			}
@@ -617,10 +654,15 @@ const UNQUOTED_UNSAFE = /[\s"'<>`=]/g;
  * The markup for `raw` at `ctx`, or null when it is refused (it would set or change the scheme
  * of a URL). `tail` is the literal source text that follows the placeholder. `markup` says `raw` is already markup (a fallback written in rich text), so its
  * character references are kept and, for the scheme check, decoded.
+ *
+ * Nothing is written inside a tag outside a value, in a <style> or <script> body, anywhere in a
+ * style attribute (a value could add declarations), or in a <meta> content attribute (refresh
+ * redirects live there).
  */
 function place(ctx: Ctx, raw: string, markup: boolean, tail: string): string | null {
 	if (ctx.kind === 'text') return escText(raw, markup);
-	if (ctx.kind === 'tag') return ''; // a value must never create or change an attribute
+	if (ctx.kind === 'tag' || ctx.kind === 'raw') return ''; // a value must never create or change an attribute
+	if (ctx.attr === 'style' || (ctx.tag === 'meta' && ctx.attr === 'content')) return '';
 	let out: string;
 	if (LINK_ATTRS.has(ctx.attr) || SRC_ATTRS.has(ctx.attr)) {
 		const seen = markup ? decodeCharRefs(raw) : raw;
@@ -630,9 +672,9 @@ function place(ctx: Ctx, raw: string, markup: boolean, tail: string): string | n
 		// Before the scheme is settled, judge what the browser will read: the text already in the
 		// value, this value and the literal text right after it ({{x}}:alert(1) with x=javascript).
 		if (!ctx.settled && urlValueBlocked(ctx.head + seen + tail, ctx.attr)) return null;
-		out = ctx.attr === 'srcset' ? escText(raw, markup) : escText(encodeIllegal(raw), markup);
-	} else if (ctx.attr === 'style' && ctx.cssUrl) return '';
-	else out = escText(raw, markup);
+		// In a list of URLs a value may not start another entry: commas (srcset) and whitespace are encoded.
+		out = ctx.attr === 'srcset' ? escText(encodeIllegal(raw).replace(/,/g, '%2C'), markup) : escText(encodeIllegal(raw), markup);
+	} else out = escText(raw, markup);
 	if (!ctx.quoted) out = out.replace(UNQUOTED_UNSAFE, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0'));
 	return out;
 }
