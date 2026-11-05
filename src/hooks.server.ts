@@ -12,29 +12,27 @@ async function seedStarters() {
   if (seeded) return;
   seeded = true;
   try {
-    const existing = await db
-      .select({ id: templates.id })
-      .from(templates)
-      .where(eq(templates.isStarter, true))
-      .limit(1);
-    if (existing.length > 0) return; // already seeded
-
+    // Upsert on every boot: inserts missing starters and re-asserts the canonical
+    // category on existing starter rows (only starters, never user templates).
     for (const starter of starterTemplates) {
       await db
         .insert(templates)
         .values({
           id: starter.id,
           name: starter.name,
-          category: starter.category || "general", 
-
+          category: starter.category || "general",
           blocks: starter.blocks,
           isStarter: true,
           isPublic: true,
           userId: null,
         })
-        .onConflictDoNothing();
+        .onConflictDoUpdate({
+          target: templates.id,
+          set: { category: starter.category || "general" },
+          setWhere: eq(templates.isStarter, true),
+        });
     }
-    console.log(`Seeded ${starterTemplates.length} starter templates`);
+    console.log(`Synced ${starterTemplates.length} starter templates`);
   } catch (e) {
     seeded = false; // retry on next request if DB isn't ready yet
     console.error("Failed to seed starters:", e);
@@ -49,18 +47,23 @@ export const handle: Handle = async ({ event, resolve }) => {
   if (token) {
     const payload = verifyAccessToken(token);
     if (payload) {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, payload.sub))
-        .limit(1);
-      if (user && user.isActive) {
-        event.locals.user = {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          avatarUrl: user.avatarUrl,
-        };
+      try {
+        const [user] = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, payload.sub))
+          .limit(1);
+        if (user && user.isActive) {
+          event.locals.user = {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            avatarUrl: user.avatarUrl,
+          };
+        }
+      } catch (e) {
+        // A database failure must not take every page down: treat as signed out.
+        console.error("User lookup failed:", e);
       }
     }
   }
