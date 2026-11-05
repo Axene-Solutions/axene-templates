@@ -7,7 +7,6 @@ import { gate, loadApiKey, mailerFailure, readJson } from '$lib/server/mailer/ht
 import { listTemplateLinks, sendEmail } from '$lib/server/mailer/client';
 import { createRateLimiter } from '$lib/server/mailer/guard';
 import {
-	detectVariables,
 	escapeVariables,
 	htmlToText,
 	isValidEmail,
@@ -70,7 +69,11 @@ export const POST: RequestHandler = async (event) => {
 	// Every {{variable}} the template uses needs a value, otherwise it would go out blank ("Hi ,").
 	// theme_color, logo and company_name have built-in defaults in the injector.
 	// The subject is merged too (Mailer sends it as given), so its plain {{names}} need a value as well.
-	const missing = [...new Set([...detectVariables(JSON.stringify(blocks)), ...detectVariables(subject.value)])].filter((n) => {
+	// Required means a supported {{field}} with no fallback anywhere it is used (the grammar's own
+	// scan, so unsupported syntax such as a stored {{{x}}}, which renders as inert text, needs nothing).
+	const usage = collectUsage([blocks, subject.value]);
+	const required = [...usage.fields].filter(([, f]) => !f.hasFallback).map(([k]) => k);
+	const missing = required.filter((n) => {
 		if (INJECTOR_DEFAULTS.has(n)) return false;
 		const v = Object.hasOwn(vars.value, n) ? vars.value[n] : undefined;
 		return v === undefined || (typeof v === 'string' && v.trim() === '');
@@ -83,7 +86,6 @@ export const POST: RequestHandler = async (event) => {
 	if (apiKey instanceof Response) return apiKey;
 
 	// Named links the template uses: loaded once per request with the user's key.
-	const usage = collectUsage([blocks, subject.value]);
 	const links = new Map<string, string>();
 	if (usage.links.size) {
 		const res = await listTemplateLinks(apiKey);

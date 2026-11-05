@@ -41,7 +41,7 @@
 	const usedLinks = $derived(new Map(mailerData.links.filter((l) => usage.links.has(l.key)).map((l) => [l.key, l.url])));
 	const variableNames = $derived.by(() => {
 		const names = new Set<string>();
-		for (const m of JSON.stringify([editor.blocks, subject]).matchAll(/\{\{\{?\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}?\}\}/g)) names.add(m[1]);
+		for (const [k, f] of usage.fields) if (!f.hasFallback) names.add(k);
 		for (const n of linkFieldNeeds(usage.links, usedLinks)) names.add(n);
 		// These three have built-in defaults on the server.
 		for (const d of ['theme_color', 'logo', 'company_name']) names.delete(d);
