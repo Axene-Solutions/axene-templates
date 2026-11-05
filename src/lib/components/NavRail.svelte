@@ -58,6 +58,9 @@
 	<ThemeToggle />
 
 	{#if user}
+		<a href="/settings" class="nav-btn" class:active={isActive('/settings')} title="Settings" aria-label="Settings">
+			<Icon name="settings" width={16} height={16} />
+		</a>
 		<div class="avatar" title={user.name ?? user.email}>
 			{#if user.avatarUrl}
 				<img src={user.avatarUrl} alt={user.name ?? user.email} class="nav-avatar-img" referrerpolicy="no-referrer" />

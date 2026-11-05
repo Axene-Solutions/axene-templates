@@ -70,7 +70,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
   const path = event.url.pathname;
 
-	if (path.startsWith("/editor") && !event.locals.user) {
+	if ((path.startsWith("/editor") || path.startsWith("/settings")) && !event.locals.user) {
 		throw redirect(302, "/login");
 	}
 

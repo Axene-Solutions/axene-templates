@@ -10,6 +10,7 @@ import alignLeft from './svg/align-left.svg?raw'
 import alignRight from './svg/align-right.svg?raw'
 import bag from './svg/bag.svg?raw'
 import box from './svg/box.svg?raw'
+import check from './svg/check.svg?raw'
 import chevronDown from './svg/chevron-down.svg?raw'
 import chevronLeft from './svg/chevron-left.svg?raw'
 import chevronRight from './svg/chevron-right.svg?raw'
@@ -50,6 +51,7 @@ export const icons = {
 	'align-right': alignRight,
 	bag: bag,
 	box: box,
+	check: check,
 	'chevron-down': chevronDown,
 	'chevron-left': chevronLeft,
 	'chevron-right': chevronRight,

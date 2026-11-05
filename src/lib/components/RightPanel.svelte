@@ -6,8 +6,10 @@
 	import SpacingEditor from './SpacingEditor.svelte';
 	import NumberInput from './NumberInput.svelte';
 	import Icon from './Icon.svelte';
+	import SendModal from './SendModal.svelte';
 
 	let activeTab = $state<'customize' | 'styles'>('customize');
+	let sendOpen = $state(false);
 
 	function setProp(key: string, value: any) {
 		if (editor.selectedId) editor.updateProp(editor.selectedId, key, value);
@@ -68,11 +70,13 @@
 			</button>
 		</div>
 
-		<button class="rp-use-mail" disabled title="Sending from Axene Mailer is not available yet">
+		<button class="rp-use-mail" title="Send this template with your Axene Mailer account" onclick={() => (sendOpen = true)}>
 			<Icon name="send" width={14} height={14} />
-			Use Mail
+			Send
 		</button>
 	</div>
+
+	<SendModal open={sendOpen} onclose={() => (sendOpen = false)} />
 
 	<!-- Tab switcher -->
 	<div class="rp-tab-wrap">
