@@ -1,7 +1,8 @@
 // Shared client state for the Mailer connection. The Settings page and the
 // Send modal both read and write this, so they can never disagree.
 
-type Status = 'loading' | 'unavailable' | 'disconnected' | 'connected';
+// unreadable: a key is stored but the server cannot decrypt it (its encryption key changed or is missing).
+type Status = 'loading' | 'unavailable' | 'disconnected' | 'connected' | 'unreadable';
 export type ScopeCheck = { scope: string; label: string; state: 'ok' | 'missing' | 'unknown' | 'unverified'; note?: string };
 export type CheckResult =
 	| { kind: 'ok'; scopes: ScopeCheck[]; senders: number | null; templates: number | null }
@@ -11,13 +12,17 @@ export type CheckResult =
 let status = $state<Status>('loading');
 let keyHint = $state('');
 let connectedAt = $state<string | null>(null);
+let configured = $state(true);
 let busy = $state(false);
 let error = $state('');
 let checking = $state(false);
 let check = $state<CheckResult>(null);
 
-function apply(data: { connected?: boolean; keyHint?: string | null; connectedAt?: string | null }) {
-	status = data.connected ? 'connected' : 'disconnected';
+function apply(data: { connected?: boolean; keyHint?: string | null; connectedAt?: string | null; configured?: boolean; unreadable?: boolean }) {
+	configured = data.configured !== false;
+	if (data.connected && data.unreadable) status = 'unreadable';
+	else if (!data.connected && !configured) status = 'unavailable';
+	else status = data.connected ? 'connected' : 'disconnected';
 	keyHint = data.keyHint ?? '';
 	connectedAt = data.connectedAt ?? null;
 }
@@ -93,8 +98,9 @@ async function recheck() {
 		if (res.ok) check = { kind: 'ok', scopes: data.scopes ?? [], senders: data.senders ?? null, templates: data.templates ?? null };
 		else if (res.status === 401) check = { kind: 'revoked', message: 'Mailer rejected this key. It was revoked or deleted. Disconnect and connect a new key.' };
 		else if (res.status === 409) {
-			// The row is gone (disconnected elsewhere) or unreadable: reflect the server.
+			// The row is gone (disconnected elsewhere) or unreadable: reflect the server, and always say something.
 			await load();
+			if (status === 'connected') check = { kind: 'error', message: data.error ?? 'The stored key could not be used. Disconnect and connect it again.' };
 		} else check = { kind: 'error', message: data.error ?? `Check failed (error ${res.status})` };
 	} catch {
 		check = { kind: 'error', message: 'Check failed, check your connection' };
@@ -107,11 +113,14 @@ export const mailer = {
 	get status() { return status; },
 	get keyHint() { return keyHint; },
 	get connectedAt() { return connectedAt; },
+	get configured() { return configured; },
 	get busy() { return busy; },
 	get error() { return error; },
 	get checking() { return checking; },
 	get check() { return check; },
 	clearError() { error = ''; },
+	/** The server said the stored key cannot be decrypted: show that state without another round trip. */
+	markUnreadable() { status = 'unreadable'; },
 	load,
 	connect,
 	disconnect,

@@ -4,20 +4,34 @@ import { eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { mailerConnections } from '$lib/server/db/schema';
 import { gate, readJson } from '$lib/server/mailer/http';
-import { encryptSecret } from '$lib/server/mailer/crypto';
+import { decryptSecret, encryptSecret } from '$lib/server/mailer/crypto';
 import { validateApiKey } from '$lib/server/mailer/validate';
 import { listSenders } from '$lib/server/mailer/client';
 
-// GET /api/mailer/connection -> { connected, keyHint }. Never returns the key.
+// GET /api/mailer/connection -> { connected, keyHint, configured, unreadable }. Never returns the key.
+// Works even when the encryption key is not configured, so the user can still see and remove a stored key.
+// unreadable: a key is stored but cannot be decrypted (the server key changed or is missing).
 export const GET: RequestHandler = async (event) => {
-	const auth = gate(event, false);
+	const auth = gate(event, false, { requireKey: false });
 	if (auth instanceof Response) return auth;
 	const [row] = await db
-		.select({ keyHint: mailerConnections.keyHint, connectedAt: mailerConnections.updatedAt })
+		.select({ keyHint: mailerConnections.keyHint, connectedAt: mailerConnections.updatedAt, blob: mailerConnections.apiKeyEncrypted })
 		.from(mailerConnections)
 		.where(eq(mailerConnections.userId, auth.user.id))
 		.limit(1);
-	return json({ connected: !!row, keyHint: row?.keyHint ?? null, connectedAt: row?.connectedAt ?? null });
+	const configured = auth.key.length === 32;
+	let unreadable = false;
+	if (row) {
+		if (!configured) unreadable = true;
+		else {
+			try {
+				decryptSecret(row.blob, auth.key);
+			} catch {
+				unreadable = true;
+			}
+		}
+	}
+	return json({ connected: !!row, keyHint: row?.keyHint ?? null, connectedAt: row?.connectedAt ?? null, configured, unreadable });
 };
 
 // PUT /api/mailer/connection { apiKey } -> validates against Mailer, then stores encrypted.

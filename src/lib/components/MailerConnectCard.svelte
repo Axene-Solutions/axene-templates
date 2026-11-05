@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { mailer } from '$lib/mailer.svelte';
+	import { autofocus } from '$lib/focus';
 	import Icon from './Icon.svelte';
 
 	// Shared by the Settings page and the Send modal. All state lives in $lib/mailer.svelte.
@@ -25,7 +26,28 @@
 			<Icon name="warning" width={16} height={16} />
 			<span>Sending is not available right now. Try again later.</span>
 		</div>
-	{:else if mailer.status === 'disconnected'}
+	{:else if mailer.status === 'disconnected' || mailer.status === 'unreadable'}
+		{#if mailer.status === 'unreadable'}
+			<div class="mc-note mc-note-err" role="alert">
+				<Icon name="warning" width={16} height={16} />
+				<span>
+					The stored Mailer key (ending <span class="mc-mono">{mailer.keyHint}</span>) cannot be read{mailer.configured ? ', most likely because the server key changed' : ' because sending is not configured on the server'}.
+					{mailer.configured ? 'Disconnect it and connect your key again.' : 'You can disconnect it now and connect again once sending is configured.'}
+				</span>
+			</div>
+			<div class="mc-actions">
+				{#if !confirming}
+					<button class="mc-btn mc-btn-danger" onclick={() => (confirming = true)}>Disconnect</button>
+				{:else}
+					<span class="mc-muted">Delete the stored key?</span>
+					<button class="mc-btn mc-btn-danger-solid" disabled={mailer.busy} onclick={disconnect} use:autofocus>
+						{mailer.busy ? 'Removing...' : 'Yes, disconnect'}
+					</button>
+					<button class="mc-btn" onclick={() => (confirming = false)}>Cancel</button>
+				{/if}
+			</div>
+		{/if}
+		{#if mailer.status === 'disconnected' || mailer.configured}
 		<p class="mc-text">
 			Connect your Axene Mailer account to send templates from your own verified domain, save templates into Mailer, and open Mailer templates here to edit them. Your key is stored encrypted and is never shown again.
 		</p>
@@ -49,9 +71,10 @@
 		{/if}
 		<div class="mc-actions">
 			<button class="mc-btn mc-btn-primary" disabled={mailer.busy || !apiKey.trim()} onclick={connect}>
-				{mailer.busy ? 'Checking key...' : 'Connect'}
+				{mailer.busy ? 'Checking key...' : mailer.status === 'unreadable' ? 'Reconnect' : 'Connect'}
 			</button>
 		</div>
+		{/if}
 	{:else}
 		<div class="mc-status">
 			<Icon name="check" width={16} height={16} />
@@ -99,7 +122,7 @@
 				<button class="mc-btn mc-btn-danger" onclick={() => (confirming = true)}>Disconnect</button>
 			{:else}
 				<span class="mc-muted">Delete the stored key?</span>
-				<button class="mc-btn mc-btn-danger-solid" disabled={mailer.busy} onclick={disconnect}>
+				<button class="mc-btn mc-btn-danger-solid" disabled={mailer.busy} onclick={disconnect} use:autofocus>
 					{mailer.busy ? 'Removing...' : 'Yes, disconnect'}
 				</button>
 				<button class="mc-btn" onclick={() => (confirming = false)}>Cancel</button>

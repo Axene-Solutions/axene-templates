@@ -96,7 +96,7 @@
 			<h2 class="mtl-title">Mailer is not available right now</h2>
 			<p class="mtl-text">The Mailer connection is not configured or could not be reached. Try again later.</p>
 		</div>
-	{:else if mailer.status === 'disconnected'}
+	{:else if mailer.status === 'disconnected' || mailer.status === 'unreadable'}
 		<div class="mtl-state">
 			<span class="mtl-state-icon"><Icon name="mail" width={28} height={28} /></span>
 			<h2 class="mtl-title">Connect Axene Mailer</h2>
