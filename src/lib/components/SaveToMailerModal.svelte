@@ -125,7 +125,7 @@
 					<p class="mt-text">Creates this template in your Mailer account so you can use it in campaigns. Placeholders such as {'{{name}}'} are kept for Mailer to fill in.</p>
 				{/if}
 
-				<div class="mt-plan"><MailerPlanCard compact /></div>
+				<div class="mt-plan"><MailerPlanCard compact showUpgrade={!blocked} /></div>
 				{#if blocked}
 					<div class="mt-note mt-note-err" role="alert">
 						<Icon name="warning" width={16} height={16} />

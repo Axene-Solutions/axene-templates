@@ -6,7 +6,7 @@
 	import Icon from './Icon.svelte';
 
 	// The Mailer plan and the numbers that matter. `compact` is the Save dialog version.
-	let { compact = false }: { compact?: boolean } = $props();
+	let { compact = false, showUpgrade = true }: { compact?: boolean; showUpgrade?: boolean } = $props();
 
 	onMount(() => {
 		if (mailer.status === 'connected') mailerData.loadPlan();
@@ -78,7 +78,7 @@
 			{/if}
 		{/if}
 
-		{#if plan.upgradeReason}
+		{#if plan.upgradeReason && showUpgrade}
 			<div class="pc-upgrade" role="status">
 				<span>{plan.upgradeReason}</span>
 				<a class="pc-link" href={PRICING_URL} target="_blank" rel="noopener noreferrer">Upgrade in Mailer</a>
