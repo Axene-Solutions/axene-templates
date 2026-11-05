@@ -64,8 +64,10 @@ test('subject, from, api key', () => {
 });
 
 test('variables: plain object, scalars only, max 50', () => {
-	assert.deepEqual(validateVariables(undefined), { ok: true, value: {} });
-	assert.deepEqual(validateVariables({ a: 'x', b: 1, c: true }), { ok: true, value: { a: 'x', b: 1, c: true } });
+	// No prototype (review 2, finding 3), so {{constructor}} never finds Object.prototype.constructor.
+	const bare = (o: object) => Object.assign(Object.create(null), o);
+	assert.deepEqual(validateVariables(undefined), { ok: true, value: bare({}) });
+	assert.deepEqual(validateVariables({ a: 'x', b: 1, c: true }), { ok: true, value: bare({ a: 'x', b: 1, c: true }) });
 	for (const bad of [[], 'x', 5, { a: {} }, { a: [1] }, { a: null }, { 'a b': 1 }, { a: NaN }]) {
 		assert.equal(validateVariables(bad as any).ok, false, JSON.stringify(bad));
 	}

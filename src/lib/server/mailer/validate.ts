@@ -67,8 +67,12 @@ export function validateFrom(input: unknown): Checked<{ email: string; name?: st
 	return { ok: true, value: n ? { email, name: n } : { email } };
 }
 
+/**
+ * The variables as an object with no prototype, so a template name such as {{constructor}} or
+ * {{toString}} never finds an inherited member. Look values up with Object.hasOwn.
+ */
 export function validateVariables(input: unknown): Checked<Record<string, string | number | boolean>> {
-	if (input === undefined || input === null) return { ok: true, value: {} };
+	if (input === undefined || input === null) return { ok: true, value: Object.create(null) };
 	if (typeof input !== 'object' || Array.isArray(input)) return { ok: false, error: 'Variables must be an object' };
 	const entries = Object.entries(input as Record<string, unknown>);
 	if (entries.length > MAX_VARIABLES) return { ok: false, error: `At most ${MAX_VARIABLES} variables` };
@@ -86,7 +90,7 @@ export function validateVariables(input: unknown): Checked<Record<string, string
 		}
 		out[k] = v as string | number | boolean;
 	}
-	return { ok: true, value: { ...out } };
+	return { ok: true, value: out };
 }
 
 export function escapeHtml(s: string): string {

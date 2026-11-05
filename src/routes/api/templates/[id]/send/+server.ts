@@ -72,7 +72,7 @@ export const POST: RequestHandler = async (event) => {
 	// The subject is merged too (Mailer sends it as given), so its plain {{names}} need a value as well.
 	const missing = [...new Set([...detectVariables(JSON.stringify(blocks)), ...detectVariables(subject.value)])].filter((n) => {
 		if (INJECTOR_DEFAULTS.has(n)) return false;
-		const v = vars.value[n];
+		const v = Object.hasOwn(vars.value, n) ? vars.value[n] : undefined;
 		return v === undefined || (typeof v === 'string' && v.trim() === '');
 	});
 	if (missing.length) {
@@ -95,8 +95,8 @@ export const POST: RequestHandler = async (event) => {
 		}
 		// A link can need a field the template itself never mentions.
 		const need = [...linkFieldNeeds(usage.links, links)].filter((n) => {
-			if (INJECTOR_DEFAULTS.has(n) && !(n in vars.value)) return false;
-			const v = vars.value[n];
+			if (INJECTOR_DEFAULTS.has(n) && !Object.hasOwn(vars.value, n)) return false;
+			const v = Object.hasOwn(vars.value, n) ? vars.value[n] : undefined;
 			return v === undefined || (typeof v === 'string' && v.trim() === '');
 		});
 		if (need.length) {

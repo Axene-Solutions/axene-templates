@@ -107,7 +107,7 @@ export function renderTemplateForSend(
 		if (e instanceof RenderRefused) return { ok: false, unknownLinks: [], badLinks: [], badUrls: [], refused: e.message };
 		throw e;
 	}
-	const values: Values = { ...SEND_DEFAULTS, ...variables };
+	const values: Values = Object.assign(Object.create(null), SEND_DEFAULTS, variables);
 	const prepared = prepareGrammar(mjml, values, links, nonce);
 	if (prepared.refused || prepared.unknownLinks.length || prepared.badLinks.length || prepared.badUrls.length) {
 		return { ok: false, unknownLinks: prepared.unknownLinks, badLinks: prepared.badLinks, badUrls: prepared.badUrls, refused: prepared.refused };

@@ -747,7 +747,7 @@ export function renderSubject(subject: string, values: Values, links: ReadonlyMa
 			continue;
 		}
 		if (tag.kind === 'field') {
-			const v = values[tag.key];
+			const v = Object.hasOwn(values, tag.key) ? values[tag.key] : undefined;
 			if (!blank(v)) out += String(v);
 			else if (tag.fallback !== null) out += tag.fallback;
 			else missing.add(tag.key);
