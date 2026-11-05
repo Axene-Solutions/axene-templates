@@ -18,6 +18,9 @@
     let notice = $state<string | null>(null);
     let noticeTimer: ReturnType<typeof setTimeout> | undefined;
     let busyStarterId = $state<string | null>(null);
+    let renamingId = $state<string | null>(null);
+    let renameValue = $state('');
+    let renameBusy = false;
 
     function showNotice(message: string) {
         notice = message;
@@ -123,6 +126,60 @@
             showNotice(`Could not delete "${name}". Check your connection.`);
         } finally {
             deleteTarget = null;
+        }
+    }
+
+    function startRename(tpl: { id: string; name: string }) {
+        renamingId = tpl.id;
+        renameValue = tpl.name;
+    }
+
+    function cancelRename() {
+        renamingId = null;
+    }
+
+    function focusSelect(node: HTMLInputElement) {
+        node.focus();
+        node.select();
+    }
+
+    async function commitRename(tpl: { id: string; name: string }) {
+        if (renamingId !== tpl.id || renameBusy) return;
+        const name = renameValue.trim();
+        if (name === tpl.name) {
+            renamingId = null;
+            return;
+        }
+        if (name === '') {
+            showNotice('A template name cannot be empty.');
+            renamingId = null;
+            return;
+        }
+        renameBusy = true;
+        try {
+            const res = await fetch(`/api/templates/${tpl.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name }),
+            });
+            if (res.ok) {
+                const saved = await res.json();
+                templates = templates.map((x: any) => (x.id === tpl.id ? { ...x, name: saved.name } : x));
+            } else {
+                let reason = `error ${res.status}`;
+                try {
+                    const err = await res.json();
+                    if (err?.error) reason = err.error;
+                } catch {
+                    /* keep the status based reason */
+                }
+                showNotice(`Could not rename "${tpl.name}" (${reason}).`);
+            }
+        } catch {
+            showNotice(`Could not rename "${tpl.name}". Check your connection.`);
+        } finally {
+            renameBusy = false;
+            renamingId = null;
         }
     }
 
@@ -239,7 +296,22 @@
                             <span class="card-hover-pill">Open</span>
                         </a>
                         <div class="card-info">
-                            <div class="card-name static">{tpl.name}</div>
+                            {#if renamingId === tpl.id}
+                                <input
+                                    class="card-name-input"
+                                    aria-label="Template name"
+                                    maxlength="120"
+                                    bind:value={renameValue}
+                                    use:focusSelect
+                                    onblur={() => commitRename(tpl)}
+                                    onkeydown={(e) => {
+                                        if (e.key === 'Enter') commitRename(tpl);
+                                        if (e.key === 'Escape') cancelRename();
+                                    }}
+                                />
+                            {:else}
+                                <div class="card-name static">{tpl.name}</div>
+                            {/if}
                             <div class="card-meta">
                                 {tpl.blockCount ?? 0} blocks
                                 {#if tpl.updatedAt}
@@ -253,6 +325,9 @@
                             </div>
                             <div class="card-actions">
                                 <a class="action-open" href="/editor/{tpl.id}">Open in Editor</a>
+                                <button class="action-rename" onclick={() => startRename(tpl)} aria-label="Rename template" title="Rename">
+                                    <Icon name="pencil" width={16} height={16} />
+                                </button>
                                 <button class="action-delete" onclick={() => { deleteTarget = { id: tpl.id, name: tpl.name }; }} aria-label="Delete template">
                                     <Icon name="trash" width={16} height={16} />
                                 </button>
@@ -447,6 +522,9 @@
     .card-actions { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
     .action-open { font-size: 12px; font-weight: 500; color: #FFD100; text-decoration: none; cursor: pointer; font-family: inherit; transition: color 0.15s; }
     .action-open:hover { color: #ffe033; text-decoration: underline; }
+    .action-rename { margin-left: auto; background: none; border: none; color: var(--color-muted-soft); cursor: pointer; padding: 4px; display: flex; align-items: center; border-radius: 6px; transition: color 0.15s, background 0.15s; }
+    .action-rename:hover { color: var(--color-text); background: var(--color-surface-2); }
+    .card-name-input { width: 100%; font-size: 14px; font-weight: 600; font-family: inherit; color: var(--color-text); background: var(--color-surface-2); border: 1px solid var(--color-accent); border-radius: 6px; padding: 2px 6px; outline: none; }
     .action-delete { background: none; border: none; color: #555; cursor: pointer; padding: 4px; display: flex; align-items: center; border-radius: 6px; transition: color 0.15s, background 0.15s; }
     .action-delete:hover { color: #dc2626; background: rgba(220,38,38,0.1); }
     .btn-use { background: none; border: 1px solid #ffd00037; color: #FFD100; border-radius: 10px; padding: 8px 20px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; text-decoration: none; transition: background 0.15s, color 0.15s; }

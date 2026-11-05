@@ -65,7 +65,11 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
 	return json({ deleted: true });
 };
 
-// PATCH /api/templates/:id - toggle is_public (protected)
+const MAX_NAME_LENGTH = 120;
+
+// PATCH /api/templates/:id - rename and/or toggle is_public (owner only)
+// Body: { name?: string, isPublic?: boolean }. Only the fields present are
+// updated (plus updated_at), so a rename never touches is_public.
 export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 	const user = locals.user;
 	if (!user) {
@@ -88,13 +92,45 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 		return json({ error: 'Forbidden' }, { status: 403 });
 	}
 
-	const body = await request.json();
-	const isPublic = Boolean(body.isPublic);
+	let body: { name?: unknown; isPublic?: unknown };
+	try {
+		body = await request.json();
+	} catch {
+		return json({ error: 'Invalid JSON body' }, { status: 400 });
+	}
+	if (body === null || typeof body !== 'object') {
+		return json({ error: 'Invalid JSON body' }, { status: 400 });
+	}
+
+	const changes: { name?: string; isPublic?: boolean } = {};
+
+	if (body.name !== undefined) {
+		if (typeof body.name !== 'string' || body.name.trim() === '') {
+			return json({ error: 'Name must not be empty' }, { status: 400 });
+		}
+		const name = body.name.trim();
+		if (name.length > MAX_NAME_LENGTH) {
+			return json({ error: `Name must be at most ${MAX_NAME_LENGTH} characters` }, { status: 400 });
+		}
+		changes.name = name;
+	}
+
+	if (body.isPublic !== undefined) {
+		changes.isPublic = Boolean(body.isPublic);
+	}
+
+	if (changes.name === undefined && changes.isPublic === undefined) {
+		return json({ error: 'Nothing to update' }, { status: 400 });
+	}
 
 	await db
 		.update(templates)
-		.set({ isPublic, updatedAt: new Date() })
+		.set({ ...changes, updatedAt: new Date() })
 		.where(eq(templates.id, params.id));
 
-	return json({ id: params.id, isPublic });
+	return json({
+		id: params.id,
+		name: changes.name ?? t.name,
+		isPublic: changes.isPublic ?? t.isPublic,
+	});
 };
