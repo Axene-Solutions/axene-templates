@@ -6,6 +6,7 @@
 	import { saveBlockedReason, PRICING_URL } from '$lib/mailer-plan';
 	import { trapFocus } from '$lib/focus';
 	import { invalidate } from '$app/navigation';
+	import { page } from '$app/state';
 	import Icon from './Icon.svelte';
 	import ConfirmModal from './ConfirmModal.svelte';
 	import MailerConnectCard from './MailerConnectCard.svelte';
@@ -32,17 +33,27 @@
 	const blocked = $derived(saveBlockedReason(mailerData.plan, linked));
 	const canSave = $derived(!saving && !blocked && subject.trim().length > 0 && subject.length <= MAX_SUBJECT_MAILER && name.trim().length > 0);
 
-	const subjectKey = () => `axene.mailerSubject.${editor.templateId}`;
+	// Per user and template, so a shared browser never offers one user's subject to another.
+	const subjectKey = () => {
+		const uid = (page.data as { user?: { id?: string } | null }).user?.id;
+		return uid ? `axene.mailerSubject.${uid}.${editor.templateId}` : null;
+	};
 	function rememberedSubject(): string {
+		const key = subjectKey();
+		if (!key) return '';
 		try {
-			return localStorage.getItem(subjectKey()) ?? '';
+			return localStorage.getItem(key) ?? '';
 		} catch {
 			return '';
 		}
 	}
 	function remember(value: string) {
+		const key = subjectKey();
+		if (!key) return;
 		try {
-			localStorage.setItem(subjectKey(), value);
+			localStorage.setItem(key, value);
+			// The old key was shared by everyone using this browser.
+			localStorage.removeItem(`axene.mailerSubject.${editor.templateId}`);
 		} catch {
 			/* storage can be unavailable: the dialog works without it */
 		}
@@ -258,7 +269,7 @@
 		background: var(--mt-card); border: 1px solid var(--mt-border); border-radius: 12px;
 		width: min(520px, 92vw); max-height: 90vh; overflow-y: auto; padding: 22px;
 		color: var(--mt-text); font-size: 13px;
-		font-family: 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif;
+		font-family: var(--font-sans);
 	}
 	.mt-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
 	.mt-title { font-size: 16px; font-weight: 600; }
@@ -288,7 +299,7 @@
 		display: inline-flex; align-items: center; gap: 6px; border: none; border-radius: 7px;
 		padding: 8px 16px; font: inherit; font-weight: 600; cursor: pointer; white-space: nowrap;
 	}
-	.mt-btn-primary { background: var(--mt-accent); color: #101010; }
+	.mt-btn-primary { background: var(--mt-accent); color: var(--color-on-accent); }
 	.mt-btn-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text)); }
 	.mt-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 	.mt-note-warn { border-color: var(--mt-warn-ink); background: var(--mt-warn-bg); color: var(--mt-text); }

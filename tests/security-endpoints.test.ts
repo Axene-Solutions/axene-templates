@@ -359,3 +359,13 @@ test('compile: renders the starter row it finds, sanitised, with variables', asy
 	assert.match(body.html, /Code 123456/);
 	assert.doesNotMatch(body.html, /onerror|<img src="x"/);
 });
+
+test('send: a value that would set a javascript: scheme through a fallback tag is refused before Mailer', async () => {
+	q([row({ userId: 'u-me', blocks: [{ id: 'a', type: 'button', props: { text: 'Go', href: '{{site|https://ok.test}}' } }] })], connected());
+	const res = await send(ev({ body: { from: { email: 'a@b.test' }, to: ['c@d.test'], subject: 'Hi', variables: { site: 'javascript:alert(1)' } } }));
+	assert.equal(res.status, 400);
+	const body = await res.json();
+	assert.equal(body.code, 'invalid_urls');
+	assert.deepEqual(body.fields, ['site']);
+	assert.equal(calls.length, 0);
+});

@@ -93,7 +93,7 @@
 		display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px;
 		padding: 7px 14px; flex-shrink: 0;
 		border-bottom: 1px solid var(--color-border-1);
-		font-family: 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 12.5px; color: var(--color-text);
+		font-family: var(--font-sans); font-size: 12.5px; color: var(--color-text);
 	}
 	.ns-info { background: var(--color-info-soft); }
 	.ns-warn { background: var(--color-accent-soft); color: var(--color-accent-ink); }
@@ -106,7 +106,7 @@
 		font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: none; white-space: nowrap;
 	}
 	.ns-btn:hover { background: var(--color-surface-2); }
-	.ns-primary { background: var(--color-accent); border-color: var(--color-accent); color: #101010; }
+	.ns-primary { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-on-accent); }
 	.ns-primary:hover { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text)); }
 	.ns-btn:focus-visible, .ns-quiet:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
 	.ns-dismiss { display: inline-flex; gap: 10px; }

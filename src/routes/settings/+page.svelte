@@ -58,13 +58,13 @@
 </div>
 
 <style>
-	.st { max-width: 640px; margin: 0 auto; padding: 32px 24px; color: var(--color-text); font-family: 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif; overflow-y: auto; }
+	.st { max-width: 640px; margin: 0 auto; padding: 32px 24px; color: var(--color-text); font-family: var(--font-sans); overflow-y: auto; }
 	.st-h1 { font-size: 22px; font-weight: 700; margin-bottom: 24px; }
 	.st-h2 { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-muted); margin: 24px 0 10px; }
 	.st-card { background: var(--color-surface-2); border: 1px solid var(--color-border-1); border-radius: 12px; padding: 20px; }
 	.st-card-title { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
 	.st-back { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 10px 12px; margin-bottom: 8px; border-radius: 10px; border: 1px solid var(--color-info); background: var(--color-info-soft); font-size: 13px; }
 	.st-back-ok { border-color: var(--color-success); background: var(--color-success-soft); }
-	.st-back-btn { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 7px; background: var(--color-accent); color: #101010; font-weight: 600; text-decoration: none; }
+	.st-back-btn { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 7px; background: var(--color-accent); color: var(--color-on-accent); font-weight: 600; text-decoration: none; }
 	.st-back-btn:hover { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text)); }
 </style>

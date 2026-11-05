@@ -138,3 +138,24 @@ test('pathological input stays fast', () => {
 		assert.ok(ms < 1500, `${s.slice(0, 12)} took ${ms}ms`);
 	}
 });
+
+test('prepareGrammar: a fallback or value that would set the scheme of an href or src is refused', () => {
+	const none = new Map<string, string>();
+	const cases: [string, Record<string, string>][] = [
+		['<a href="{{site|javascript:alert(1)}}">x</a>', {}],
+		['<a href="{{site|https://ok.test}}">x</a>', { site: 'javascript:alert(1)' }],
+		['<img src="{{img|vbscript:x}}">', {}],
+		['<a href="java{{x|script:alert(1)}}">x</a>', {}],
+		['<a href=\'{{site|data:text/html,x}}\'>x</a>', {}],
+		['<mj-button href="{{site|JavaScript:alert(1)}}">Go</mj-button>', {}],
+	];
+	for (const [src, values] of cases) {
+		const p = prepareGrammar(src, values, none, 'n');
+		assert.equal(p.badUrls.length, 1, src);
+		assert.doesNotMatch(fillSlots(p.template, p.slots, 'n'), /script:|data:/i, src);
+	}
+	// Safe forms are untouched, and text outside attributes is never judged as a URL.
+	const ok = prepareGrammar('<a href="{{site|https://ok.test}}">{{label|Read: more}}</a> <a href="https://x.test/?q={{q|a:b}}">y</a> <a href="mailto:{{email|a@b.test}}">m</a>', {}, none, 'n');
+	assert.deepEqual(ok.badUrls, []);
+	assert.equal(fillSlots(ok.template, ok.slots, 'n'), '<a href="https://ok.test">Read: more</a> <a href="https://x.test/?q=a:b">y</a> <a href="mailto:a@b.test">m</a>');
+});

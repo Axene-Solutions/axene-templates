@@ -21,6 +21,8 @@
 	--color-accent: #ffd100;
 	--color-accent-soft: #fff6cc;
 	--color-accent-ink: #3f2e00;
+	/* Text and icons on an accent fill. The accent is yellow in both themes, so this stays dark. */
+	--color-on-accent: #101010;
 
 	/* Status */
 	--color-success: #1f8a5b;
@@ -60,6 +62,7 @@
 	--color-accent: #ffd100;
 	--color-accent-soft: rgba(255, 209, 0, 0.14);
 	--color-accent-ink: #ffe066;
+	--color-on-accent: #101010;
 
 	--color-success: #4caf7d;
 	--color-success-soft: rgba(76, 175, 125, 0.14);

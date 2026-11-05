@@ -182,7 +182,7 @@
 		display: inline-flex; align-items: center; gap: 6px; background: transparent; color: var(--color-text);
 		border: 1px solid var(--color-border-1); border-radius: 8px; padding: 7px 14px; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
 	}
-	.mtl-btn-primary { background: var(--color-accent); color: #101010; border-color: var(--color-accent); }
+	.mtl-btn-primary { background: var(--color-accent); color: var(--color-on-accent); border-color: var(--color-accent); }
 	.mtl-btn-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text)); }
 	.mtl-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 	.mtl-err {

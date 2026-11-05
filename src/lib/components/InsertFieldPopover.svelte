@@ -207,7 +207,7 @@
 		background: var(--color-surface-2); color: var(--color-text);
 		border: 1px solid var(--color-border-1); border-radius: 10px;
 		box-shadow: 0 10px 30px color-mix(in srgb, var(--color-text) 18%, transparent);
-		font-family: 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 12px;
+		font-family: var(--font-sans); font-size: 12px;
 		overflow: hidden;
 	}
 	.pop-search { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--color-border-1); color: var(--color-muted); }
@@ -237,6 +237,6 @@
 	.pop-btn { display: inline-flex; align-items: center; gap: 5px; background: transparent; color: var(--color-text); border: 1px solid var(--color-border-1); border-radius: 6px; padding: 4px 10px; font: inherit; font-weight: 600; font-size: 11.5px; cursor: pointer; text-decoration: none; }
 	.pop-btn:hover:not(:disabled) { background: var(--color-surface); }
 	.pop-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-	.pop-primary { background: var(--color-accent); border-color: var(--color-accent); color: #101010; }
+	.pop-primary { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-on-accent); }
 	.pop-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text)); }
 </style>

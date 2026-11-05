@@ -37,7 +37,7 @@
 	.mld-card {
 		background: var(--color-surface-2); border: 1px solid var(--color-border-1); border-radius: 12px;
 		width: min(560px, 92vw); max-height: 90vh; overflow-y: auto; padding: 22px;
-		color: var(--color-text); font-family: 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif;
+		color: var(--color-text); font-family: var(--font-sans);
 	}
 	.mld-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
 	.mld-title { font-size: 16px; font-weight: 600; }

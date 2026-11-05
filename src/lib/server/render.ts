@@ -36,7 +36,7 @@ export function renderTemplateForMailer(blocks: unknown) {
 
 export type SendRender =
 	| { ok: true; html: string }
-	| { ok: false; unknownLinks: string[]; badLinks: { key: string; error: string }[] };
+	| { ok: false; unknownLinks: string[]; badLinks: { key: string; error: string }[]; badUrls: string[] };
 
 /**
  * The Send flow's render: {{name|fallback}} and {{link:key}} are resolved first (named links expand
@@ -51,8 +51,8 @@ export function renderTemplateForSend(
 ): SendRender {
 	const nonce = randomBytes(6).toString('hex');
 	const prepared = prepareGrammar(blocksToMjml(sanitizeBlocksForRead(blocks)), variables as Values, links, nonce);
-	if (prepared.unknownLinks.length || prepared.badLinks.length) {
-		return { ok: false, unknownLinks: prepared.unknownLinks, badLinks: prepared.badLinks };
+	if (prepared.unknownLinks.length || prepared.badLinks.length || prepared.badUrls.length) {
+		return { ok: false, unknownLinks: prepared.unknownLinks, badLinks: prepared.badLinks, badUrls: prepared.badUrls };
 	}
 	const injected = injectVariables(prepared.template, escapeVariables(variables));
 	const out = mjml2html(injected, { keepComments: false, minify: true, validationLevel: 'soft' });

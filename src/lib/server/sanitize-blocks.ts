@@ -14,7 +14,7 @@
 
 import sanitizeHtml, { type SanitizeHtmlOptions } from 'sanitize-html';
 import { blockDefs, type Block, type BlockType } from '$lib/blocks';
-import { scanTags } from '$lib/placeholders';
+import { isSafeLiteralUrl, scanTags } from '$lib/placeholders';
 
 export const MAX_BLOCKS = 200;
 export const MAX_BLOCKS_BYTES = 1_000_000;
@@ -53,7 +53,6 @@ export interface SanitizeOptions {
 
 const CONTROL = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g;
 const ALL_CONTROL = /[\u0000-\u001f\u007f]/g;
-const SAFE_SCHEMES = new Set(['http', 'https', 'mailto', 'tel']);
 
 /**
  * Returns the URL (trimmed) when it is safe to put in an href or src, otherwise null.
@@ -80,17 +79,8 @@ export function safeUrl(value: unknown): string | null {
 	return isSafeLiteralUrl(effective) ? t : null;
 }
 
-/** The scheme check on a URL with no placeholders. Exported for the send path. */
-export function isSafeLiteralUrl(u: string): boolean {
-	if (/[\u0000- \u007f"<>`\\]/.test(u)) return false;
-	const cut = u.search(/[/?#]/);
-	const head = cut === -1 ? u : u.slice(0, cut);
-	if (head.includes('&')) return false;
-	const colon = head.indexOf(':');
-	if (colon === -1) return true; // relative
-	const m = /^([a-z][a-z0-9+.-]*):/i.exec(head);
-	return !!m && SAFE_SCHEMES.has(m[1].toLowerCase());
-}
+/** The scheme check on a URL with no placeholders (shared with the local send path). */
+export { isSafeLiteralUrl };
 
 const HEX = /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 const RGB = /^rgba?\(\s*\d{1,3}(?:\.\d+)?%?\s*,\s*\d{1,3}(?:\.\d+)?%?\s*,\s*\d{1,3}(?:\.\d+)?%?\s*(?:,\s*(?:0|1|0?\.\d{1,4}|1\.0{1,4})\s*)?\)$/i;

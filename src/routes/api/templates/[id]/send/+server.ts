@@ -104,6 +104,9 @@ export const POST: RequestHandler = async (event) => {
 	let html: string;
 	try {
 		const out = renderTemplateForSend(blocks, vars.value, links);
+		if (!out.ok && out.badUrls.length) {
+			return json({ error: `These values cannot be used in a link, only http, https, mailto and tel addresses can: ${out.badUrls.join(', ')}`, code: 'invalid_urls', fields: out.badUrls }, { status: 400 });
+		}
 		if (!out.ok) {
 			const keys = out.badLinks.map((b) => `{{link:${b.key}}} (${b.error})`).join(', ');
 			return json({ error: `These links cannot be used: ${keys}`, code: 'invalid_links', links: out.badLinks }, { status: 400 });

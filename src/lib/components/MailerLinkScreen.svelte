@@ -129,7 +129,7 @@
 	}
 	.ml-actions { display: flex; align-items: center; gap: 14px; margin-top: 14px; }
 	.ml-btn {
-		display: inline-flex; padding: 10px 22px; background: var(--color-accent); color: #101010;
+		display: inline-flex; padding: 10px 22px; background: var(--color-accent); color: var(--color-on-accent);
 		font-size: 14px; font-weight: 600; border-radius: 100px; text-decoration: none;
 	}
 	.ml-btn:hover { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text)); }

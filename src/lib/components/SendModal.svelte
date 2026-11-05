@@ -309,7 +309,7 @@
 		padding: 22px;
 		color: var(--sm-text);
 		font-size: 13px;
-		font-family: 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif;
+		font-family: var(--font-sans);
 	}
 	.sm-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
 	.sm-title { font-size: 16px; font-weight: 600; }
@@ -367,7 +367,7 @@
 		display: inline-flex; align-items: center; gap: 6px;
 		border: none; border-radius: 7px; padding: 8px 16px; font: inherit; font-weight: 600; cursor: pointer;
 	}
-	.sm-btn-primary { background: var(--sm-accent); color: #101010; }
+	.sm-btn-primary { background: var(--sm-accent); color: var(--color-on-accent); }
 	.sm-btn-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text)); }
 	.sm-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 </style>

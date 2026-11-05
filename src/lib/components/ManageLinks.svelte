@@ -204,7 +204,7 @@
 	.ml-btn { display: inline-flex; align-items: center; gap: 6px; background: transparent; color: var(--color-text); border: 1px solid var(--color-border-1); border-radius: 7px; padding: 6px 12px; font: inherit; font-weight: 600; font-size: 12.5px; cursor: pointer; text-decoration: none; }
 	.ml-btn:hover:not(:disabled) { background: var(--color-surface-2); }
 	.ml-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-	.ml-primary { background: var(--color-accent); border-color: var(--color-accent); color: #101010; }
+	.ml-primary { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-on-accent); }
 	.ml-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text)); }
 	.ml-danger-solid { background: var(--color-danger); border-color: var(--color-danger); color: var(--color-bg); }
 	.ml-danger-solid:hover:not(:disabled) { background: var(--color-danger); opacity: 0.9; }

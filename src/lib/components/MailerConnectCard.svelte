@@ -192,7 +192,7 @@
 	}
 	.mc-btn:hover:not(:disabled) { background: var(--color-surface-2); }
 	.mc-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-	.mc-btn-primary { background: var(--mc-accent); color: #101010; border-color: var(--mc-accent); }
+	.mc-btn-primary { background: var(--mc-accent); color: var(--color-on-accent); border-color: var(--mc-accent); }
 	.mc-btn-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text)); }
 	.mc-btn-danger { color: var(--mc-err); border-color: var(--mc-err); }
 	.mc-btn-danger-solid { background: var(--color-danger); color: var(--color-bg); border-color: var(--color-danger); }

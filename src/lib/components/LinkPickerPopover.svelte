@@ -145,7 +145,7 @@
 		background: var(--color-surface-2); color: var(--color-text);
 		border: 1px solid var(--color-border-1); border-radius: 10px;
 		box-shadow: 0 10px 30px color-mix(in srgb, var(--color-text) 18%, transparent);
-		font-family: 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 12px;
+		font-family: var(--font-sans); font-size: 12px;
 		overflow: hidden;
 	}
 	.pop-search { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--color-border-1); color: var(--color-muted); }

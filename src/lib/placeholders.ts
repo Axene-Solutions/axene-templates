@@ -278,6 +278,39 @@ export function expandLink(urlTemplate: string, values: Values): Expansion {
 	return { ok: true, url };
 }
 
+const SAFE_URL_SCHEMES = new Set(['http', 'https', 'mailto', 'tel']);
+
+/**
+ * True when a URL with no placeholders is safe in an href or src: http, https, mailto, tel or
+ * relative. Quotes, angle brackets, backslashes, whitespace and control characters are refused, and
+ * so is "&" before the first / ? or #, so a character reference can never spell a scheme.
+ */
+export function isSafeLiteralUrl(u: string): boolean {
+	if (/[\u0000-\u0020\u007f"<>`\\]/.test(u)) return false;
+	const cut = u.search(/[/?#]/);
+	const head = cut === -1 ? u : u.slice(0, cut);
+	if (head.includes('&')) return false;
+	if (head.indexOf(':') === -1) return true; // relative
+	const m = /^([a-z][a-z0-9+.-]*):/i.exec(head);
+	return !!m && SAFE_URL_SCHEMES.has(m[1].toLowerCase());
+}
+
+/** The text already written in the href/src value that a tag at `pos` sits in, or null outside one. */
+function urlAttrPrefix(source: string, pos: number): string | null {
+	const lt = source.lastIndexOf('<', pos);
+	if (lt === -1 || source.lastIndexOf('>', pos) > lt) return null;
+	const m = /\s(?:href|src|background|action|formaction|poster)\s*=\s*["']?([^"'>]*)$/i.exec(source.slice(lt, pos));
+	return m ? m[1] : null;
+}
+
+/** Whether `text` may be written at this point of a URL attribute without being able to set its scheme. */
+function urlPieceSafe(prefix: string, text: string): boolean {
+	const p = prefix.trim();
+	if (p === '') return isSafeLiteralUrl(text.trim());
+	// The scheme is settled once the prefix has a : / ? or #; before that the value must not add one.
+	return /[:/?#]/.test(p) || !text.includes(':');
+}
+
 export interface Prepared {
 	/** The source with every fallback and link tag swapped for an inert slot marker. Plain {{name}} is left for Handlebars. */
 	template: string;
@@ -286,6 +319,8 @@ export interface Prepared {
 	unknownLinks: string[];
 	/** Links that exist but cannot be used (bad scheme, nested link, missing value), with the reason. */
 	badLinks: { key: string; error: string }[];
+	/** Fields whose value or fallback would put an unsafe scheme into an href or src. */
+	badUrls: string[];
 }
 
 /**
@@ -297,6 +332,7 @@ export function prepareGrammar(source: string, values: Values, links: ReadonlyMa
 	const slots: string[] = [];
 	const unknown = new Set<string>();
 	const bad = new Map<string, string>();
+	const badUrls = new Set<string>();
 	let template = '';
 	let last = 0;
 	const slot = (text: string) => {
@@ -310,6 +346,12 @@ export function prepareGrammar(source: string, values: Values, links: ReadonlyMa
 		last = end;
 		if (tag.kind === 'field') {
 			const v = values[tag.key];
+			const prefix = urlAttrPrefix(source, start);
+			if (prefix !== null && !urlPieceSafe(prefix, !blank(v) ? String(v) : (tag.fallback as string))) {
+				badUrls.add(tag.key);
+				template += slot('');
+				continue;
+			}
 			template += slot(!blank(v) ? escText(String(v), false) : escText(tag.fallback as string, true));
 			continue;
 		}
@@ -328,7 +370,7 @@ export function prepareGrammar(source: string, values: Values, links: ReadonlyMa
 		template += slot(escText(ex.url, true));
 	}
 	template += source.slice(last);
-	return { template, slots, unknownLinks: [...unknown], badLinks: [...bad].map(([key, error]) => ({ key, error })) };
+	return { template, slots, unknownLinks: [...unknown], badLinks: [...bad].map(([key, error]) => ({ key, error })), badUrls: [...badUrls] };
 }
 
 /** Pass two: put the slot text back after Handlebars has run. Single pass over the output. */
