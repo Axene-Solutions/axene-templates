@@ -2,7 +2,11 @@
 	import '../app.css'
 	import { page } from '$app/state'
 	import NavRail from '$lib/components/NavRail.svelte'
+	import { onMount } from 'svelte'
+	import { theme } from '$lib/stores/theme.svelte'
 	let { data, children } = $props()
+
+	onMount(() => theme.init())
 
 	const isLanding = $derived(page.url.pathname === '/')
 	const isTemplates = $derived(page.url.pathname === '/templates')
@@ -37,13 +41,13 @@
 	.app-shell {
 		width: 100vw;
 		min-height: 100vh;
-		background: #0a0a0a;
+		background: var(--color-surface);
 		display: flex;
 		align-items: center;
 		justify-content: center;
 	}
 	.app-window {
-		background: #101010;
+		background: var(--color-surface);
 		width: 100%;
 		display: flex;
 		min-height: 100vh;

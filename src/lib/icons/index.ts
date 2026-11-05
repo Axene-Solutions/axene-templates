@@ -28,6 +28,7 @@ import link from './svg/link.svg?raw'
 import logout from './svg/logout.svg?raw'
 import mobile from './svg/mobile.svg?raw'
 import monitor from './svg/monitor.svg?raw'
+import moon from './svg/moon.svg?raw'
 import more from './svg/more.svg?raw'
 import pencil from './svg/pencil.svg?raw'
 import plus from './svg/plus.svg?raw'
@@ -67,6 +68,7 @@ export const icons = {
 	logout: logout,
 	mobile: mobile,
 	monitor: monitor,
+	moon: moon,
 	more: more,
 	pencil: pencil,
 	plus: plus,
