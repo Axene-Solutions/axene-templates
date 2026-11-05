@@ -7,7 +7,7 @@ import { renderTemplateForSend } from '../src/lib/server/render.ts';
 import { createBlock } from '../src/lib/blocks.ts';
 
 test('F6: numeric and common named character references are decoded, U+200B is dropped', () => {
-	assert.equal(htmlToText('<p>a&#8203;b &#123;&#123;x&#125;&#125; &#x41; caf&eacute; &copy; &hellip; &mdash; &rsquo;</p>'), 'ab {{x}} A café © … — ’');
+	assert.equal(htmlToText('<p>a&#8203;b &#123;&#123;x&#125;&#125; &#x41; caf&eacute; &copy; &hellip; &mdash; &rsquo;</p>'), 'ab {{x}} A caf\u00e9 \u00a9 \u2026 \u2014 \u2019');
 	assert.equal(htmlToText('<p>Tom &amp; Jerry&#39;s &quot;q&quot; &lt;b&gt;</p>'), 'Tom & Jerry\'s "q" <b>');
 	assert.equal(htmlToText('<p>&amp;lt; stays text</p>'), '&lt; stays text');
 	assert.equal(htmlToText('<p>a​b</p>'), 'ab');
