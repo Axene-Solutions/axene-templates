@@ -7,6 +7,7 @@ import { gate, loadApiKey, readJson, mailerFailure } from '$lib/server/mailer/ht
 import { createTemplate, updateTemplate, type MailerTemplateInput } from '$lib/server/mailer/client';
 import { getMailerPublicUrl } from '$lib/server/mailer/config';
 import { createRateLimiter } from '$lib/server/mailer/guard';
+import { forgetPlans } from '$lib/server/mailer/plancache';
 import { htmlToText, validateSubject } from '$lib/server/mailer/validate';
 import { renderTemplateForMailer } from '$lib/server/render';
 import { buildEnvelope, cleanLine, MAX_SUBJECT_MAILER, MAX_TEMPLATE_NAME } from '$lib/mailer-templates';
@@ -83,6 +84,8 @@ export const POST: RequestHandler = async (event) => {
 			}
 		}
 		if (!res.ok) return mailerFailure(res.status, res.error);
+		// The template count changed: the cached plan numbers are stale.
+		forgetPlans(auth.user.id);
 
 		if (owner && res.data.id !== t.mailerTemplateId) {
 			await db.update(templates).set({ mailerTemplateId: res.data.id }).where(eq(templates.id, t.id));
