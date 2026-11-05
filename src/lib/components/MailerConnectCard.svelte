@@ -54,12 +54,13 @@
 		<ol class="mc-steps">
 			<li>Open <a href="https://mail.axene.io/api-keys" target="_blank" rel="noopener noreferrer">mail.axene.io/api-keys</a> and create a key.</li>
 			<li>
-				Tick all four scopes:
+				Tick these scopes:
 				<ul>
 					<li><strong>Send emails</strong></li>
 					<li><strong>Read sender addresses</strong></li>
 					<li><strong>Read templates</strong> (required for From Mailer)</li>
-					<li><strong>Write templates</strong> (required for Save to Mailer)</li>
+					<li><strong>Write templates</strong> (required for Save to Mailer and named links)</li>
+					<li><strong>Read contacts</strong> (recommended, needed for your contact fields in Insert field)</li>
 				</ul>
 			</li>
 			<li>Paste the key below.</li>
@@ -90,6 +91,7 @@
 							<span class="mc-scope-main">
 								<span>{sc.label}</span>
 								<span class="mc-mono mc-scope-id">{sc.scope}</span>
+								{#if sc.scope === 'contacts:read'}<span class="mc-rec">Recommended</span>{/if}
 							</span>
 							<span class="mc-scope-state">
 								{#if sc.state === 'ok'}Works{:else if sc.state === 'missing'}Missing{:else if sc.state === 'unverified'}Not tested{:else}Could not check{/if}
@@ -99,7 +101,7 @@
 					{/each}
 				</ul>
 				<p class="mc-muted mc-scope-foot">
-					{mailer.check.senders ?? 0} sender address{mailer.check.senders === 1 ? '' : 'es'}{mailer.check.templates !== null ? `, ${mailer.check.templates} template${mailer.check.templates === 1 ? '' : 's'} in Mailer` : ''}.
+					{mailer.check.senders ?? 0} sender address{mailer.check.senders === 1 ? '' : 'es'}{mailer.check.templates !== null ? `, ${mailer.check.templates} template${mailer.check.templates === 1 ? '' : 's'} in Mailer` : ''}{mailer.check.contactFields !== null ? `, ${mailer.check.contactFields} contact field${mailer.check.contactFields === 1 ? '' : 's'}` : ''}.
 					Send and write access cannot be tested without sending mail or writing data, so they are verified on first use.
 				</p>
 			{:else}
@@ -174,6 +176,7 @@
 	}
 	.mc-scope-main { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
 	.mc-scope-id { color: var(--mc-muted); font-size: 11px; }
+	.mc-rec { font-size: 10.5px; font-weight: 600; padding: 0 7px; border-radius: 99px; background: var(--color-accent-soft); color: var(--color-accent-ink); box-shadow: 0 0 0 1px var(--color-accent); }
 	.mc-scope-state { font-size: 12px; font-weight: 600; }
 	.mc-scope-note { grid-column: 2 / 4; font-size: 11.5px; color: var(--mc-muted); }
 	.mc-scope-ok { border-color: var(--mc-ok); background: color-mix(in srgb, var(--mc-ok) 10%, transparent); }

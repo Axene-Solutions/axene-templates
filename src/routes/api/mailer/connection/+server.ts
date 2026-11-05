@@ -49,7 +49,7 @@ export const PUT: RequestHandler = async (event) => {
 		if (probe.status === 401) return json({ error: 'That key was rejected by Mailer', code: 'mailer_key_invalid' }, { status: 401 });
 		if (probe.status === 403) {
 			return json(
-				{ error: 'That key is missing permissions. Create a key with the scopes "Send emails", "Read sender addresses", "Read templates" and "Write templates".', code: 'mailer_forbidden' },
+				{ error: 'That key is missing permissions. Create a key with the scopes "Send emails", "Read sender addresses", "Read templates" and "Write templates", plus "Read contacts" if you want your contact fields in the editor.', code: 'mailer_forbidden' },
 				{ status: 403 },
 			);
 		}
