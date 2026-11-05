@@ -1,5 +1,7 @@
 // Pure input validation for the Mailer send flow. No SvelteKit imports.
 
+import { decodeCharRefs } from '$lib/placeholders';
+
 export const MAX_RECIPIENTS = 25;
 export const MAX_SUBJECT = 200;
 export const MAX_VARIABLES = 50;
@@ -129,24 +131,32 @@ export const MAX_TEXT_INPUT = 200_000;
 
 const DROP_TAGS = ['head', 'style', 'script'];
 const BLOCK_CLOSE = new Set(['p', 'div', 'tr', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'table']);
+const HREF = /\shref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/i;
+
+/** Text between tags as a reader sees it: references decoded, U+200B dropped, whitespace runs one space. */
+function textOf(seg: string): string {
+	return decodeCharRefs(seg).replace(/\u200b/g, '').replace(/\s+/g, ' ');
+}
 
 /**
  * Plain-text alternative: drop head/style/script and comments, turn breaks and block ends
- * into newlines, strip tags. One forward pass (no regex backtracking), input capped at
- * MAX_TEXT_INPUT characters, so cost is linear in the input.
+ * into newlines, strip tags, decode character references, and follow a link's text with its
+ * URL in brackets when the two differ. One forward pass (no regex backtracking over the
+ * document), input capped at MAX_TEXT_INPUT characters, so cost is linear in the input.
  */
 export function htmlToText(html: string): string {
 	const src = html.length > MAX_TEXT_INPUT ? html.slice(0, MAX_TEXT_INPUT) : html;
 	const lower = src.toLowerCase();
 	let out = '';
+	let link: { href: string; start: number } | null = null;
 	let i = 0;
 	while (i < src.length) {
 		const lt = src.indexOf('<', i);
 		if (lt === -1) {
-			out += src.slice(i);
+			out += textOf(src.slice(i));
 			break;
 		}
-		out += src.slice(i, lt);
+		out += textOf(src.slice(i, lt));
 		if (lower.startsWith('<!--', lt)) {
 			const end = src.indexOf('-->', lt + 4);
 			i = end === -1 ? src.length : end + 3;
@@ -154,7 +164,7 @@ export function htmlToText(html: string): string {
 		}
 		const gt = src.indexOf('>', lt + 1);
 		if (gt === -1) {
-			out += src.slice(lt);
+			out += textOf(src.slice(lt));
 			break;
 		}
 		// Tag name, e.g. "/p", "br", "style".
@@ -176,20 +186,25 @@ export function htmlToText(html: string): string {
 		}
 		if (name === 'br' && !closing) out += '\n';
 		else if (closing && BLOCK_CLOSE.has(name)) out += '\n';
+		else if (closing && (name === 'td' || name === 'th')) out += ' ';
+		else if (name === 'a' && !closing) {
+			const m = HREF.exec(src.slice(k, gt));
+			const href = m ? decodeCharRefs(m[1] ?? m[2] ?? m[3] ?? '').trim() : '';
+			link = href && !href.startsWith('#') ? { href, start: out.length } : null;
+		} else if (name === 'a' && closing && link) {
+			const label = out.slice(link.start).replace(/\s+/g, ' ').trim();
+			const same = label === link.href || 'mailto:' + label.toLowerCase() === link.href.toLowerCase();
+			if (!label) out += link.href;
+			else if (!same) out += ` (${link.href})`;
+			link = null;
+		}
 		i = gt + 1;
 	}
-	out = out
-		.replace(/&nbsp;/g, ' ')
-		.replace(/&lt;/g, '<')
-		.replace(/&gt;/g, '>')
-		.replace(/&quot;/g, '"')
-		.replace(/&#39;/g, "'")
-		.replace(/&amp;/g, '&');
-	// Trim line ends and keep at most one blank line, without backtracking regexes.
+	// Trim lines, collapse spaces, and keep at most one blank line, without backtracking regexes.
 	const lines: string[] = [];
 	let blank = 0;
 	for (const raw of out.split('\n')) {
-		const line = raw.trimEnd();
+		const line = raw.replace(/ {2,}/g, ' ').trim();
 		if (line === '') {
 			blank++;
 			if (blank <= 1) lines.push(line);

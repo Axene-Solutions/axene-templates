@@ -377,7 +377,36 @@ const IGNORED_IN_SCHEME = /[\s\u0000-\u001f\u007f\u0085\u00a0\u200b-\u200f\u2028
 const URL_ILLEGAL = /[\u0000-\u0020\u007f"'<>`\\{}|^\u2028\u2029]/g;
 const NAMED_REFS: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", colon: ':', tab: '\t', newline: '\n' };
 
-/** Decodes numeric and the few named character references a browser would turn into URL syntax. */
+/** Common named references for text (case-sensitive, as in HTML): punctuation, symbols, Latin letters. */
+const TEXT_REFS: Record<string, string> = (() => {
+	const t: Record<string, string> = {
+		nbsp: '\u00a0', ensp: '\u2002', emsp: '\u2003', thinsp: '\u2009', zwnj: '\u200c', zwj: '\u200d', shy: '\u00ad',
+		copy: '\u00a9', reg: '\u00ae', trade: '\u2122', hellip: '\u2026', mdash: '\u2014', ndash: '\u2013',
+		lsquo: '\u2018', rsquo: '\u2019', sbquo: '\u201a', ldquo: '\u201c', rdquo: '\u201d', bdquo: '\u201e',
+		laquo: '\u00ab', raquo: '\u00bb', bull: '\u2022', middot: '\u00b7', deg: '\u00b0', euro: '\u20ac',
+		pound: '\u00a3', cent: '\u00a2', yen: '\u00a5', times: '\u00d7', divide: '\u00f7', sect: '\u00a7',
+		para: '\u00b6', iexcl: '\u00a1', iquest: '\u00bf', plusmn: '\u00b1', micro: '\u00b5', larr: '\u2190',
+		rarr: '\u2192', uarr: '\u2191', darr: '\u2193', check: '\u2713', hearts: '\u2665', star: '\u2606',
+		szlig: '\u00df', aelig: '\u00e6', AElig: '\u00c6', oslash: '\u00f8', Oslash: '\u00d8',
+	};
+	const marks: [string, string, string][] = [
+		['acute', '\u0301', 'aeiouyAEIOUY'],
+		['grave', '\u0300', 'aeiouAEIOU'],
+		['circ', '\u0302', 'aeiouAEIOU'],
+		['uml', '\u0308', 'aeiouyAEIOUY'],
+		['tilde', '\u0303', 'anoANO'],
+		['ring', '\u030a', 'aA'],
+		['cedil', '\u0327', 'cC'],
+	];
+	for (const [name, mark, bases] of marks) for (const b of bases) t[b + name] = (b + mark).normalize('NFC');
+	return t;
+})();
+
+/**
+ * Decodes numeric character references, the few named ones a browser would turn into URL syntax
+ * (matched in any case, so a scheme check sees at least what a browser sees) and the common
+ * named ones for text. One pass: what a reference decodes to is never decoded again.
+ */
 export function decodeCharRefs(s: string): string {
 	if (!s.includes('&')) return s;
 	return s.replace(/&(#[xX][0-9a-fA-F]{1,8}|#\d{1,8}|[a-zA-Z]{2,8});?/g, (m, ref: string) => {
@@ -385,7 +414,7 @@ export function decodeCharRefs(s: string): string {
 			const code = ref[1] === 'x' || ref[1] === 'X' ? parseInt(ref.slice(2), 16) : parseInt(ref.slice(1), 10);
 			return Number.isFinite(code) && code < 0x110000 ? String.fromCodePoint(code) : '';
 		}
-		return NAMED_REFS[ref.toLowerCase()] ?? m;
+		return (Object.hasOwn(TEXT_REFS, ref) ? TEXT_REFS[ref] : undefined) ?? (Object.hasOwn(NAMED_REFS, ref.toLowerCase()) ? NAMED_REFS[ref.toLowerCase()] : undefined) ?? m;
 	});
 }
 
