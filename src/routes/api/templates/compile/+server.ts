@@ -1,4 +1,5 @@
 import { json } from "@sveltejs/kit";
+import { escapeDeep } from "$lib/server/mailer/validate";
 import type { RequestHandler } from "./$types";
 import { db } from "$lib/server/db";
 import { templates } from "$lib/server/db/schema";
@@ -30,7 +31,9 @@ export const POST: RequestHandler = async ({ request, url }) => {
       return json({ error: "Template not found" }, { status: 404 });
     }
 
-    const result = renderTemplateHtml(templateRecord.blocks, dynamicData || {});
+    // The injector runs Handlebars with noEscape (MJML needs raw strings), so values from the
+    // caller must be HTML-escaped here, including inside arrays and objects used by {{#each}}.
+    const result = renderTemplateHtml(templateRecord.blocks, escapeDeep(dynamicData || {}) as Record<string, any>);
 
     return json({
       html: result.html,

@@ -100,6 +100,27 @@ export function escapeVariables(vars: Record<string, string | number | boolean>)
 	return out;
 }
 
+const ESCAPE_MAX_DEPTH = 6;
+
+/**
+ * HTML-escape every string inside a JSON-like value (arrays and objects included), for data
+ * that is handed to the Handlebars injector, which runs with noEscape. Numbers, booleans and
+ * null pass through, prototype keys are dropped, and anything deeper than a few levels is
+ * cut to null so a hostile payload cannot make this walk forever.
+ */
+export function escapeDeep(value: unknown, depth = 0): unknown {
+	if (typeof value === 'string') return escapeHtml(value);
+	if (value === null || typeof value !== 'object') return value;
+	if (depth >= ESCAPE_MAX_DEPTH) return null;
+	if (Array.isArray(value)) return value.map((v) => escapeDeep(v, depth + 1));
+	const out: Record<string, unknown> = {};
+	for (const [k, v] of Object.entries(value)) {
+		if (k === '__proto__' || k === 'constructor' || k === 'prototype') continue;
+		out[k] = escapeDeep(v, depth + 1);
+	}
+	return out;
+}
+
 export const MAX_TEXT_INPUT = 200_000;
 
 const DROP_TAGS = ['head', 'style', 'script'];
