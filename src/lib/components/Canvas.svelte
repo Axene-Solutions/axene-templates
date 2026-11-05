@@ -227,7 +227,10 @@
 						Preview shows placeholders as written. Fallbacks and named links are filled in when you send: here with your Mailer links, in a broadcast by Mailer per contact.
 					</p>
 				{/if}
+				<!-- Template HTML is untrusted: sandbox="" gives it an opaque origin with no scripts,
+				     forms, popups or top navigation. Do not add allow-scripts or allow-same-origin. -->
 				<iframe
+					sandbox=""
 					srcdoc={editor.previewHtml}
 					title="Email preview"
 					style="width:100%;border:0;background:#fff;min-height:600px;"

@@ -80,15 +80,30 @@ export const handle: Handle = async ({ event, resolve }) => {
   if (path.startsWith("/api/templates") && !event.locals.user) {
     const method = event.request.method;
     if (method === "POST" || method === "DELETE" || method === "PATCH") {
-      return new Response(
+      return secureHeaders(new Response(
         JSON.stringify({ error: "Authentication required" }),
         {
           status: 401,
           headers: { "Content-Type": "application/json" },
         },
-      );
+      ));
     }
   }
 
-  return resolve(event);
+  return secureHeaders(await resolve(event));
 };
+
+// The CSP itself comes from kit.csp in svelte.config.js.
+function secureHeaders(response: Response): Response {
+  try {
+    if (!response.headers.has("X-Content-Type-Options")) response.headers.set("X-Content-Type-Options", "nosniff");
+    if (!response.headers.has("Referrer-Policy")) response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+    return response;
+  } catch {
+    // Immutable headers (a proxied fetch response): copy into a new response.
+    const r = new Response(response.body, response);
+    r.headers.set("X-Content-Type-Options", "nosniff");
+    r.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+    return r;
+  }
+}
