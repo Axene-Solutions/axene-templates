@@ -153,13 +153,58 @@ export function sanitizeRichText(v: string): string {
 	return cleanRichText(v).html;
 }
 
-/** As sanitizeRichText, and says whether a tag, attribute or link was removed. */
-export function cleanRichText(v: string): { html: string; removed: boolean } {
+/**
+ * Deepest element nesting rich text may have. MJML's HTML handling is superlinear in nesting
+ * depth, and no real email needs more than a handful of levels.
+ */
+export const MAX_RICH_DEPTH = 32;
+
+/**
+ * Keeps at most MAX_RICH_DEPTH levels of elements in allowlisted, well-formed HTML (the output of
+ * sanitize-html): a tag past the limit is dropped with its closing tag, its text is kept. One
+ * forward pass. `tooDeep` says something was dropped.
+ */
+function limitDepth(html: string): { html: string; tooDeep: boolean } {
+	let depth = 0;
+	let max = 0;
+	for (let i = html.indexOf('<'); i !== -1; i = html.indexOf('<', i + 1)) {
+		if (html[i + 1] === '/') depth--;
+		else if (!html.startsWith('<br', i)) max = Math.max(max, ++depth);
+	}
+	if (max <= MAX_RICH_DEPTH) return { html, tooDeep: false };
+	const kept: boolean[] = [];
+	depth = 0;
+	let out = '';
+	let last = 0;
+	for (let i = html.indexOf('<'); i !== -1; i = html.indexOf('<', last)) {
+		const gt = html.indexOf('>', i);
+		if (gt === -1) break;
+		out += html.slice(last, i);
+		last = gt + 1;
+		const tag = html.slice(i, last);
+		if (tag[1] === '/') {
+			const k = kept.pop();
+			if (k) {
+				depth--;
+				out += tag;
+			}
+		} else if (tag.startsWith('<br')) out += tag;
+		else if (depth < MAX_RICH_DEPTH) {
+			kept.push(true);
+			depth++;
+			out += tag;
+		} else kept.push(false);
+	}
+	return { html: out + html.slice(last), tooDeep: true };
+}
+
+/** As sanitizeRichText, and says whether a tag, attribute or link was removed, or nesting cut. */
+export function cleanRichText(v: string): { html: string; removed: boolean; tooDeep: boolean } {
 	const s = v.replace(CONTROL, '');
-	if (!s.includes('<')) return { html: escapeQuotes(s).replace(/>/g, '&gt;'), removed: false };
+	if (!s.includes('<')) return { html: escapeQuotes(s).replace(/>/g, '&gt;'), removed: false, tooDeep: false };
 	removed = false;
-	const html = sanitizeHtml(s, RICH);
-	return { html, removed };
+	const limited = limitDepth(sanitizeHtml(s, RICH));
+	return { html: limited.html, removed, tooDeep: limited.tooDeep };
 }
 
 // ---- Schema ----
@@ -273,11 +318,18 @@ function plainText(v: unknown, max: number): Out {
 }
 
 let refuseRemoved = false;
+// Strict mode refuses rich text nested deeper than MAX_RICH_DEPTH; normal mode flattens it.
+let refuseDeep = false;
+let deepHit = false;
 
 function richText(v: unknown, max = MAX_HTML): Out {
 	if (typeof v === 'number') v = String(v);
 	if (typeof v !== 'string' || v.length > max) return INVALID;
 	const r = cleanRichText(v);
+	if (refuseDeep && r.tooDeep) {
+		deepHit = true;
+		return INVALID;
+	}
 	return refuseRemoved && r.removed ? INVALID : r.html;
 }
 
@@ -396,6 +448,7 @@ export function sanitizeBlocks(input: unknown, opts: SanitizeOptions = {}): Bloc
 	const strict = opts.strict ?? false;
 	const allowEmpty = opts.allowEmpty ?? true;
 	refuseRemoved = strict && (opts.rejectUnsafeHtml ?? false);
+	refuseDeep = strict;
 	if (!Array.isArray(input)) throw new BlocksValidationError('blocks must be an array');
 	if (input.length === 0 && !allowEmpty) throw new BlocksValidationError('blocks is empty');
 	if (input.length > MAX_BLOCKS) throw new BlocksValidationError(`at most ${MAX_BLOCKS} blocks are allowed`);
@@ -448,11 +501,13 @@ export function sanitizeBlocks(input: unknown, opts: SanitizeOptions = {}): Bloc
 				tagCount += countTags(src[key]);
 				if (tagCount > MAX_SCAN_TAGS) throw new BlocksValidationError(`the template has more than ${MAX_SCAN_TAGS} placeholders`);
 			}
+			deepHit = false;
 			const v = check(rule, src[key], strict);
 			if (v !== INVALID) {
 				clean[key] = v;
 				continue;
 			}
+			if (strict && deepHit) throw new BlocksValidationError(`${type}.${key} nests formatting more than ${MAX_RICH_DEPTH} levels deep, the limit is ${MAX_RICH_DEPTH}`);
 			if (strict) throw new BlocksValidationError(`${type}.${key} must be ${describe(rule)}`);
 		}
 		// A header without an accent colour keeps taking the theme from its background, as before.

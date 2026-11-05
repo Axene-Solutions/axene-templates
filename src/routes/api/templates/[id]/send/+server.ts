@@ -125,7 +125,7 @@ export const POST: RequestHandler = async (event) => {
 	try {
 		const out = renderTemplateForSend(blocks, vars.value, links);
 		if (!out.ok && out.refused) {
-			return json({ error: `This email was not sent because ${out.refused}.`, code: 'render_refused' }, { status: 422 });
+			return json({ error: `This email was not sent because ${out.refused}.`, code: out.code ?? 'render_refused' }, { status: 422 });
 		}
 		if (!out.ok && out.badUrls.length) {
 			return json({ error: `These values cannot be used in a link, only http, https, mailto and tel addresses can: ${out.badUrls.join(', ')}`, code: 'invalid_urls', fields: out.badUrls }, { status: 400 });

@@ -73,7 +73,7 @@ export const POST: RequestHandler = async (event) => {
 		// Placeholders must survive: compile without variable injection.
 		html = renderTemplateForMailer(blocks).html;
 	} catch (e) {
-		if (e instanceof RenderRefused) return json({ error: `This template cannot be saved to Mailer because ${e.message}. Nothing was saved.`, code: 'render_refused' }, { status: 422 });
+		if (e instanceof RenderRefused) return json({ error: `This template cannot be saved to Mailer because ${e.message}. Nothing was saved.`, code: e.code }, { status: 422 });
 		console.error('Template render failed for mailer-save:', e instanceof Error ? e.message : 'unknown');
 		return json({ error: 'The template could not be rendered' }, { status: 422 });
 	}
