@@ -52,8 +52,11 @@ test('{@html} appears only at the allowed call sites', () => {
 test('blocks served to the editor and every render path go through the sanitiser', () => {
 	assert.match(read('src/routes/api/templates/[id]/+server.ts'), /blocks: sanitizeBlocksForRead\(t\.blocks\)/);
 	const render = read('src/lib/server/render.ts');
-	assert.equal((render.match(/blocksToMjml\(sanitizeBlocksForRead\(blocks\)\)/g) ?? []).length, 3);
+	// Send and Save to Mailer share one path that sanitises (throwing, so a hopeless row is refused).
+	assert.equal((render.match(/blocksToMjml\(sanitizeBlocks\(blocks, \{ strict: false \}\)\)/g) ?? []).length, 1);
+	assert.equal((render.match(/mjmlOf\(blocks\)/g) ?? []).length, 2);
 	assert.doesNotMatch(render, /blocksToMjml\(blocks/);
+	assert.match(read('src/lib/server/render-starter.ts'), /blocksToMjml\(sanitizeBlocksForRead\(blocks\)\)/);
 	assert.match(read('src/routes/api/templates/+server.ts'), /sanitizeBlocks\(rawBlocks, \{ strict: true \}\)/);
 	assert.match(read('src/routes/api/mailer/templates/[mailerId]/open/+server.ts'), /readEnvelope\(res\.data\.blocksJson, sanitizeForOpen\)/);
 	for (const f of ['src/routes/api/templates/[id]/send/+server.ts', 'src/routes/api/templates/[id]/mailer-save/+server.ts']) {
@@ -73,4 +76,38 @@ test('/api/templates/compile renders starter templates only, never user-publishe
 	const src = read('src/routes/api/templates/compile/+server.ts');
 	assert.match(src, /eq\(templates\.isStarter, true\)/);
 	assert.doesNotMatch(src, /templates\.isPublic/);
+});
+
+// Every module reachable from `file` through relative and $lib imports (static and dynamic).
+function reachable(file: string, seen = new Set<string>()): Set<string> {
+	if (seen.has(file)) return seen;
+	seen.add(file);
+	const src = read(file);
+	for (const m of src.matchAll(/(?:import|export)\s[^'"]*?from\s*['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)|^\s*import\s*['"]([^'"]+)['"]/gm)) {
+		const spec = m[1] ?? m[2] ?? m[3];
+		let base: string | null = null;
+		if (spec.startsWith('$lib/')) base = path.join('src/lib', spec.slice(5));
+		else if (spec.startsWith('.')) base = path.join(path.dirname(file), spec);
+		else {
+			seen.add('pkg:' + spec);
+			continue;
+		}
+		const hit = [base, base + '.ts', path.join(base, 'index.ts')].find((c) => fs.existsSync(path.join(root, c)) && fs.statSync(path.join(root, c)).isFile());
+		if (hit) reachable(hit, seen);
+	}
+	return seen;
+}
+
+test('the Send and Save to Mailer render path can never reach Handlebars', () => {
+	const graph = reachable('src/lib/server/render.ts');
+	for (const f of graph) {
+		assert.doesNotMatch(f, /^pkg:handlebars/, 'render.ts reaches the handlebars package');
+		assert.doesNotMatch(f, /injector|render-starter/, `render.ts reaches ${f}`);
+	}
+	for (const f of ['src/routes/api/templates/[id]/send/+server.ts', 'src/routes/api/templates/[id]/mailer-save/+server.ts']) {
+		for (const g of reachable(f)) assert.ok(g !== 'pkg:handlebars' && !/injector|render-starter/.test(g), `${f} reaches ${g}`);
+	}
+	// Handlebars stays only behind the starter compile endpoint.
+	assert.ok(reachable('src/routes/api/templates/compile/+server.ts').has('pkg:handlebars'));
+	assert.doesNotMatch(read('src/lib/server/render.ts'), /from ['"](?:handlebars|\$lib\/server\/injector|\$lib\/server\/render-starter)['"]/);
 });

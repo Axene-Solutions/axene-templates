@@ -4,7 +4,7 @@ import type { RequestHandler } from "./$types";
 import { db } from "$lib/server/db";
 import { templates } from "$lib/server/db/schema";
 import { eq, and } from "drizzle-orm";
-import { renderTemplateHtml } from "$lib/server/render";
+import { renderTemplateHtml } from "$lib/server/render-starter";
 
 export const POST: RequestHandler = async ({ request, url }) => {
   const categoryQuery = url.searchParams.get("category") || "otp";

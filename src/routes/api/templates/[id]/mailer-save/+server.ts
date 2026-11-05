@@ -9,8 +9,8 @@ import { getMailerPublicUrl } from '$lib/server/mailer/config';
 import { createRateLimiter } from '$lib/server/mailer/guard';
 import { forgetPlans } from '$lib/server/mailer/plancache';
 import { htmlToText, validateSubject } from '$lib/server/mailer/validate';
-import { renderTemplateForMailer } from '$lib/server/render';
-import { compiledHtmlProblem, sanitizeBlocksForRead } from '$lib/server/sanitize-blocks';
+import { RenderRefused, renderTemplateForMailer } from '$lib/server/render';
+import { BlocksValidationError, compiledHtmlProblem, sanitizeBlocks } from '$lib/server/sanitize-blocks';
 import { buildEnvelope, cleanLine, MAX_SUBJECT_MAILER, MAX_TEMPLATE_NAME } from '$lib/mailer-templates';
 
 // 60 saves per user per hour. In memory: per process, reset on restart.
@@ -60,12 +60,20 @@ export const POST: RequestHandler = async (event) => {
 	}
 
 	// The allowlist runs on read as well, so a row stored before it existed is cleaned here too.
-	const blocks = sanitizeBlocksForRead(t.blocks);
+	// A stored value that cannot be cleaned within the limits is refused, never saved as empty.
+	let blocks: ReturnType<typeof sanitizeBlocks>;
+	try {
+		blocks = sanitizeBlocks(t.blocks, { strict: false });
+	} catch (e) {
+		if (e instanceof BlocksValidationError) return json({ error: `This template cannot be saved to Mailer: ${e.message}. Nothing was saved.`, code: 'render_refused' }, { status: 422 });
+		throw e;
+	}
 	let html: string;
 	try {
 		// Placeholders must survive: compile without variable injection.
 		html = renderTemplateForMailer(blocks).html;
 	} catch (e) {
+		if (e instanceof RenderRefused) return json({ error: `This template cannot be saved to Mailer because ${e.message}. Nothing was saved.`, code: 'render_refused' }, { status: 422 });
 		console.error('Template render failed for mailer-save:', e instanceof Error ? e.message : 'unknown');
 		return json({ error: 'The template could not be rendered' }, { status: 422 });
 	}

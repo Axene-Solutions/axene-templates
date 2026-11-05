@@ -19,7 +19,7 @@ import {
 import { sendAll } from '$lib/server/mailer/sendall';
 import { renderTemplateForSend } from '$lib/server/render';
 import { collectUsage, linkFieldNeeds } from '$lib/placeholders';
-import { compiledHtmlProblem, sanitizeBlocksForRead } from '$lib/server/sanitize-blocks';
+import { BlocksValidationError, compiledHtmlProblem, sanitizeBlocks } from '$lib/server/sanitize-blocks';
 
 const INJECTOR_DEFAULTS = new Set(['theme_color', 'logo', 'company_name']);
 
@@ -57,7 +57,15 @@ export const POST: RequestHandler = async (event) => {
 		return json({ error: 'Forbidden' }, { status: 403 });
 	}
 
-	const blocks = sanitizeBlocksForRead(t.blocks);
+	// Cleaned like every read, but a stored value that cannot be cleaned within the limits is a
+	// refusal, never an empty email.
+	let blocks: ReturnType<typeof sanitizeBlocks>;
+	try {
+		blocks = sanitizeBlocks(t.blocks, { strict: false });
+	} catch (e) {
+		if (e instanceof BlocksValidationError) return json({ error: `This template cannot be sent: ${e.message}`, code: 'render_refused' }, { status: 422 });
+		throw e;
+	}
 
 	// Every {{variable}} the template uses needs a value, otherwise it would go out blank ("Hi ,").
 	// theme_color, logo and company_name have built-in defaults in the injector.
@@ -104,6 +112,9 @@ export const POST: RequestHandler = async (event) => {
 	let html: string;
 	try {
 		const out = renderTemplateForSend(blocks, vars.value, links);
+		if (!out.ok && out.refused) {
+			return json({ error: `This email was not sent because ${out.refused}.`, code: 'render_refused' }, { status: 422 });
+		}
 		if (!out.ok && out.badUrls.length) {
 			return json({ error: `These values cannot be used in a link, only http, https, mailto and tel addresses can: ${out.badUrls.join(', ')}`, code: 'invalid_urls', fields: out.badUrls }, { status: 400 });
 		}

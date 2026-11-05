@@ -95,11 +95,18 @@ export function parseTag(raw: string): Tag {
 	return parseInner(raw, raw.slice(open, Math.max(open, raw.length - open)), triple);
 }
 
-/** Every tag in `text`, in order, with positions. Linear: each candidate looks at a bounded window. */
-export function scanTags(text: string, max = 5000): Located[] {
+/** Most tags one string may hold. A render or a strict save that finds more is refused. */
+export const MAX_SCAN_TAGS = 5000;
+
+/**
+ * Every tag in `text`, in order, with positions, and whether there were more than `max`
+ * (`capped`: the tags past the cap were not looked at, so a caller must refuse, never guess).
+ * Linear: each candidate looks at a bounded window.
+ */
+export function scanTagsLimited(text: string, max = MAX_SCAN_TAGS): { tags: Located[]; capped: boolean } {
 	const out: Located[] = [];
 	let i = 0;
-	while (out.length < max) {
+	for (;;) {
 		i = text.indexOf('{{', i);
 		if (i === -1) break;
 		const triple = text.startsWith('{{{', i);
@@ -111,12 +118,40 @@ export function scanTags(text: string, max = 5000): Located[] {
 			i += 1;
 			continue;
 		}
+		if (out.length >= max) return { tags: out, capped: true };
 		const end = i + open + j + open;
 		const raw = text.slice(i, end);
 		out.push({ tag: parseInner(raw, window.slice(0, j), triple), start: i, end });
 		i = end;
 	}
-	return out;
+	return { tags: out, capped: false };
+}
+
+/** Every tag in `text`, in order, with positions (at most `max`). */
+export function scanTags(text: string, max = MAX_SCAN_TAGS): Located[] {
+	return scanTagsLimited(text, max).tags;
+}
+
+/**
+ * The first `{{` in `text` that is not part of a supported tag, as a short excerpt with the
+ * reason, or null when every `{{` is a valid {{field}}, {{field|fallback}} or {{link:key}}.
+ * Used by strict saves, so a construct that would never render as typed is refused up front.
+ */
+export function firstUnsupported(text: string): { text: string; reason: string } | null {
+	if (!text.includes('{{')) return null;
+	const { tags, capped } = scanTagsLimited(text);
+	if (capped) return { text: '{{', reason: `more than ${MAX_SCAN_TAGS} placeholders in one value` };
+	let last = 0;
+	for (const { tag, start, end } of tags) {
+		const gap = text.slice(last, start);
+		const k = gap.indexOf('{{');
+		if (k !== -1) return { text: gap.slice(k, k + 40).replace(/\s+/g, ' '), reason: 'braces that do not form a placeholder' };
+		if (tag.kind === 'unsupported') return { text: tag.raw.replace(/\s+/g, ' ').slice(0, 60), reason: tag.reason };
+		last = end;
+	}
+	const k = text.indexOf('{{', last);
+	if (k !== -1) return { text: text.slice(k, k + 40).replace(/\s+/g, ' '), reason: 'braces that do not form a placeholder' };
+	return null;
 }
 
 function collectStrings(v: unknown, out: string[], depth = 0): void {
@@ -248,7 +283,7 @@ function blank(v: unknown): boolean {
 
 function escText(s: string, alreadyMarkup: boolean): string {
 	const amp = alreadyMarkup ? s.replace(/&(?!(?:amp|lt|gt|quot|#\d{1,6}|#x[0-9a-fA-F]{1,6});)/g, '&amp;') : s.replace(/&/g, '&amp;');
-	return amp.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+	return amp.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 export type Expansion = { ok: true; url: string } | { ok: false; error: string };
@@ -266,7 +301,7 @@ export function expandLink(urlTemplate: string, values: Values): Expansion {
 		last = end;
 		if (tag.kind === 'link') return { ok: false, error: 'a link cannot contain another link' };
 		if (tag.kind === 'unsupported') return { ok: false, error: `${tag.raw.slice(0, 40)}: ${tag.reason}` };
-		const v = values[tag.key];
+		const v = Object.hasOwn(values, tag.key) ? values[tag.key] : undefined;
 		if (!blank(v)) out += encodeURIComponent(String(v));
 		else if (tag.fallback !== null) out += encodeURIComponent(tag.fallback);
 		else return { ok: false, error: `it needs a value for ${tag.key}` };
@@ -295,24 +330,263 @@ export function isSafeLiteralUrl(u: string): boolean {
 	return !!m && SAFE_URL_SCHEMES.has(m[1].toLowerCase());
 }
 
-/** The text already written in the href/src value that a tag at `pos` sits in, or null outside one. */
-function urlAttrPrefix(source: string, pos: number): string | null {
-	const lt = source.lastIndexOf('<', pos);
-	if (lt === -1 || source.lastIndexOf('>', pos) > lt) return null;
-	const m = /\s(?:href|src|background|action|formaction|poster)\s*=\s*["']?([^"'>]*)$/i.exec(source.slice(lt, pos));
-	return m ? m[1] : null;
+// ---- URL policy (mirrors Mailer's renderer, backend/app/services/template_render.py) ----
+
+/** Attributes whose value is a link a reader can follow, and attributes that load a resource. */
+const LINK_ATTRS = new Set(['href', 'xlink:href', 'action', 'formaction', 'cite']);
+const SRC_ATTRS = new Set(['src', 'background', 'poster', 'srcset']);
+const BLOCKED_SCHEMES = new Set(['javascript', 'data', 'vbscript', 'file', 'about', 'blob', 'livescript', 'mocha', 'view-source']);
+const SRC_SCHEMES = new Set(['http', 'https']);
+// Ignored before the colon, the way browsers drop them: "java\tscript:" is "javascript:".
+const IGNORED_IN_SCHEME = /[\s\u0000-\u001f\u007f\u0085\u00a0\u200b-\u200f\u2028\u2029\u2060\ufeff]/;
+// Percent-encoded when a value lands later in a URL: illegal in a URL, or able to end the attribute.
+const URL_ILLEGAL = /[\u0000-\u0020\u007f"'<>`\\{}|^\u2028\u2029]/g;
+const NAMED_REFS: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", colon: ':', tab: '\t', newline: '\n' };
+
+/** Decodes numeric and the few named character references a browser would turn into URL syntax. */
+export function decodeCharRefs(s: string): string {
+	if (!s.includes('&')) return s;
+	return s.replace(/&(#[xX][0-9a-fA-F]{1,8}|#\d{1,8}|[a-zA-Z]{2,8});?/g, (m, ref: string) => {
+		if (ref[0] === '#') {
+			const code = ref[1] === 'x' || ref[1] === 'X' ? parseInt(ref.slice(2), 16) : parseInt(ref.slice(1), 10);
+			return Number.isFinite(code) && code < 0x110000 ? String.fromCodePoint(code) : '';
+		}
+		return NAMED_REFS[ref.toLowerCase()] ?? m;
+	});
 }
 
-/** Whether `text` may be written at this point of a URL attribute without being able to set its scheme. */
-function urlPieceSafe(prefix: string, text: string): boolean {
-	const p = prefix.trim();
-	if (p === '') return isSafeLiteralUrl(text.trim());
-	// The scheme is settled once the prefix has a : / ? or #; before that the value must not add one.
-	return /[:/?#]/.test(p) || !text.includes(':');
+/** The scheme a browser would read from `value`, lowercased, or null for a relative URL. */
+export function urlScheme(value: string): string | null {
+	let scheme = '';
+	const v = decodeCharRefs(value.slice(0, 600));
+	for (let i = 0; i < v.length && i < 300; i++) {
+		const c = v[i];
+		if (IGNORED_IN_SCHEME.test(c)) continue;
+		if (c === ':') return scheme ? scheme.toLowerCase() : null;
+		if (/[A-Za-z0-9+.-]/.test(c)) {
+			scheme += c;
+			continue;
+		}
+		return null;
+	}
+	return null;
 }
+
+/**
+ * Whether a value that starts a URL attribute is refused. Link attributes (href and friends)
+ * allow relative URLs, http, https, mailto, tel, sms and app schemes, never javascript, data,
+ * vbscript, file, about or blob. Source attributes (src and friends) allow only relative, http
+ * and https.
+ */
+export function urlValueBlocked(value: string, attr = 'href'): boolean {
+	const scheme = urlScheme(value);
+	if (scheme === null || !/^[a-z]/.test(scheme)) return false;
+	return SRC_ATTRS.has(attr) ? !SRC_SCHEMES.has(scheme) : BLOCKED_SCHEMES.has(scheme);
+}
+
+function encodeIllegal(s: string): string {
+	return s.replace(URL_ILLEGAL, (c) => (c === "'" ? '%27' : encodeURIComponent(c)));
+}
+
+// ---- Where a placeholder sits in the source ----
+
+type Ctx =
+	| { kind: 'text' }
+	| { kind: 'tag' }
+	| { kind: 'attr'; attr: string; quoted: boolean; started: boolean; settled: boolean; head: string; cssUrl: boolean };
+
+const TEXT: Ctx = { kind: 'text' };
+const TAG: Ctx = { kind: 'tag' };
+
+/**
+ * Tiny resumable tokenizer: enough to know whether the next placeholder is in text, inside a tag,
+ * or in an attribute value, and what that value already holds. Fed the literal pieces between
+ * placeholders and told what each placeholder produced. One forward pass, linear time.
+ */
+class HtmlCtx {
+	state: 'text' | 'lt' | 'comment' | 'tagname' | 'tag' | 'aname' | 'aafter' | 'abefore' | 'vq' | 'vu' = 'text';
+	attr = '';
+	quote = '';
+	started = false;
+	settled = false;
+	/** The value text written before its scheme is settled (by the first : / ? or #), capped. */
+	head = '';
+	css = '';
+
+	context(): Ctx {
+		const s = this.state;
+		if (s === 'text' || s === 'comment') return TEXT;
+		if (s === 'abefore') return { kind: 'attr', attr: this.attr, quoted: false, started: false, settled: false, head: '', cssUrl: false };
+		if (s === 'vq' || s === 'vu') {
+			let cssUrl = false;
+			if (this.attr === 'style') {
+				const low = this.css.toLowerCase();
+				cssUrl = low.lastIndexOf('url(') > low.lastIndexOf(')');
+			}
+			return { kind: 'attr', attr: this.attr, quoted: s === 'vq', started: this.started, settled: this.settled, head: this.head, cssUrl };
+		}
+		return TAG;
+	}
+
+	private valueText(piece: string): void {
+		if (!piece) return;
+		this.started = true;
+		if (!this.settled && this.head.length < 300) {
+			const k = piece.search(/[:/?#]/);
+			this.head += k === -1 ? piece.slice(0, 300) : piece.slice(0, k + 1);
+		}
+		if (/[:/?#]/.test(piece)) this.settled = true;
+		if (this.attr === 'style' && this.css.length < 4096) this.css += piece.slice(0, 4096);
+	}
+
+	/** A placeholder produced `text` (its raw value) at the current position. */
+	emitted(text: string): void {
+		const s = this.state;
+		if (s === 'abefore') {
+			this.state = 'vu';
+			this.started = false;
+			this.settled = false;
+			this.head = '';
+			this.css = '';
+		} else if (s === 'lt') {
+			this.state = 'text';
+			return;
+		}
+		if (this.state === 'vq' || this.state === 'vu') this.valueText(text);
+	}
+
+	feed(seg: string): void {
+		let i = 0;
+		const n = seg.length;
+		while (i < n) {
+			const s = this.state;
+			if (s === 'text') {
+				const j = seg.indexOf('<', i);
+				if (j === -1) return;
+				this.state = 'lt';
+				i = j + 1;
+			} else if (s === 'lt') {
+				const c = seg[i];
+				if (c === '!' || c === '?') {
+					this.state = 'comment';
+					i++;
+				} else if (c === '/' || /[A-Za-z]/.test(c)) this.state = 'tagname';
+				else this.state = 'text';
+			} else if (s === 'comment') {
+				const j = seg.indexOf('>', i);
+				if (j === -1) return;
+				this.state = 'text';
+				i = j + 1;
+			} else if (s === 'tagname') {
+				while (i < n && !/[\s/>]/.test(seg[i])) i++;
+				if (i < n) this.state = 'tag';
+			} else if (s === 'tag') {
+				const c = seg[i];
+				if (c === '>') this.state = 'text';
+				else if (!/[\s/]/.test(c)) {
+					this.state = 'aname';
+					this.attr = '';
+					continue;
+				}
+				i++;
+			} else if (s === 'aname') {
+				const c = seg[i];
+				if (c === '=') this.state = 'abefore';
+				else if (c === '>') this.state = 'text';
+				else if (/\s/.test(c)) this.state = 'aafter';
+				else if (c === '/') this.state = 'tag';
+				else if (this.attr.length < 32) this.attr += c.toLowerCase();
+				i++;
+			} else if (s === 'aafter') {
+				const c = seg[i];
+				if (/\s/.test(c)) i++;
+				else if (c === '=') {
+					this.state = 'abefore';
+					i++;
+				} else if (c === '>') {
+					this.state = 'text';
+					i++;
+				} else this.state = 'tag';
+			} else if (s === 'abefore') {
+				const c = seg[i];
+				if (/\s/.test(c)) i++;
+				else if (c === '"' || c === "'") {
+					this.state = 'vq';
+					this.quote = c;
+					this.started = false;
+					this.settled = false;
+					this.head = '';
+					this.css = '';
+					i++;
+				} else if (c === '>') {
+					this.state = 'text';
+					i++;
+				} else {
+					this.state = 'vu';
+					this.started = false;
+					this.settled = false;
+					this.head = '';
+					this.css = '';
+				}
+			} else if (s === 'vq') {
+				const j = seg.indexOf(this.quote, i);
+				if (j === -1) {
+					this.valueText(seg.slice(i));
+					return;
+				}
+				this.valueText(seg.slice(i, j));
+				this.state = 'tag';
+				i = j + 1;
+			} else {
+				const c = seg[i];
+				if (/\s/.test(c)) this.state = 'tag';
+				else if (c === '>') this.state = 'text';
+				else this.valueText(c);
+				i++;
+			}
+		}
+	}
+}
+
+const UNQUOTED_UNSAFE = /[\s"'<>`=]/g;
+
+/**
+ * The markup for `raw` at `ctx`, or null when it is refused (it would set or change the scheme
+ * of a URL). `tail` is the literal source text that follows the placeholder. `markup` says `raw` is already markup (a fallback written in rich text), so its
+ * character references are kept and, for the scheme check, decoded.
+ */
+function place(ctx: Ctx, raw: string, markup: boolean, tail: string): string | null {
+	if (ctx.kind === 'text') return escText(raw, markup);
+	if (ctx.kind === 'tag') return ''; // a value must never create or change an attribute
+	let out: string;
+	if (LINK_ATTRS.has(ctx.attr) || SRC_ATTRS.has(ctx.attr)) {
+		const seen = markup ? decodeCharRefs(raw) : raw;
+		if (!ctx.started) {
+			if (urlValueBlocked(seen, ctx.attr)) return null;
+		} else if (!ctx.settled && seen.includes(':')) return null;
+		// Before the scheme is settled, judge what the browser will read: the text already in the
+		// value, this value and the literal text right after it ({{x}}:alert(1) with x=javascript).
+		if (!ctx.settled && urlValueBlocked(ctx.head + seen + tail, ctx.attr)) return null;
+		out = ctx.attr === 'srcset' ? escText(raw, markup) : escText(encodeIllegal(raw), markup);
+	} else if (ctx.attr === 'style' && ctx.cssUrl) return '';
+	else out = escText(raw, markup);
+	if (!ctx.quoted) out = out.replace(UNQUOTED_UNSAFE, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0'));
+	return out;
+}
+
+/** `{{` written as text: braces become character references, so nothing can ever evaluate it. */
+function inertBraces(s: string): string {
+	return s.replace(/[{}]/g, (c) => (c === '{' ? '&#123;' : '&#125;'));
+}
+
+/** Most characters a render may produce (twice Mailer's largest request body, as Mailer caps it). */
+export const MAX_RENDERED_HTML = 2_000_000;
 
 export interface Prepared {
-	/** The source with every fallback and link tag swapped for an inert slot marker. Plain {{name}} is left for Handlebars. */
+	/**
+	 * The source with every supported tag swapped for an inert slot marker (mode 'fill') or kept as
+	 * written (mode 'keep'), and every other `{{` made inert text.
+	 */
 	template: string;
 	/** Final, markup-safe text for each slot. */
 	slots: string[];
@@ -321,59 +595,115 @@ export interface Prepared {
 	badLinks: { key: string; error: string }[];
 	/** Fields whose value or fallback would put an unsafe scheme into an href or src. */
 	badUrls: string[];
+	/** Why the render is refused outright (too many placeholders, output too large), or null. */
+	refused: string | null;
 }
 
 /**
- * Pass one of the local render: resolve {{name|fallback}} and {{link:key}} into slot markers.
- * Plain {{name}} (no fallback) is left alone for the existing Handlebars pass, which keeps its
- * behavior. Resolved text is never fed to Handlebars, so values are not re-rendered.
+ * The local render's only substitution pass, grammar only: no template engine ever sees the
+ * source or a value.
+ *
+ * mode 'fill' (Send): {{field}}, {{ field }}, {{field|fallback}} and {{link:key}} become slot
+ * markers whose final text is computed here: HTML-escaped in text, and in URL attributes checked
+ * against the scheme policy (a value that starts a URL must not be javascript:, data: and so on,
+ * a later one is percent-encoded and may not add a scheme). Named links expand one level.
+ *
+ * mode 'keep' (Save to Mailer): supported tags stay as written for Mailer to fill.
+ *
+ * In both modes every other `{{ ... }}` (blocks, partials, comments, triple braces, helpers,
+ * dotted paths) and every stray `{{` is emitted as literal, visible text with its braces escaped.
+ * More than MAX_SCAN_TAGS tags, or output past MAX_RENDERED_HTML, refuses the render.
  */
-export function prepareGrammar(source: string, values: Values, links: ReadonlyMap<string, string>, nonce: string): Prepared {
+export function prepareGrammar(
+	source: string,
+	values: Values,
+	links: ReadonlyMap<string, string>,
+	nonce: string,
+	mode: 'fill' | 'keep' = 'fill',
+): Prepared {
 	const slots: string[] = [];
 	const unknown = new Set<string>();
 	const bad = new Map<string, string>();
 	const badUrls = new Set<string>();
+	const result = (template: string, refused: string | null = null): Prepared => ({
+		template,
+		slots,
+		unknownLinks: [...unknown],
+		badLinks: [...bad].map(([key, error]) => ({ key, error })),
+		badUrls: [...badUrls],
+		refused,
+	});
+	const { tags, capped } = scanTagsLimited(source);
+	if (capped) return result('', `the template has more than ${MAX_SCAN_TAGS} placeholders`);
+	const html = new HtmlCtx();
+	// The literal text right after a tag, up to the next tag or the end of the attribute value.
+	const tailOf = (end: number) => {
+		const t = source.slice(end, end + 300);
+		const k = t.search(/["'<>]|\{\{/);
+		return k === -1 ? t : t.slice(0, k);
+	};
 	let template = '';
+	let size = 0;
 	let last = 0;
+	const literal = (seg: string) => {
+		if (mode === 'fill') html.feed(seg);
+		template += seg.includes('{{') ? seg.replace(/\{\{/g, '&#123;&#123;') : seg;
+	};
 	const slot = (text: string) => {
 		slots.push(text);
+		size += text.length;
 		return `__AXS${nonce}_${slots.length - 1}__`;
 	};
-	for (const { tag, start, end } of scanTags(source)) {
-		if (tag.kind === 'field' && tag.fallback === null) continue;
-		if (tag.kind === 'unsupported') continue;
-		template += source.slice(last, start);
+	for (const { tag, start, end } of tags) {
+		literal(source.slice(last, start));
 		last = end;
+		if (tag.kind === 'unsupported') {
+			if (mode === 'fill') html.feed(tag.raw);
+			template += inertBraces(tag.raw);
+			continue;
+		}
+		if (mode === 'keep') {
+			template += tag.raw;
+			continue;
+		}
+		const ctx = html.context();
 		if (tag.kind === 'field') {
-			const v = values[tag.key];
-			const prefix = urlAttrPrefix(source, start);
-			if (prefix !== null && !urlPieceSafe(prefix, !blank(v) ? String(v) : (tag.fallback as string))) {
+			const v = Object.hasOwn(values, tag.key) ? values[tag.key] : undefined;
+			const useFallback = tag.fallback !== null && blank(v);
+			const raw = useFallback ? (tag.fallback as string) : v === undefined || v === null ? '' : String(v);
+			const out = place(ctx, raw, useFallback, tailOf(end));
+			if (out === null) {
 				badUrls.add(tag.key);
 				template += slot('');
-				continue;
+			} else template += slot(out);
+			html.emitted(useFallback ? decodeCharRefs(raw) : raw);
+		} else {
+			const def = links.get(tag.key);
+			let out: string | null = '';
+			if (def === undefined) unknown.add(tag.key);
+			else {
+				const ex = expandLink(def, values);
+				if (!ex.ok) {
+					if (!bad.has(tag.key)) bad.set(tag.key, ex.error);
+				} else {
+					out = place(ctx, ex.url, true, tailOf(end));
+					if (out === null) {
+						if (!bad.has(tag.key)) bad.set(tag.key, 'it cannot follow other text at the start of a URL');
+						out = '';
+					}
+					html.emitted(ex.url);
+				}
 			}
-			template += slot(!blank(v) ? escText(String(v), false) : escText(tag.fallback as string, true));
-			continue;
+			template += slot(out);
 		}
-		const def = links.get(tag.key);
-		if (def === undefined) {
-			unknown.add(tag.key);
-			template += slot('');
-			continue;
-		}
-		const ex = expandLink(def, values);
-		if (!ex.ok) {
-			if (!bad.has(tag.key)) bad.set(tag.key, ex.error);
-			template += slot('');
-			continue;
-		}
-		template += slot(escText(ex.url, true));
+		if (size + template.length > MAX_RENDERED_HTML) return result('', `the email would be larger than ${MAX_RENDERED_HTML} characters`);
 	}
-	template += source.slice(last);
-	return { template, slots, unknownLinks: [...unknown], badLinks: [...bad].map(([key, error]) => ({ key, error })), badUrls: [...badUrls] };
+	literal(source.slice(last));
+	if (size + template.length > MAX_RENDERED_HTML) return result('', `the email would be larger than ${MAX_RENDERED_HTML} characters`);
+	return result(template);
 }
 
-/** Pass two: put the slot text back after Handlebars has run. Single pass over the output. */
+/** Pass two: put the slot text back after MJML has run. Single pass over the output. */
 export function fillSlots(rendered: string, slots: string[], nonce: string): string {
 	const re = new RegExp(`__AXS${nonce}_(\\d{1,6})__`, 'g');
 	return rendered.replace(re, (_m, n: string) => slots[Number(n)] ?? '');

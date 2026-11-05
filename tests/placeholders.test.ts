@@ -71,8 +71,8 @@ test('prepareGrammar: fallbacks, links, one level only, values are not rendered 
 	const src = '<a href="{{link:pay_now}}">Hi {{name|friend}} {{plain}} {{ghost|x<b>}}</a>';
 	const p = prepareGrammar(src, { order_id: '{{name}}', name: '{{order_id}}' }, links, 'n0nce');
 	assert.deepEqual(p.unknownLinks, []);
-	// {{plain}} is left for Handlebars, the rest became slots.
-	assert.ok(p.template.includes('{{plain}}'));
+	// Every supported tag became a slot, plain {{plain}} too: no template engine runs afterwards.
+	assert.ok(!p.template.includes('{{plain}}'));
 	assert.ok(!p.template.includes('{{name|friend}}'));
 	const out = fillSlots(p.template, p.slots, 'n0nce');
 	assert.ok(out.includes('href="https://pay.example.com/%7B%7Bname%7D%7D"'), out);

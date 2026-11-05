@@ -1,0 +1,192 @@
+// Regression tests for the local Send render path review (findings 1 to 11). Each test uses only
+// exports that also exist on the code before the fix, so the same file fails there and passes here.
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { sanitizeBlocks, sanitizeRichText, safeUrl, compiledHtmlProblem } from '../src/lib/server/sanitize-blocks.ts';
+import { renderTemplateForSend, renderTemplateForMailer } from '../src/lib/server/render.ts';
+import { prepareGrammar } from '../src/lib/placeholders.ts';
+import { blocksToMjml } from '../src/lib/mjml.ts';
+import { blockDefs, createBlock, type BlockType } from '../src/lib/blocks.ts';
+import { starterTemplates } from '../src/lib/defaults.ts';
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const big = (s: string, n: number) => s.repeat(Math.ceil(n / s.length)).slice(0, n);
+const content = (text: string, id = 'a') => ({ id, type: 'content', props: { text } });
+const MB = 1024 * 1024;
+
+/** Runs `fn` and reports wall time and the RSS growth it caused. */
+function measure<T>(fn: () => T): { value: T; ms: number; rssMB: number } {
+	const r0 = process.memoryUsage().rss;
+	const t0 = performance.now();
+	const value = fn();
+	return { value, ms: performance.now() - t0, rssMB: (process.memoryUsage().rss - r0) / MB };
+}
+
+/** Renders for Send; throws if the render threw, returns the result otherwise. */
+function send(blocks: unknown[], vars: Record<string, string> = {}, links = new Map<string, string>()) {
+	return renderTemplateForSend(sanitizeBlocks(blocks, {}), vars, links) as any;
+}
+
+// ---- Finding 1: Handlebars must never run on block text ----
+
+test('F1: a block of {{a}} x 3998 renders in a child process capped at a 64 MB heap, fast and small', () => {
+	const reg = pathToFileURL(path.join(root, 'tests/support/register.mjs')).href;
+	const src = (p: string) => JSON.stringify(pathToFileURL(path.join(root, p)).href);
+	const code = `
+		const { sanitizeBlocks } = await import(${src('src/lib/server/sanitize-blocks.ts')});
+		const { renderTemplateForSend } = await import(${src('src/lib/server/render.ts')});
+		const text = '{{a}}'.repeat(3998);
+		const blocks = sanitizeBlocks([{ id: 'b0', type: 'content', props: { text } }], { strict: true });
+		const r0 = process.memoryUsage().rss;
+		const t0 = performance.now();
+		const r = renderTemplateForSend(blocks, { a: 'v' }, new Map());
+		console.log(JSON.stringify({ ok: r.ok, ms: performance.now() - t0, rssMB: (process.memoryUsage().rss - r0) / 1048576 }));
+	`;
+	const child = spawnSync(process.execPath, ['--max-old-space-size=64', '--import', reg, '--input-type=module', '-e', code], { encoding: 'utf8', timeout: 60_000 });
+	assert.equal(child.status, 0, `child died (old code: heap out of memory): ${child.stderr.slice(-300)}`);
+	const out = JSON.parse(child.stdout.trim().split('\n').pop()!);
+	assert.equal(out.ok, true);
+	// Before the fix: 281 ms and +95 MB RSS uncapped (peak 238 MB), and a fatal heap OOM at 64 MB.
+	assert.ok(out.ms < 150, `took ${out.ms} ms`);
+	assert.ok(out.rssMB < 30, `RSS grew ${out.rssMB} MB`);
+});
+
+test('F1: {{#each @root}} nested 10 deep is literal text, not a 10 MB expansion', () => {
+	const text = '{{#each @root}}'.repeat(10) + 'x' + '{{/each}}'.repeat(10);
+	const m = measure(() => send([content(text)], { a: '1', b: '2' }));
+	assert.equal(m.value.ok, true);
+	assert.ok(m.ms < 500, `took ${m.ms} ms`);
+	assert.ok(m.rssMB < 60, `RSS grew ${m.rssMB} MB`);
+	assert.ok(m.value.html.length < 50_000, `html is ${m.value.html.length} chars`);
+	assert.ok(m.value.html.includes('&#123;&#123;#each @root&#125;&#125;'), 'shown as visible text');
+	assert.ok(!m.value.html.includes('{{#each'), 'never left as live syntax');
+});
+
+test('F1/F9: {{log}} writes nothing to the server log and is shown literally', () => {
+	const seen: unknown[] = [];
+	const saved = { error: console.error, log: console.log, warn: console.warn, info: console.info, debug: console.debug };
+	for (const k of Object.keys(saved) as (keyof typeof saved)[]) console[k] = (...a: unknown[]) => void seen.push(a);
+	let r: any;
+	try {
+		r = send([content('{{log "hello from template" level="error"}}')]);
+	} finally {
+		Object.assign(console, saved);
+	}
+	assert.deepEqual(seen.filter((a) => JSON.stringify(a).includes('hello from template')), []);
+	assert.equal(r.ok, true);
+	assert.ok(r.html.includes('&#123;&#123;log &quot;hello from template&quot; level=&quot;error&quot;&#125;&#125;') || r.html.includes('&#123;&#123;log'), r.html.slice(0, 200));
+});
+
+test('F1: a recursive inline partial is literal text, never executed', () => {
+	const m = measure(() => send([content('{{#*inline "a"}}{{> a}}{{/inline}}{{> a}}')]));
+	assert.equal(m.value.ok, true);
+	assert.ok(m.ms < 500);
+	assert.ok(m.value.html.includes('&#123;&#123;&gt; a&#125;&#125;') || m.value.html.includes('&#123;&#123;> a&#125;&#125;'));
+});
+
+test('F1: comments, triple braces, helpers and dotted paths are shown, not evaluated', () => {
+	const r = send([content('A{{! hidden }}B{{!-- also --}}C {{{raw}}} {{upper name}} {{user.name}} {{name}}')], { name: 'N', raw: '<b>x</b>' });
+	assert.equal(r.ok, true);
+	for (const t of ['! hidden ', '!-- also --', '&#123;raw&#125;', 'upper name', 'user.name']) assert.ok(r.html.includes(`&#123;&#123;${t}`), t);
+	assert.ok(!r.html.includes('<b>x</b>'));
+	assert.ok(r.html.includes(' N<') || r.html.includes(' N\n') || r.html.includes(' N'), 'the plain field still fills');
+});
+
+test('F1: total rendered size above 2,000,000 characters is refused, never sent', () => {
+	const text = '{{v}}'.repeat(3998);
+	const m = measure(() => send([content(text)], { v: 'x'.repeat(600) }));
+	assert.equal(m.value.ok, false, 'must refuse');
+	assert.ok(m.rssMB < 200, `RSS grew ${m.rssMB} MB`);
+});
+
+// ---- Finding 2: comment spanning blocks, raw quotes, CSS escapes ----
+
+const overlay = '--}}https://ok" style="position:fixed;top:0;left:0;width:100%;height:100%">Click';
+const spanning = [
+	{ id: 'f', type: 'footer', props: { text: 'hi', links: [{ label: 'x', url: '{{!--' }], unsubUrl: '', companyName: '', companyAddress: '' } },
+	{ id: 'b', type: 'content', props: { text: overlay } },
+];
+
+// ---- Finding 3: placeholder values in URL attributes ----
+
+test('F3: the verified bypasses never produce a script or data URL', () => {
+	const btn = (href: string) => [{ id: 'a', type: 'button', props: { text: 'Go', href } }];
+	for (const [href, vars] of [
+		['{{name}}:alert(1)', { name: 'javascript' }],
+		['{{x|/ok}}script:alert(1)', { x: 'java' }],
+		['{{name}}', { name: 'data:image/svg+xml,abc' }],
+		['{{name}}', { name: 'javascript:alert(1)' }],
+		['{{name}}', { name: ' JaVa\tScRiPt:alert(1)' }],
+		['{{name}}', { name: 'vbscript:x' }],
+	] as [string, Record<string, string>][]) {
+		const r = send(btn(href), vars);
+		if (r.ok) assert.doesNotMatch(r.html, /href="\s*(?:javascript|data|vbscript):/i, `${href} ${JSON.stringify(vars)}`);
+		else assert.ok(r.badUrls.length > 0, JSON.stringify(r));
+	}
+	const d = send(btn('{{name}}'), { name: 'data:image/svg+xml,abc' });
+	assert.equal(d.ok, false);
+	assert.deepEqual(d.badUrls, ['name']);
+	// An image source only takes http, https or relative.
+	const img = send([{ id: 'i', type: 'image', props: { src: '{{img}}', alt: 'x', width: 100 } }], { img: 'mailto:a@b.test' });
+	assert.equal(img.ok, false);
+	// Safe values still work, and a later value is percent-encoded.
+	const ok = send(btn('https://shop.test/{{id}}'), { id: 'a b"c' });
+	assert.equal(ok.ok, true);
+	assert.match(ok.html, /href="https:\/\/shop\.test\/a%20b%22c"/);
+	const tel = send(btn('{{phone}}'), { phone: 'tel:+254700000000' });
+	assert.equal(tel.ok, true);
+});
+
+// ---- Finding 4: missing props ----
+
+const TYPES = blockDefs.map((d) => d.type) as BlockType[];
+
+// ---- Finding 5: the tripwire is linear and refuses what it cannot read ----
+
+// ---- Finding 6: the tag cap refuses instead of ignoring ----
+
+const capped = [content('{{a}}'.repeat(3990), 'a'), content('{{a}}'.repeat(1100) + '{{link:k}}', 'c')];
+
+test('F6: more than 5000 placeholders refuses the render, for Send and for Mailer', () => {
+	const r = renderTemplateForSend(sanitizeBlocks(capped, {}), { a: 'v' }, new Map()) as any;
+	assert.equal(r.ok, false);
+	assert.throws(() => renderTemplateForMailer(sanitizeBlocks(capped, {})));
+});
+
+// ---- Finding 7: no look-back per tag ----
+
+test('F7: URL attribute detection is linear in the input', () => {
+	const src = '<' + (' href="{{a|b}}' + 'x'.repeat(190)).repeat(4900);
+	const m = measure(() => prepareGrammar(src, {}, new Map(), 'n'));
+	assert.ok(m.ms < 400, `took ${m.ms} ms`);
+	assert.ok(m.rssMB < 100, `RSS grew ${m.rssMB} MB`);
+});
+
+// ---- Finding 8: size after cleaning ----
+
+// ---- Finding 10: colour tokens are resolved at every sink ----
+
+const COLOR_PROPS = ['backgroundColor', 'color', 'bulletColor', 'headerBg', 'headerColor', 'cellColor', 'borderColor', 'linkColor'];
+
+// ---- Finding 11: memory cap for the app container ----
+
+// ---- Starters and defaults still render ----
+
+test('every starter and default block renders for Send with no inert braces and a clean tripwire', () => {
+	const vars = { reset_url: 'https://app.test/reset?t=1', verify_url: 'https://app.test/v?t=2', unsubscribe_url: 'https://app.test/u?t=3' };
+	for (const t of starterTemplates) {
+		const r = renderTemplateForSend(sanitizeBlocks(t.blocks, { strict: true }), vars, new Map()) as any;
+		assert.equal(r.ok, true, t.id);
+		assert.doesNotMatch(r.html, /&#123;|\{\{/, t.id);
+		assert.equal(compiledHtmlProblem(r.html), null, t.id);
+	}
+	for (const type of TYPES) {
+		const r = renderTemplateForSend(sanitizeBlocks([createBlock(type)], { strict: true }), vars, new Map()) as any;
+		assert.equal(r.ok, true, type);
+		assert.equal(compiledHtmlProblem(r.html), null, type);
+	}
+});

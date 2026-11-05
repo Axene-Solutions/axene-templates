@@ -183,13 +183,14 @@ test('open: cross-origin, signed out and not connected are refused before Mailer
 
 // ---- Tripwire ----
 
-test('send: the compiled HTML tripwire refuses a script URL that came in through a variable', async () => {
+test('send: a script URL that comes in through a variable is refused before the tripwire', async () => {
 	q([row({ userId: 'u-me', blocks: [{ id: 'a', type: 'button', props: { text: 'Go', href: '{{site}}' } }] })], connected());
 	const res = await send(ev({ body: { from: { email: 'a@b.test' }, to: ['c@d.test'], subject: 'Hi', variables: { site: 'javascript:alert(1)' } } }));
-	assert.equal(res.status, 422);
+	// Plain {{site}} in an href is now checked against the URL scheme policy at fill time.
+	assert.equal(res.status, 400);
 	const body = await res.json();
-	assert.equal(body.code, 'unsafe_html');
-	assert.match(body.error, /safety check/);
+	assert.equal(body.code, 'invalid_urls');
+	assert.deepEqual(body.fields, ['site']);
 	assert.equal(calls.length, 0, 'nothing reached Mailer');
 });
 
