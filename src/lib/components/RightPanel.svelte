@@ -8,6 +8,16 @@
 	import Icon from './Icon.svelte';
 	import SendModal from './SendModal.svelte';
 	import SaveToMailerModal from './SaveToMailerModal.svelte';
+	import PlaceholderInput from './PlaceholderInput.svelte';
+	import PlaceholderWarnings from './PlaceholderWarnings.svelte';
+	import ManageLinksDialog from './ManageLinksDialog.svelte';
+	import { mailer } from '$lib/mailer.svelte';
+	import { mailerData } from '$lib/mailer-data.svelte';
+	import { onMount } from 'svelte';
+
+	onMount(() => {
+		mailer.ensureLoaded();
+	});
 
 	let activeTab = $state<'customize' | 'styles'>('customize');
 	let sendOpen = $state(false);
@@ -141,18 +151,18 @@
 					{#if (props.layout ?? 'logo-left') !== 'text-only'}
 						<div>
 							<label class={labelClass}>Logo URL</label>
-							<input type="text" class={inputClass} value={props.logoUrl ?? ''} oninput={(e) => setProp('logoUrl', (e.target as HTMLInputElement).value)} />
+							<PlaceholderInput url value={props.logoUrl ?? ''} oninput={(v) => setProp('logoUrl', v)} />
 						</div>
 						<NumberInput label="Logo Size" value={props.logoWidth ?? 40} unit="px" onchange={(v) => setProp('logoWidth', v)} />
 					{/if}
 					{#if (props.layout ?? 'logo-left') !== 'logo-only'}
 						<div>
 							<label class={labelClass}>Company Name</label>
-							<input type="text" class={inputClass} value={props.companyName ?? ''} oninput={(e) => setProp('companyName', (e.target as HTMLInputElement).value)} />
+							<PlaceholderInput value={props.companyName ?? ''} oninput={(v) => setProp('companyName', v)} />
 						</div>
 						<div>
 							<label class={labelClass}>Tagline</label>
-							<input type="text" class={inputClass} value={props.tagline ?? ''} oninput={(e) => setProp('tagline', (e.target as HTMLInputElement).value)} />
+							<PlaceholderInput value={props.tagline ?? ''} oninput={(v) => setProp('tagline', v)} />
 						</div>
 						<NumberInput label="Font Size" value={props.fontSize ?? 20} unit="px" onchange={(v) => setProp('fontSize', v)} />
 					{/if}
@@ -185,12 +195,7 @@
 				<div class="rp-flex-col">
 					<div>
 						<label class={labelClass}>Text</label>
-						<textarea
-							class={inputClass}
-							rows="3"
-							value={props.text ?? ''}
-							oninput={(e) => setProp('text', (e.target as HTMLTextAreaElement).value)}
-						></textarea>
+						<PlaceholderInput multiline rows={3} value={props.text ?? ''} oninput={(v) => setProp('text', v)} />
 					</div>
 				</div>
 			</PropSection>
@@ -223,14 +228,11 @@
 				<div class="rp-flex-col">
 					<div>
 						<label class={labelClass}>Label</label>
-						<input type="text" class={inputClass} value={props.text ?? ''} oninput={(e) => setProp('text', (e.target as HTMLInputElement).value)} />
+						<PlaceholderInput value={props.text ?? ''} oninput={(v) => setProp('text', v)} />
 					</div>
 					<div>
 						<label class={labelClass}>Link URL</label>
-						<div class="rp-link-row">
-							<Icon name="link" width={14} height={14} />
-							<input type="text" value={props.href ?? ''} oninput={(e) => setProp('href', (e.target as HTMLInputElement).value)} />
-						</div>
+						<PlaceholderInput url value={props.href ?? ''} oninput={(v) => setProp('href', v)} />
 					</div>
 					<div>
 						<label class={labelClass}>Width</label>
@@ -273,19 +275,16 @@
 				<div class="rp-flex-col">
 					<div>
 						<label class={labelClass}>Source URL</label>
-						<input type="text" class={inputClass} value={props.src ?? ''} oninput={(e) => setProp('src', (e.target as HTMLInputElement).value)} />
+						<PlaceholderInput url value={props.src ?? ''} oninput={(v) => setProp('src', v)} />
 					</div>
 					<div>
 						<label class={labelClass}>Alt Text</label>
-						<input type="text" class={inputClass} value={props.alt ?? ''} oninput={(e) => setProp('alt', (e.target as HTMLInputElement).value)} />
+						<PlaceholderInput value={props.alt ?? ''} oninput={(v) => setProp('alt', v)} />
 					</div>
 					<NumberInput label="Width" value={props.width ?? 600} unit="px" max={600} onchange={(v) => setProp('width', v)} />
 					<div>
 						<label class={labelClass}>Link URL</label>
-						<div class="rp-link-row">
-							<Icon name="link" width={14} height={14} />
-							<input type="text" value={props.href ?? ''} oninput={(e) => setProp('href', (e.target as HTMLInputElement).value)} />
-						</div>
+						<PlaceholderInput url value={props.href ?? ''} oninput={(v) => setProp('href', v)} />
 					</div>
 				</div>
 			</PropSection>
@@ -297,13 +296,11 @@
 				<div class="rp-flex-col">
 					{#each (props.items ?? []) as item, i}
 						<div class="rp-item-row">
-							<input
-								type="text"
-								class={inputClass}
+							<PlaceholderInput
 								value={item}
-								oninput={(e) => {
+								oninput={(v) => {
 									const updated = [...(props.items ?? [])];
-									updated[i] = (e.target as HTMLInputElement).value;
+									updated[i] = v;
 									setProp('items', updated);
 								}}
 							/>
@@ -356,11 +353,11 @@
 					{#if props.headerRow}
 						<div>
 							<label class={labelClass}>Column 1 Header</label>
-							<input class={inputClass} value={props.col1Header ?? ''} oninput={(e) => setProp('col1Header', (e.target as HTMLInputElement).value)} />
+							<PlaceholderInput value={props.col1Header ?? ''} oninput={(v) => setProp('col1Header', v)} />
 						</div>
 						<div>
 							<label class={labelClass}>Column 2 Header</label>
-							<input class={inputClass} value={props.col2Header ?? ''} oninput={(e) => setProp('col2Header', (e.target as HTMLInputElement).value)} />
+							<PlaceholderInput value={props.col2Header ?? ''} oninput={(v) => setProp('col2Header', v)} />
 						</div>
 					{/if}
 				</div>
@@ -371,16 +368,16 @@
 					{#each props.rows ?? [] as row, i}
 						<div class="rp-item-row">
 							<div class="rp-flex-col" style="flex:1;">
-								<input class={inputClass} style="font-size:10.5px;" value={row.col1} oninput={(e) => {
+								<PlaceholderInput style="font-size:10.5px;" value={row.col1} placeholder="Col 1" oninput={(v) => {
 									const rows = [...(props.rows ?? [])];
-									rows[i] = { ...rows[i], col1: (e.target as HTMLInputElement).value };
+									rows[i] = { ...rows[i], col1: v };
 									setProp('rows', rows);
-								}} placeholder="Col 1" />
-								<input class={inputClass} style="font-size:10.5px;" value={row.col2} oninput={(e) => {
+								}} />
+								<PlaceholderInput style="font-size:10.5px;" value={row.col2} placeholder="Col 2" oninput={(v) => {
 									const rows = [...(props.rows ?? [])];
-									rows[i] = { ...rows[i], col2: (e.target as HTMLInputElement).value };
+									rows[i] = { ...rows[i], col2: v };
 									setProp('rows', rows);
-								}} placeholder="Col 2" />
+								}} />
 							</div>
 							<button class="rp-del-btn" onclick={() => {
 								const rows = (props.rows ?? []).filter((_: any, j: number) => j !== i);
@@ -423,15 +420,15 @@
 				<div class="rp-flex-col">
 					<div>
 						<label class={labelClass}>Company Name</label>
-						<input class={inputClass} value={props.companyName ?? ''} oninput={(e) => setProp('companyName', (e.target as HTMLInputElement).value)} />
+						<PlaceholderInput value={props.companyName ?? ''} oninput={(v) => setProp('companyName', v)} />
 					</div>
 					<div>
 						<label class={labelClass}>Company Address</label>
-						<input class={inputClass} value={props.companyAddress ?? ''} oninput={(e) => setProp('companyAddress', (e.target as HTMLInputElement).value)} />
+						<PlaceholderInput value={props.companyAddress ?? ''} oninput={(v) => setProp('companyAddress', v)} />
 					</div>
 					<div>
 						<label class={labelClass}>Disclaimer Text</label>
-						<textarea class={inputClass} rows="2" value={props.text ?? ''} oninput={(e) => setProp('text', (e.target as HTMLTextAreaElement).value)}></textarea>
+						<PlaceholderInput multiline rows={2} value={props.text ?? ''} oninput={(v) => setProp('text', v)} />
 					</div>
 					<label class="rp-checkbox-row">
 						<input type="checkbox" checked={props.showDivider ?? true} onchange={(e) => setProp('showDivider', (e.target as HTMLInputElement).checked)} />
@@ -445,14 +442,14 @@
 					{#each props.links ?? [] as link, i}
 						<div class="rp-item-row">
 							<div class="rp-flex-col" style="flex:1;">
-								<input class={inputClass} style="font-size:10.5px;" value={link.label} placeholder="Label" oninput={(e) => {
+								<PlaceholderInput style="font-size:10.5px;" value={link.label} placeholder="Label" oninput={(v) => {
 									const links = [...(props.links ?? [])];
-									links[i] = { ...links[i], label: (e.target as HTMLInputElement).value };
+									links[i] = { ...links[i], label: v };
 									setProp('links', links);
 								}} />
-								<input class={inputClass} style="font-size:10.5px;" value={link.url} placeholder="URL" oninput={(e) => {
+								<PlaceholderInput url style="font-size:10.5px;" value={link.url} placeholder="URL" oninput={(v) => {
 									const links = [...(props.links ?? [])];
-									links[i] = { ...links[i], url: (e.target as HTMLInputElement).value };
+									links[i] = { ...links[i], url: v };
 									setProp('links', links);
 								}} />
 							</div>
@@ -477,11 +474,11 @@
 				<div class="rp-flex-col">
 					<div>
 						<label class={labelClass}>Link Text</label>
-						<input class={inputClass} value={props.unsubText ?? 'Unsubscribe'} oninput={(e) => setProp('unsubText', (e.target as HTMLInputElement).value)} />
+						<PlaceholderInput value={props.unsubText ?? 'Unsubscribe'} oninput={(v) => setProp('unsubText', v)} />
 					</div>
 					<div>
 						<label class={labelClass}>Link URL</label>
-						<input class={inputClass} value={props.unsubUrl ?? ''} oninput={(e) => setProp('unsubUrl', (e.target as HTMLInputElement).value)} />
+						<PlaceholderInput url value={props.unsubUrl ?? ''} oninput={(v) => setProp('unsubUrl', v)} />
 					</div>
 				</div>
 			</PropSection>
@@ -563,6 +560,9 @@
 			</PropSection>
 		{/if}
 	{/if}
+
+	<PlaceholderWarnings />
+	<ManageLinksDialog />
 
 	<!-- ======================== TEMPLATE METADATA ======================== -->
 	<div class="rp-meta-section">
@@ -912,33 +912,6 @@
 		cursor: pointer;
 	}
 
-	/* ─── Link row ────────────────────────────────────────────────── */
-	.right-panel :global(.rp-link-row) {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		border: 1px solid var(--border);
-		border-radius: var(--radius-sm);
-		padding: 5px 8px;
-		background: var(--bg-raised);
-		transition: border-color 0.15s, box-shadow 0.15s;
-	}
-	.right-panel :global(.rp-link-row:focus-within) {
-		border-color: var(--border-focus);
-		box-shadow: 0 0 0 2px var(--accent-dim);
-	}
-	.right-panel :global(.rp-link-row svg) { color: var(--color-accent-ink); flex-shrink: 0; opacity: 0.7; }
-	.right-panel :global(.rp-link-row input) {
-		border: none;
-		background: transparent;
-		font-size: 11px;
-		color: var(--text-hi);
-		outline: none;
-		flex: 1;
-		min-width: 0;
-		font-family: inherit;
-	}
-	.right-panel :global(.rp-link-row input::placeholder) { color: var(--text-lo); }
 
 	/* ─── Item / flex helpers ─────────────────────────────────────── */
 	.right-panel :global(.rp-item-row) {

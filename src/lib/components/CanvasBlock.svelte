@@ -1,6 +1,19 @@
 <script lang="ts">
 	import type { Block } from '$lib/blocks';
 	import { resolveColor } from '$lib/colors';
+	import { mailerData } from '$lib/mailer-data.svelte';
+	import { BUILTIN_KEYS, chipifyHtml, type Tag } from '$lib/placeholders';
+	import PlaceholderText from './PlaceholderText.svelte';
+
+	function phKind(tag: Tag): string {
+		if (tag.kind === 'unsupported') return 'bad';
+		if (tag.kind === 'field') {
+			const f = mailerData.knownFields;
+			return f && tag.fallback === null && !BUILTIN_KEYS.has(tag.key) && !f.has(tag.key) ? 'bad' : 'field';
+		}
+		const l = mailerData.knownLinks;
+		return l && !l.has(tag.key) ? 'bad' : 'link';
+	}
 
 	interface Props {
 		block: Block;
@@ -93,14 +106,14 @@
 	{:else if block.type === 'heading'}
 		<div style="padding:{block.props.paddingTop}px {block.props.paddingRight}px {block.props.paddingBottom}px {block.props.paddingLeft}px; text-align:{block.props.align};">
 			<h2 style="font-size:{block.props.fontSize}px; font-weight:{block.props.fontWeight}; color:{block.props.color}; margin:0;">
-				{block.props.text}
+				<PlaceholderText text={block.props.text} />
 			</h2>
 		</div>
 
 	{:else if block.type === 'subheading'}
 		<div style="padding:{block.props.paddingTop}px {block.props.paddingRight}px {block.props.paddingBottom}px {block.props.paddingLeft}px; text-align:{block.props.align};">
 			<p style="font-size:{block.props.fontSize}px; font-weight:{block.props.fontWeight}; color:{block.props.color}; line-height:{block.props.lineHeight}; margin:0;">
-				{block.props.text}
+				<PlaceholderText text={block.props.text} />
 			</p>
 		</div>
 
@@ -108,7 +121,7 @@
 		<div style="padding:{block.props.paddingTop}px {block.props.paddingRight}px {block.props.paddingBottom}px {block.props.paddingLeft}px; text-align:{block.props.align};">
 			<!-- eslint-disable svelte/no-at-html-tags -->
 			<div style="font-size:{block.props.fontSize}px; font-weight:{block.props.fontWeight ?? 'normal'}; color:{block.props.color}; line-height:{block.props.lineHeight};">
-				{@html block.props.text}
+				{@html chipifyHtml(block.props.text ?? '', phKind)}
 			</div>
 		</div>
 
@@ -138,7 +151,7 @@
 					box-sizing:border-box;
 				"
 			>
-				{block.props.text}
+				<PlaceholderText text={block.props.text} />
 			</div>
 		</div>
 
@@ -148,7 +161,7 @@
 				{#each block.props.items as item}
 					<li style="display:flex; align-items:flex-start; gap:8px; margin-bottom:6px; font-size:{block.props.fontSize}px; color:{block.props.color};">
 						<span style="margin-top:5px; flex-shrink:0; width:6px; height:6px; border-radius:50%; background-color:{rc(block.props.bulletColor)}; display:inline-block;"></span>
-						<span>{item}</span>
+						<span><PlaceholderText text={item} /></span>
 					</li>
 				{/each}
 			</ul>
@@ -168,8 +181,8 @@
 				<tbody>
 					{#each block.props.rows as row}
 						<tr>
-							<td style="padding:10px 14px;color:{block.props.cellColor};border:1px solid {block.props.borderColor};">{row.col1}</td>
-							<td style="padding:10px 14px;color:{block.props.cellColor};border:1px solid {block.props.borderColor};">{row.col2}</td>
+							<td style="padding:10px 14px;color:{block.props.cellColor};border:1px solid {block.props.borderColor};"><PlaceholderText text={row.col1} /></td>
+							<td style="padding:10px 14px;color:{block.props.cellColor};border:1px solid {block.props.borderColor};"><PlaceholderText text={row.col2} /></td>
 						</tr>
 					{/each}
 				</tbody>
@@ -196,7 +209,7 @@
 				</p>
 			{/if}
 			<p style="font-size:{block.props.fontSize}px; color:{block.props.color}; margin:0 0 12px; line-height:1.6;">
-				{block.props.text}
+				<PlaceholderText text={block.props.text} />
 			</p>
 			{#if block.props.links?.length || block.props.unsubUrl}
 				<div style="font-size:{block.props.fontSize}px; margin-top:8px;">
@@ -239,4 +252,12 @@
 		box-sizing: border-box;
 		z-index: 10;
 	}
+
+	:global(.ph) {
+		font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.88em;
+		border-radius: 4px; padding: 0 4px; background: var(--color-accent-soft); color: var(--color-accent-ink);
+		box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 55%, transparent);
+	}
+	:global(.ph-link) { background: var(--color-info-soft); color: var(--color-info); box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-info) 55%, transparent); }
+	:global(.ph-bad) { background: var(--color-danger-soft); color: var(--color-danger); box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-danger) 55%, transparent); }
 </style>
