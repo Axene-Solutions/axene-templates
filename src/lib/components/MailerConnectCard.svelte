@@ -95,14 +95,14 @@
 <style>
 	/* All colors for this component live in this block. */
 	.mc {
-		--mc-accent: #ffd100;
-		--mc-field: #141414;
-		--mc-border: rgba(255, 255, 255, 0.12);
-		--mc-text: #e0e0e0;
-		--mc-muted: #888;
-		--mc-ok: #34d399;
-		--mc-err: #f87171;
-		--mc-warn: #fbbf24;
+		--mc-accent: var(--color-accent);
+		--mc-field: var(--color-bg);
+		--mc-border: var(--color-border-1);
+		--mc-text: var(--color-text);
+		--mc-muted: var(--color-muted);
+		--mc-ok: var(--color-success);
+		--mc-err: var(--color-danger);
+		--mc-warn: var(--color-danger);
 		color: var(--mc-text);
 		font-size: 13px;
 	}
@@ -110,7 +110,7 @@
 	.mc-muted { color: var(--mc-muted); font-size: 12px; }
 	.mc-steps { color: var(--mc-muted); line-height: 1.6; margin: 0 0 14px 18px; }
 	.mc-steps ul { list-style: disc; margin-left: 18px; }
-	.mc-steps a { color: var(--mc-accent); }
+	.mc-steps a { color: var(--color-accent-ink); }
 	.mc-label { display: block; font-size: 11.5px; font-weight: 600; color: var(--mc-muted); margin: 12px 0 5px; }
 	.mc-input {
 		width: 100%; background: var(--mc-field); color: var(--mc-text);
@@ -133,11 +133,11 @@
 		display: inline-flex; align-items: center; gap: 6px; background: transparent; color: var(--mc-text);
 		border: 1px solid var(--mc-border); border-radius: 7px; padding: 7px 14px; font: inherit; font-weight: 600; cursor: pointer;
 	}
-	.mc-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.06); }
+	.mc-btn:hover:not(:disabled) { background: var(--color-surface-2); }
 	.mc-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-	.mc-btn-primary { background: var(--mc-accent); color: #000; border-color: var(--mc-accent); }
-	.mc-btn-primary:hover:not(:disabled) { background: #ffe033; }
+	.mc-btn-primary { background: var(--mc-accent); color: #101010; border-color: var(--mc-accent); }
+	.mc-btn-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text)); }
 	.mc-btn-danger { color: var(--mc-err); border-color: var(--mc-err); }
-	.mc-btn-danger-solid { background: #dc2626; color: #fff; border-color: #dc2626; }
-	.mc-btn-danger-solid:hover:not(:disabled) { background: #b91c1c; }
+	.mc-btn-danger-solid { background: var(--color-danger); color: var(--color-bg); border-color: var(--color-danger); }
+	.mc-btn-danger-solid:hover:not(:disabled) { opacity: 0.9; }
 </style>

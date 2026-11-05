@@ -224,21 +224,21 @@
 <style>
 	/* All colors for this component live in this block. */
 	.sm {
-		--sm-accent: #ffd100;
-		--sm-card: #1e1e1e;
-		--sm-field: #141414;
-		--sm-border: rgba(255, 255, 255, 0.12);
-		--sm-text: #e0e0e0;
-		--sm-muted: #888;
-		--sm-ok: #34d399;
-		--sm-err: #f87171;
-		--sm-warn: #fbbf24;
+		--sm-accent: var(--color-accent);
+		--sm-card: var(--color-surface-2);
+		--sm-field: var(--color-bg);
+		--sm-border: var(--color-border-1);
+		--sm-text: var(--color-text);
+		--sm-muted: var(--color-muted);
+		--sm-ok: var(--color-success);
+		--sm-err: var(--color-danger);
+		--sm-warn: var(--color-danger);
 	}
 	.sm-overlay {
 		position: fixed;
 		inset: 0;
 		z-index: 1000;
-		background: rgba(0, 0, 0, 0.45);
+		background: color-mix(in srgb, var(--color-bg) 70%, transparent);
 		backdrop-filter: blur(4px);
 		display: flex;
 		align-items: center;
@@ -267,7 +267,7 @@
 	.sm-count { font-size: 11.5px; color: var(--sm-muted); }
 	.sm-over { color: var(--sm-err); }
 	.sm-link { background: none; border: none; cursor: pointer; font: inherit; font-size: 11.5px; padding: 0; }
-	.sm-link { color: var(--sm-accent); }
+	.sm-link { color: var(--color-accent-ink); }
 	.sm-link:disabled { opacity: 0.4; cursor: not-allowed; }
 	.sm-link-quiet { color: var(--sm-muted); text-decoration: underline; }
 	.sm-link-danger { color: var(--sm-err); }
@@ -306,7 +306,7 @@
 		display: inline-flex; align-items: center; gap: 6px;
 		border: none; border-radius: 7px; padding: 8px 16px; font: inherit; font-weight: 600; cursor: pointer;
 	}
-	.sm-btn-primary { background: var(--sm-accent); color: #000; }
-	.sm-btn-primary:hover:not(:disabled) { background: #ffe033; }
+	.sm-btn-primary { background: var(--sm-accent); color: #101010; }
+	.sm-btn-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text)); }
 	.sm-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 </style>
