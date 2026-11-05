@@ -18,6 +18,7 @@
 		if (!tpl) return;
 		untrack(() => {
 			editor.setTemplate(tpl.id, tpl.name, tpl.blocks, !!tpl.isPublic, tpl.category || 'general', tpl.mailerTemplateId ?? '');
+			if (tpl.mailerInSync) editor.markMailerSynced();
 			editor.compile();
 		});
 		ready = true;

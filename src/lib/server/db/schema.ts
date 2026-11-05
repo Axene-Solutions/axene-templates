@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { pgTable, uuid, text, boolean, timestamp, jsonb, uniqueIndex } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
@@ -38,9 +39,19 @@ export const templates = pgTable('templates', {
   isPublic: boolean('is_public').notNull().default(false),
   // Id of the linked template in the owner's Axene Mailer account, if saved there.
   mailerTemplateId: text('mailer_template_id'),
+  // Mailer's updated_at for the linked template, exactly as Mailer sent it, at the last open or save.
+  // Save to Mailer only overwrites when Mailer still reports this value.
+  mailerSyncedAt: text('mailer_synced_at'),
+  // When this row was last made equal to the Mailer copy. updated_at later than this means local edits.
+  mailerSyncedLocalAt: timestamp('mailer_synced_local_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  // One Templates copy per user and Mailer template; open relies on it instead of a per-process lock.
+  uniqueIndex('templates_user_mailer_template_idx')
+    .on(table.userId, table.mailerTemplateId)
+    .where(sql`${table.mailerTemplateId} IS NOT NULL`),
+]);
 
 // One Axene Mailer API key per Templates user, encrypted at rest (AES-256-GCM).
 // Only the last four characters are kept in the clear, for display.

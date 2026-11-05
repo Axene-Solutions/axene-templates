@@ -4,7 +4,7 @@ import { randomBytes } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { templates } from '$lib/server/db/schema';
-import { gate, loadApiKey, mailerFailure } from '$lib/server/mailer/http';
+import { gate, loadApiKey, mailerFailure, readJson } from '$lib/server/mailer/http';
 import { getTemplate } from '$lib/server/mailer/client';
 import { getMailerPublicUrl } from '$lib/server/mailer/config';
 import { createRateLimiter } from '$lib/server/mailer/guard';
@@ -15,10 +15,14 @@ import { sanitizeForOpen } from '$lib/server/sanitize-blocks';
 const limiter = createRateLimiter(60, 60 * 60 * 1000);
 const inFlight = new Set<string>();
 
-// POST /api/mailer/templates/:mailerId/open -> { id } of the Templates copy, created on first open.
+// POST /api/mailer/templates/:mailerId/open { reload? } -> { id, created, state } for the Templates copy,
+// created on first open. state: in_sync, refreshed (Mailer was newer and the copy had no local edits),
+// or conflict (both changed: the local copy is kept). reload: true replaces local edits with Mailer's copy.
 export const POST: RequestHandler = async (event) => {
 	const auth = gate(event, true);
 	if (auth instanceof Response) return auth;
+	const body = (await readJson(event)) ?? {};
+	const reload = body.reload === true;
 
 	const mailerId = event.params.mailerId;
 	if (!isValidMailerId(mailerId)) return json({ error: 'Invalid Mailer template id' }, { status: 400 });
@@ -52,25 +56,54 @@ export const POST: RequestHandler = async (event) => {
 		}
 
 		const [existing] = await db
+			.select({ id: templates.id, updatedAt: templates.updatedAt, mailerSyncedAt: templates.mailerSyncedAt, mailerSyncedLocalAt: templates.mailerSyncedLocalAt })
+			.from(templates)
+			.where(and(eq(templates.userId, auth.user.id), eq(templates.mailerTemplateId, mailerId)))
+			.limit(1);
+		const remoteAt = res.data.updatedAt;
+		const now = new Date();
+
+		if (existing) {
+			if (remoteAt && existing.mailerSyncedAt === remoteAt && !reload) return json({ id: existing.id, created: false, state: 'in_sync' });
+			// Mailer changed since the last open or save (or this row predates sync tracking).
+			const localEdits = !existing.mailerSyncedLocalAt || existing.updatedAt.getTime() > existing.mailerSyncedLocalAt.getTime();
+			if (localEdits && !reload) {
+				// Never discard edits made here: the editor opens the local copy and Save reports the conflict.
+				return json({ id: existing.id, created: false, state: 'conflict' });
+			}
+			await db
+				.update(templates)
+				.set({ blocks: env.blocks, mailerSyncedAt: remoteAt, mailerSyncedLocalAt: now, updatedAt: now })
+				.where(and(eq(templates.id, existing.id), eq(templates.userId, auth.user.id)));
+			return json({ id: existing.id, created: false, state: 'refreshed' });
+		}
+
+		const id = `mailer-${randomBytes(8).toString('hex')}`;
+		const name = (cleanLine(res.data.name) || 'Mailer template').slice(0, MAX_TEMPLATE_NAME);
+		// The partial unique index on (user_id, mailer_template_id) makes a concurrent second insert a no-op.
+		await db
+			.insert(templates)
+			.values({
+				id,
+				userId: auth.user.id,
+				name,
+				category: 'general',
+				blocks: env.blocks,
+				isStarter: false,
+				isPublic: false,
+				mailerTemplateId: mailerId,
+				mailerSyncedAt: remoteAt,
+				mailerSyncedLocalAt: now,
+				updatedAt: now,
+			})
+			.onConflictDoNothing();
+		const [row] = await db
 			.select({ id: templates.id })
 			.from(templates)
 			.where(and(eq(templates.userId, auth.user.id), eq(templates.mailerTemplateId, mailerId)))
 			.limit(1);
-		if (existing) return json({ id: existing.id, created: false });
-
-		const id = `mailer-${randomBytes(8).toString('hex')}`;
-		const name = (cleanLine(res.data.name) || 'Mailer template').slice(0, MAX_TEMPLATE_NAME);
-		await db.insert(templates).values({
-			id,
-			userId: auth.user.id,
-			name,
-			category: 'general',
-			blocks: env.blocks,
-			isStarter: false,
-			isPublic: false,
-			mailerTemplateId: mailerId,
-		});
-		return json({ id, created: true });
+		if (!row) return json({ error: 'The template could not be opened. Try again.' }, { status: 500 });
+		return json({ id: row.id, created: row.id === id, state: 'in_sync' });
 	} finally {
 		inFlight.delete(lock);
 	}

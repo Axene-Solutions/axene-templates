@@ -392,6 +392,10 @@ export const editor = {
     mailerTemplateName = name;
     mailerSyncedJson = snapshot();
   },
+  /** The server says the loaded row equals the Mailer copy as of the last open or save. */
+  markMailerSynced() {
+    if (mailerTemplateId) mailerSyncedJson = snapshot();
+  },
   /** True when the linked Mailer copy was saved from exactly what is in the editor now. */
   mailerInSync(): boolean {
     return !!mailerTemplateId && mailerSyncedJson !== "" && mailerSyncedJson === snapshot();

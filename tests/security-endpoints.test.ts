@@ -33,7 +33,7 @@ function ev(opts: { user?: any; method?: string; origin?: string | null; body?: 
 type Call = { method: string; path: string; body: any };
 let calls: Call[] = [];
 let upstream: (c: Call) => { status: number; json?: unknown } = () => ({ status: 200, json: {} });
-const q = (...rows: unknown[][]) => ((globalThis as any).__dbQueue = rows);
+const q = (...rows: (unknown[] | (() => unknown[]))[]) => ((globalThis as any).__dbQueue = rows);
 const writes = () => (globalThis as any).__dbWrites as { op: string; data: any }[];
 const connected = () => [{ apiKeyEncrypted: encryptSecret(SECRET, ENC) }];
 
@@ -202,3 +202,148 @@ test('mailer-save: an old malicious row is compiled from sanitised blocks, and t
 	noScript(post.body.blocks_json);
 });
 
+
+// ---- Save to Mailer: copy rule and sync precondition ----
+
+test("mailer-save: another user's public template needs a copy, like send, and Mailer is never called", async () => {
+	q([row({ isPublic: true, blocks: evil })], connected());
+	const res = await mailerSave(ev({ body: { subject: 'S' } }));
+	assert.equal(res.status, 403);
+	const body = await res.json();
+	assert.equal(body.code, 'copy_required');
+	assert.equal(calls.length, 0);
+});
+
+test('mailer-save: a starter can still be saved to Mailer as a new template', async () => {
+	q([row({ userId: null, isStarter: true, isPublic: true, blocks: [{ id: 'a', type: 'heading', props: { text: 'Hi' } }] })], connected());
+	upstream = () => ({ status: 201, json: { id: 'm-new', name: 'T', subject: 'S', updated_at: 'v1' } });
+	const res = await mailerSave(ev({ body: { subject: 'S' } }));
+	assert.equal(res.status, 200);
+	assert.deepEqual(calls.map((c) => c.method), ['POST']);
+	assert.equal(writes().length, 0, 'a starter row is never linked');
+});
+
+const linkedRow = (over: Record<string, unknown> = {}) =>
+	row({ userId: 'u-me', mailerTemplateId: 'm1', mailerSyncedAt: '2026-11-01T10:00:00Z', updatedAt: new Date('2026-11-02T00:00:00Z'), blocks: [{ id: 'a', type: 'heading', props: { text: 'Hi' } }], ...over });
+
+test('mailer-save: 409 mailer_template_changed when Mailer changed since it was opened, and nothing is written', async () => {
+	q([linkedRow()], connected());
+	upstream = (c) => (c.method === 'GET' ? { status: 200, json: mailerTpl([], { updated_at: '2026-11-03T09:00:00Z' }) } : { status: 500 });
+	const res = await mailerSave(ev({ body: { subject: 'S' } }));
+	assert.equal(res.status, 409);
+	const body = await res.json();
+	assert.equal(body.code, 'mailer_template_changed');
+	assert.match(body.error, /changed in Mailer since you opened it/);
+	assert.deepEqual(calls.map((c) => c.method), ['GET']);
+	assert.equal(writes().length, 0);
+});
+
+test('mailer-save: a row linked before sync tracking also asks first instead of overwriting', async () => {
+	q([linkedRow({ mailerSyncedAt: null })], connected());
+	upstream = () => ({ status: 200, json: mailerTpl([]) });
+	assert.equal((await mailerSave(ev({ body: { subject: 'S' } }))).status, 409);
+});
+
+test('mailer-save: overwrite: true replaces the changed Mailer copy and records the new version', async () => {
+	q([linkedRow()], connected());
+	upstream = (c) => (c.method === 'GET' ? { status: 200, json: mailerTpl([], { updated_at: '2026-11-03T09:00:00Z' }) } : { status: 200, json: { id: 'm1', name: 'T', subject: 'S', updated_at: '2026-11-04T00:00:00Z' } });
+	const res = await mailerSave(ev({ body: { subject: 'S', overwrite: true } }));
+	assert.equal(res.status, 200);
+	assert.deepEqual(calls.map((c) => c.method), ['GET', 'PATCH']);
+	const upd = writes().find((w) => w.op === 'update')!;
+	assert.equal(upd.data.mailerSyncedAt, '2026-11-04T00:00:00Z');
+	assert.deepEqual(upd.data.mailerSyncedLocalAt, new Date('2026-11-02T00:00:00Z'));
+});
+
+test('mailer-save: an unchanged Mailer copy is updated without asking', async () => {
+	q([linkedRow()], connected());
+	upstream = (c) => (c.method === 'GET' ? { status: 200, json: mailerTpl([]) } : { status: 200, json: { id: 'm1', name: 'T', subject: 'S', updated_at: '2026-11-05T00:00:00Z' } });
+	const res = await mailerSave(ev({ body: { subject: 'S' } }));
+	assert.equal(res.status, 200);
+	assert.equal((await res.json()).created, false);
+	assert.deepEqual(calls.map((c) => c.method), ['GET', 'PATCH']);
+});
+
+test('mailer-save: a template deleted in Mailer is created again and relinked', async () => {
+	q([linkedRow()], connected());
+	upstream = (c) => (c.method === 'GET' ? { status: 404, json: { detail: 'not found' } } : { status: 201, json: { id: 'm2', name: 'T', subject: 'S', updated_at: 'v9' } });
+	const res = await mailerSave(ev({ body: { subject: 'S' } }));
+	assert.equal(res.status, 200);
+	assert.equal((await res.json()).created, true);
+	assert.deepEqual(calls.map((c) => c.method), ['GET', 'POST']);
+	assert.equal(writes().find((w) => w.op === 'update')!.data.mailerTemplateId, 'm2');
+});
+
+// ---- Mailer open: create, reuse, refresh, conflict ----
+
+const goodBlocks = [{ id: 'a', type: 'heading', props: { text: 'From <b>Mailer</b>' } }];
+const insertedId = () => writes().find((w) => w.op === 'insert')!.data.id;
+
+test('open: first open creates a row for the caller with the sanitised blocks and Mailer version', async () => {
+	q(connected(), [], [], () => [{ id: insertedId() }]);
+	upstream = () => ({ status: 200, json: mailerTpl(goodBlocks) });
+	const res = await open(openEv('m1'));
+	assert.equal(res.status, 200);
+	const body = await res.json();
+	assert.equal(body.created, true);
+	assert.equal(body.state, 'in_sync');
+	const ins = writes().find((w) => w.op === 'insert')!.data;
+	assert.equal(body.id, ins.id);
+	assert.equal(ins.userId, 'u-me');
+	assert.equal(ins.mailerTemplateId, 'm1');
+	assert.equal(ins.mailerSyncedAt, '2026-11-01T10:00:00Z');
+	assert.deepEqual(ins.blocks, goodBlocks);
+});
+
+test("open: user B opening user A's Mailer id gets B's own new row, never A's", async () => {
+	// The lookup is scoped to the caller, so A's row is not found for B.
+	q(connected(), [], [], () => [{ id: insertedId() }]);
+	upstream = () => ({ status: 200, json: mailerTpl(goodBlocks) });
+	const res = await open(openEv('m1', { user: OTHER }));
+	const body = await res.json();
+	assert.equal(body.created, true);
+	assert.equal(writes().find((w) => w.op === 'insert')!.data.userId, 'u-other');
+});
+
+test('open: a concurrent second open loses the insert race and reuses the winning row', async () => {
+	q(connected(), [], [], [{ id: 'mailer-winner' }]);
+	upstream = () => ({ status: 200, json: mailerTpl(goodBlocks) });
+	const body = await (await open(openEv('m1'))).json();
+	assert.deepEqual([body.id, body.created], ['mailer-winner', false]);
+});
+
+const existing = (over: Record<string, unknown> = {}) => [{ id: 'mailer-mine', updatedAt: new Date('2026-11-01T10:00:00Z'), mailerSyncedAt: '2026-11-01T10:00:00Z', mailerSyncedLocalAt: new Date('2026-11-01T10:00:00Z'), ...over }];
+
+test('open: reuse returns the existing row untouched when Mailer has not changed', async () => {
+	q(connected(), existing());
+	upstream = () => ({ status: 200, json: mailerTpl(goodBlocks) });
+	const body = await (await open(openEv('m1'))).json();
+	assert.deepEqual(body, { id: 'mailer-mine', created: false, state: 'in_sync' });
+	assert.equal(writes().length, 0);
+});
+
+test('open: Mailer newer and no local edits refreshes the local copy', async () => {
+	q(connected(), existing());
+	upstream = () => ({ status: 200, json: mailerTpl(goodBlocks, { updated_at: '2026-11-03T00:00:00Z' }) });
+	const body = await (await open(openEv('m1'))).json();
+	assert.equal(body.state, 'refreshed');
+	const upd = writes().find((w) => w.op === 'update')!.data;
+	assert.deepEqual(upd.blocks, goodBlocks);
+	assert.equal(upd.mailerSyncedAt, '2026-11-03T00:00:00Z');
+});
+
+test('open: Mailer newer and local edits keeps the local copy and reports a conflict', async () => {
+	q(connected(), existing({ updatedAt: new Date('2026-11-02T00:00:00Z') }));
+	upstream = () => ({ status: 200, json: mailerTpl(goodBlocks, { updated_at: '2026-11-03T00:00:00Z' }) });
+	const body = await (await open(openEv('m1'))).json();
+	assert.deepEqual(body, { id: 'mailer-mine', created: false, state: 'conflict' });
+	assert.equal(writes().length, 0);
+});
+
+test('open: reload: true replaces local edits with the Mailer copy', async () => {
+	q(connected(), existing({ updatedAt: new Date('2026-11-02T00:00:00Z') }));
+	upstream = () => ({ status: 200, json: mailerTpl(goodBlocks, { updated_at: '2026-11-03T00:00:00Z' }) });
+	const body = await (await open(openEv('m1', { body: { reload: true } }))).json();
+	assert.equal(body.state, 'refreshed');
+	assert.equal(writes().filter((w) => w.op === 'update').length, 1);
+});

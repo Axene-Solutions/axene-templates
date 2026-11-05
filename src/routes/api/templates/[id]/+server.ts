@@ -23,11 +23,14 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 		if (t.isStarter || t.isPublic) {
 			// The Mailer link is only meaningful to (and only shown to) the owner.
 			const mailerTemplateId = locals.user && t.userId === locals.user.id ? t.mailerTemplateId : null;
-			return json({ id: t.id, name: t.name, category: t.category, version: t.version, blocks: sanitizeBlocksForRead(t.blocks), isStarter: t.isStarter, isPublic: t.isPublic, mailerTemplateId });
+			const mailerInSync = !!(mailerTemplateId && t.mailerSyncedAt && t.mailerSyncedLocalAt && t.updatedAt && t.updatedAt.getTime() <= t.mailerSyncedLocalAt.getTime());
+			return json({ mailerInSync, id: t.id, name: t.name, category: t.category, version: t.version, blocks: sanitizeBlocksForRead(t.blocks), isStarter: t.isStarter, isPublic: t.isPublic, mailerTemplateId });
 		}
 
 		if (locals.user && t.userId === locals.user.id) {
-			return json({ id: t.id, name: t.name, category: t.category, version: t.version, blocks: sanitizeBlocksForRead(t.blocks), isStarter: t.isStarter, isPublic: t.isPublic, mailerTemplateId: t.mailerTemplateId });
+			// No local edits since the last open or save that matched Mailer's copy.
+			const mailerInSync = !!(t.mailerTemplateId && t.mailerSyncedAt && t.mailerSyncedLocalAt && t.updatedAt && t.updatedAt.getTime() <= t.mailerSyncedLocalAt.getTime());
+			return json({ id: t.id, name: t.name, category: t.category, version: t.version, blocks: sanitizeBlocksForRead(t.blocks), isStarter: t.isStarter, isPublic: t.isPublic, mailerTemplateId: t.mailerTemplateId, mailerInSync });
 		}
 
 		return json({ error: 'Forbidden' }, { status: 403 });

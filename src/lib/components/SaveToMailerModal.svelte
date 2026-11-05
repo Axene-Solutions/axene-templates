@@ -5,7 +5,9 @@
 	import { mailerData } from '$lib/mailer-data.svelte';
 	import { saveBlockedReason, PRICING_URL } from '$lib/mailer-plan';
 	import { trapFocus } from '$lib/focus';
+	import { invalidate } from '$app/navigation';
 	import Icon from './Icon.svelte';
+	import ConfirmModal from './ConfirmModal.svelte';
 	import MailerConnectCard from './MailerConnectCard.svelte';
 	import MailerPlanCard from './MailerPlanCard.svelte';
 	import PlaceholderWarnings from './PlaceholderWarnings.svelte';
@@ -19,6 +21,10 @@
 	let saving = $state(false);
 	let error = $state('');
 	let result = $state<Result | null>(null);
+	// Mailer's copy changed since this template was opened or last saved (409 mailer_template_changed).
+	let conflict = $state(false);
+	let confirmReload = $state(false);
+	let reloading = $state(false);
 
 	const linked = $derived(!!editor.mailerTemplateId);
 	const verb = $derived(linked ? 'Update in Mailer' : 'Save to Mailer');
@@ -51,15 +57,18 @@
 	async function init() {
 		error = '';
 		result = null;
+		conflict = false;
+		confirmReload = false;
 		subject = rememberedSubject() || editor.templateName;
 		name = editor.templateName;
 		await mailer.load();
 		if (mailer.status === 'connected') mailerData.loadPlan(true);
 	}
 
-	async function save() {
+	async function save(overwrite = false) {
 		error = '';
 		result = null;
+		conflict = false;
 		saving = true;
 		try {
 			// The server compiles the saved copy, so persist pending edits (and brand new templates) first.
@@ -70,7 +79,7 @@
 			const res = await fetch(`/api/templates/${encodeURIComponent(editor.templateId)}/mailer-save`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ subject, name }),
+				body: JSON.stringify(overwrite ? { subject, name, overwrite: true } : { subject, name }),
 			});
 			const data = await res.json().catch(() => ({}));
 			if (res.ok) {
@@ -78,6 +87,8 @@
 				if (data.linked) editor.setMailerLink(data.mailerTemplateId, data.name ?? name);
 				remember(subject);
 				mailerData.refreshPlan();
+			} else if (res.status === 409 && data.code === 'mailer_template_changed') {
+				conflict = true;
 			} else if (res.status === 409 && (data.code === 'not_connected' || data.code === 'mailer_key_unreadable')) {
 				await mailer.load();
 			} else if (res.status === 429) {
@@ -92,9 +103,35 @@
 		}
 	}
 
+	/** Discards local edits: the Templates copy is replaced with Mailer's current version. */
+	async function reloadFromMailer() {
+		confirmReload = false;
+		error = '';
+		reloading = true;
+		try {
+			const res = await fetch(`/api/mailer/templates/${encodeURIComponent(editor.mailerTemplateId)}/open`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ reload: true }),
+			});
+			const data = await res.json().catch(() => ({}));
+			if (!res.ok) {
+				error = data.error ?? `Could not reload from Mailer (error ${res.status})`;
+				return;
+			}
+			conflict = false;
+			await invalidate('app:template');
+			onclose();
+		} catch {
+			error = 'Could not reload from Mailer, check your connection';
+		} finally {
+			reloading = false;
+		}
+	}
+
 	// While saving, Escape and backdrop clicks do nothing, so the result is not lost.
 	function close() {
-		if (!saving) onclose();
+		if (!saving && !reloading && !confirmReload) onclose();
 	}
 	function onkeydown(e: KeyboardEvent) {
 		if (open && e.key === 'Escape') close();
@@ -145,6 +182,26 @@
 					<div class="mt-note mt-note-err" role="alert"><Icon name="warning" width={16} height={16} /><span>{error}</span></div>
 				{/if}
 
+				{#if conflict}
+					<div class="mt-note mt-note-warn" role="alert">
+						<Icon name="warning" width={16} height={16} />
+						<div>
+							<div class="mt-strong">This template changed in Mailer since you opened it</div>
+							<div>Saving now would replace the changes made in Mailer.</div>
+							<div class="mt-actions">
+								<button class="mt-btn mt-btn-secondary" disabled={saving || reloading} onclick={() => (confirmReload = true)}>
+									<Icon name="refresh" width={14} height={14} />
+									{reloading ? 'Reloading...' : 'Reload from Mailer'}
+								</button>
+								<button class="mt-btn mt-btn-danger" disabled={saving || reloading} onclick={() => save(true)}>
+									<Icon name="save" width={14} height={14} />
+									Overwrite Mailer's copy
+								</button>
+							</div>
+						</div>
+					</div>
+				{/if}
+
 				{#if result}
 					<div class="mt-note mt-note-ok" role="status">
 						<Icon name="check" width={16} height={16} />
@@ -157,7 +214,7 @@
 
 				<div class="mt-foot">
 					<span class="mt-muted">Write access to templates is checked on the first save.</span>
-					<button class="mt-btn mt-btn-primary" disabled={!canSave} onclick={save}>
+					<button class="mt-btn mt-btn-primary" disabled={!canSave || conflict || reloading} onclick={() => save()}>
 						<Icon name="save" width={14} height={14} />
 						{saving ? 'Saving...' : result ? 'Save again' : verb}
 					</button>
@@ -166,6 +223,16 @@
 		</div>
 	</div>
 {/if}
+
+<ConfirmModal
+	open={confirmReload}
+	title="Reload from Mailer"
+	message="This replaces the template here with the version in Mailer. Edits made here since it was opened are discarded."
+	confirmText="Discard edits and reload"
+	variant="danger"
+	onconfirm={reloadFromMailer}
+	oncancel={() => (confirmReload = false)}
+/>
 
 <style>
 	/* All colors for this component live in this block. */
@@ -224,4 +291,11 @@
 	.mt-btn-primary { background: var(--mt-accent); color: #101010; }
 	.mt-btn-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text)); }
 	.mt-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+	.mt-note-warn { border-color: var(--mt-warn-ink); background: var(--mt-warn-bg); color: var(--mt-text); }
+	.mt-strong { font-weight: 600; margin-bottom: 2px; }
+	.mt-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+	.mt-btn-secondary { background: var(--mt-field); color: var(--mt-text); border: 1px solid var(--mt-border); }
+	.mt-btn-secondary:hover:not(:disabled) { border-color: var(--mt-muted); }
+	.mt-btn-danger { background: var(--mt-err); color: var(--color-bg); }
+	.mt-btn-danger:hover:not(:disabled) { background: color-mix(in srgb, var(--mt-err) 85%, var(--color-text)); }
 </style>

@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { templates } from '$lib/server/db/schema';
 import { gate, loadApiKey, readJson, mailerFailure } from '$lib/server/mailer/http';
-import { createTemplate, updateTemplate, type MailerTemplateInput } from '$lib/server/mailer/client';
+import { createTemplate, getTemplate, updateTemplate, type MailerTemplateInput } from '$lib/server/mailer/client';
 import { getMailerPublicUrl } from '$lib/server/mailer/config';
 import { createRateLimiter } from '$lib/server/mailer/guard';
 import { forgetPlans } from '$lib/server/mailer/plancache';
@@ -18,7 +18,9 @@ const limiter = createRateLimiter(60, 60 * 60 * 1000);
 // One save at a time per user and template, so a double click cannot create two Mailer templates.
 const inFlight = new Set<string>();
 
-// POST /api/templates/:id/mailer-save { subject, name? }
+// POST /api/templates/:id/mailer-save { subject, name?, overwrite? }
+// A linked template is only updated while Mailer still reports the updated_at recorded at the last
+// open or save; otherwise 409 mailer_template_changed, unless overwrite is true.
 export const POST: RequestHandler = async (event) => {
 	const auth = gate(event, true);
 	if (auth instanceof Response) return auth;
@@ -38,8 +40,13 @@ export const POST: RequestHandler = async (event) => {
 	const [t] = await db.select().from(templates).where(eq(templates.id, event.params.id)).limit(1);
 	if (!t) return json({ error: 'Template not found' }, { status: 404 });
 	const owner = t.userId === auth.user.id;
-	// Someone else's private template is off limits. Starters and public templates may be copied into Mailer.
-	if (!owner && !(t.isStarter || t.isPublic)) return json({ error: 'Forbidden' }, { status: 403 });
+	// Like Send: your own templates and starters only. Another user's public template can change between
+	// preview and save, and its markup would reach your subscribers, so it must be copied first.
+	if (!(owner || t.isStarter)) {
+		if (t.isPublic) return json({ error: 'Copy this template to your account before saving it to Mailer', code: 'copy_required' }, { status: 403 });
+		return json({ error: 'Forbidden' }, { status: 403 });
+	}
+	const overwrite = body.overwrite === true;
 
 	const apiKey = await loadApiKey(auth);
 	if (apiKey instanceof Response) return apiKey;
@@ -81,21 +88,47 @@ export const POST: RequestHandler = async (event) => {
 		// Only the owner's row is linked to a Mailer template; a copy of a shared template never touches the shared row.
 		const linkedId = owner ? t.mailerTemplateId : null;
 		let created = true;
-		let res = linkedId ? await updateTemplate(apiKey, linkedId, payload) : await createTemplate(apiKey, payload);
+		let res;
 		if (linkedId) {
 			created = false;
+			// Precondition: Mailer's copy must be the one this row was last synced with. Mailer has no
+			// conditional PATCH, so this is a read just before the write (a narrow race remains).
+			const current = await getTemplate(apiKey, linkedId);
+			if (current.ok) {
+				if (!overwrite && (!t.mailerSyncedAt || current.data.updatedAt !== t.mailerSyncedAt)) {
+					return json(
+						{
+							error: 'This template changed in Mailer since you opened it. Overwrite Mailer\'s copy, or reload it from Mailer.',
+							code: 'mailer_template_changed',
+							mailerUpdatedAt: current.data.updatedAt,
+						},
+						{ status: 409 },
+					);
+				}
+				res = await updateTemplate(apiKey, linkedId, payload);
+			} else if (current.status === 404) {
+				res = current;
+			} else {
+				return mailerFailure(current.status, current.error);
+			}
 			if (!res.ok && res.status === 404) {
 				// Deleted in Mailer: make a new one and repoint the row.
 				created = true;
 				res = await createTemplate(apiKey, payload);
 			}
+		} else {
+			res = await createTemplate(apiKey, payload);
 		}
 		if (!res.ok) return mailerFailure(res.status, res.error);
 		// The template count changed: the cached plan numbers are stale.
 		forgetPlans(auth.user.id);
 
-		if (owner && res.data.id !== t.mailerTemplateId) {
-			await db.update(templates).set({ mailerTemplateId: res.data.id }).where(eq(templates.id, t.id));
+		if (owner) {
+			// The row now equals Mailer's copy: record Mailer's version and when that was true here.
+			await db
+				.update(templates)
+				.set({ mailerTemplateId: res.data.id, mailerSyncedAt: res.data.updatedAt, mailerSyncedLocalAt: t.updatedAt ?? new Date() })
+				.where(eq(templates.id, t.id));
 		}
 		return json({
 			mailerTemplateId: res.data.id,
