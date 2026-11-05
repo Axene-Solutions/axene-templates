@@ -20,11 +20,13 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 		const t = rows[0];
 
 		if (t.isStarter || t.isPublic) {
-			return json({ id: t.id, name: t.name, category: t.category, version: t.version, blocks: t.blocks, isStarter: t.isStarter, isPublic: t.isPublic });
+			// The Mailer link is only meaningful to (and only shown to) the owner.
+			const mailerTemplateId = locals.user && t.userId === locals.user.id ? t.mailerTemplateId : null;
+			return json({ id: t.id, name: t.name, category: t.category, version: t.version, blocks: t.blocks, isStarter: t.isStarter, isPublic: t.isPublic, mailerTemplateId });
 		}
 
 		if (locals.user && t.userId === locals.user.id) {
-			return json({ id: t.id, name: t.name, category: t.category, version: t.version, blocks: t.blocks, isStarter: t.isStarter, isPublic: t.isPublic });
+			return json({ id: t.id, name: t.name, category: t.category, version: t.version, blocks: t.blocks, isStarter: t.isStarter, isPublic: t.isPublic, mailerTemplateId: t.mailerTemplateId });
 		}
 
 		return json({ error: 'Forbidden' }, { status: 403 });
