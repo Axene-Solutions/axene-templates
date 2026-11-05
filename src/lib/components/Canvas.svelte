@@ -2,6 +2,9 @@
 	import { editor } from '$lib/store.svelte'
 	import CanvasBlock from './CanvasBlock.svelte'
 	import ActionToolbar from './ActionToolbar.svelte'
+	import PostSaveNudge from './PostSaveNudge.svelte'
+	import { page } from '$app/state'
+	import { nudge } from '$lib/nudge.svelte'
 	import Icon from './Icon.svelte'
 	import { collectUsage } from '$lib/placeholders'
 
@@ -34,7 +37,7 @@
 		// Ctrl/Cmd + S to save
 		else if (mod && e.key === 's') {
 			e.preventDefault()
-			editor.saveTemplate()
+			explicitSave()
 		}
 
 		// Ctrl/Cmd + D to duplicate selected block
@@ -48,6 +51,12 @@
 			e.preventDefault()
 			editor.removeBlock(editor.selectedId)
 		}
+	}
+
+	// The Save button and the shortcut: after it works, the post-save bar may offer a next step.
+	// Autosave and the save inside the dialogs go straight to the store and never show it.
+	async function explicitSave() {
+		if (await editor.saveTemplate()) nudge.offer((page.data.user as { id?: string } | null)?.id)
 	}
 
 	let copied = $state(false)
@@ -188,7 +197,7 @@
 		<button
 			class="tb-save"
 			class:error={editor.saveState === 'error'}
-			onclick={() => editor.saveTemplate()}
+			onclick={explicitSave}
 			disabled={editor.saveState === 'saving'}
 		>
 			{saveLabel}
@@ -196,6 +205,8 @@
 		</button>
 
 	</div>
+
+	<PostSaveNudge />
 
 	<!-- Canvas area -->
 	<!-- svelte-ignore a11y_click_events_have_key_events -->

@@ -14,14 +14,13 @@
 	import { mailer } from '$lib/mailer.svelte';
 	import { mailerData } from '$lib/mailer-data.svelte';
 	import { onMount } from 'svelte';
+	import { editorUi } from '$lib/editor-ui.svelte';
 
 	onMount(() => {
 		mailer.ensureLoaded();
 	});
 
 	let activeTab = $state<'customize' | 'styles'>('customize');
-	let sendOpen = $state(false);
-	let saveMailerOpen = $state(false);
 
 	function setProp(key: string, value: any) {
 		if (editor.selectedId) editor.updateProp(editor.selectedId, key, value);
@@ -85,20 +84,20 @@
 		<button
 			class="rp-save-mail"
 			title={editor.mailerTemplateId ? 'Update the linked template in your Axene Mailer account' : 'Save this template into your Axene Mailer account'}
-			onclick={() => (saveMailerOpen = true)}
+			onclick={() => (editorUi.saveMailerOpen = true)}
 		>
 			<Icon name="save" width={14} height={14} />
 			{editor.mailerTemplateId ? 'Update in Mailer' : 'Save to Mailer'}
 		</button>
 
-		<button class="rp-use-mail" title="Send this template with your Axene Mailer account" onclick={() => (sendOpen = true)}>
+		<button class="rp-use-mail" title="Send this template with your Axene Mailer account" onclick={() => (editorUi.sendOpen = true)}>
 			<Icon name="send" width={14} height={14} />
 			Send
 		</button>
 	</div>
 
-	<SendModal open={sendOpen} onclose={() => (sendOpen = false)} />
-	<SaveToMailerModal open={saveMailerOpen} onclose={() => (saveMailerOpen = false)} />
+	<SendModal open={editorUi.sendOpen} onclose={() => (editorUi.sendOpen = false)} />
+	<SaveToMailerModal open={editorUi.saveMailerOpen} onclose={() => (editorUi.saveMailerOpen = false)} />
 
 	<!-- Tab switcher -->
 	<div class="rp-tab-wrap">

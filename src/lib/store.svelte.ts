@@ -24,6 +24,9 @@ let templateIsPublic = $state(false);
 // Linked Mailer template (empty until saved to Mailer) and its name as last saved there.
 let mailerTemplateId = $state("");
 let mailerTemplateName = $state("");
+// What the linked Mailer copy was last saved from (blocks + name), to tell if it is out of date.
+let mailerSyncedJson = $state("");
+const snapshot = () => JSON.stringify([blocks, templateName]);
 let dirty = $state(false);
 let saveState = $state<"idle" | "saving" | "saved" | "error">("idle");
 let saveError = $state("");
@@ -208,6 +211,7 @@ function setTemplate(id: string, name: string, newBlocks: Block[], isPublic = fa
   templateId = id;
   mailerTemplateId = mailerId;
   mailerTemplateName = "";
+  mailerSyncedJson = "";
   templateName = name;
   templateCategory = category;
   setBlocks(newBlocks);
@@ -219,6 +223,7 @@ function newTemplate() {
   templateId = "untitled-" + Date.now().toString(36);
   mailerTemplateId = "";
   mailerTemplateName = "";
+  mailerSyncedJson = "";
   templateName = "Untitled";
   templateCategory = "general";
   setBlocks(defaultBlocks());
@@ -312,6 +317,7 @@ async function saveTemplate() {
         templateId = data.id;
         mailerTemplateId = "";
         mailerTemplateName = "";
+        mailerSyncedJson = "";
         if (typeof location !== "undefined" && location.pathname === `/editor/${oldId}`) {
           goto(`/editor/${data.id}`, { replaceState: true, noScroll: true, keepFocus: true });
         }
@@ -384,6 +390,11 @@ export const editor = {
   setMailerLink(id: string, name: string) {
     mailerTemplateId = id;
     mailerTemplateName = name;
+    mailerSyncedJson = snapshot();
+  },
+  /** True when the linked Mailer copy was saved from exactly what is in the editor now. */
+  mailerInSync(): boolean {
+    return !!mailerTemplateId && mailerSyncedJson !== "" && mailerSyncedJson === snapshot();
   },
   get saveState() {
     return saveState;

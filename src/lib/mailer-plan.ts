@@ -1,7 +1,8 @@
 // Pure helpers for the Mailer plan card, the Save dialog and the post-save nudge.
 // Shared by the server (which builds the summary) and the browser (which reads it).
 
-export const PRICING_URL = 'https://mail.axene.io/pricing';
+export const MAILER_URL = 'https://mail.axene.io';
+export const PRICING_URL = `${MAILER_URL}/pricing`;
 
 export interface Meter {
 	used: number;
