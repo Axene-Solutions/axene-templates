@@ -151,6 +151,22 @@ export function scanTags(text: string, max = MAX_SCAN_TAGS): Located[] {
 }
 
 /**
+ * A short excerpt of source text for messages: markup stripped, whitespace collapsed, at most
+ * `max` characters. Bounded work whatever the input length.
+ */
+export function excerpt(s: string, max = 40): string {
+	return s
+		.slice(0, 400)
+		.replace(/<[^<>]*>?/g, ' ')
+		.replace(/\s+/g, ' ')
+		.trim()
+		.slice(0, max);
+}
+
+/** How to show literal braces, for messages about stray "{{". */
+export const LITERAL_BRACES_HINT = 'to show literal braces, type &#123;&#123; instead of {{';
+
+/**
  * The first `{{` in `text` that is not part of a supported tag, as a short excerpt with the
  * reason, or null when every `{{` is a valid {{field}}, {{field|fallback}} or {{link:key}}.
  * Used by strict saves, so a construct that would never render as typed is refused up front.
@@ -163,12 +179,12 @@ export function firstUnsupported(text: string): { text: string; reason: string }
 	for (const { tag, start, end } of tags) {
 		const gap = text.slice(last, start);
 		const k = gap.indexOf('{{');
-		if (k !== -1) return { text: gap.slice(k, k + 40).replace(/\s+/g, ' '), reason: 'braces that do not form a placeholder' };
-		if (tag.kind === 'unsupported') return { text: tag.raw.replace(/\s+/g, ' ').slice(0, 60), reason: tag.reason };
+		if (k !== -1) return { text: excerpt(gap.slice(k)), reason: `braces that do not form a placeholder (${LITERAL_BRACES_HINT})` };
+		if (tag.kind === 'unsupported') return { text: excerpt(tag.raw), reason: tag.reason };
 		last = end;
 	}
 	const k = text.indexOf('{{', last);
-	if (k !== -1) return { text: text.slice(k, k + 40).replace(/\s+/g, ' '), reason: 'braces that do not form a placeholder' };
+	if (k !== -1) return { text: excerpt(text.slice(k, k + 400)), reason: `braces that do not form a placeholder (${LITERAL_BRACES_HINT})` };
 	return null;
 }
 
@@ -199,7 +215,7 @@ export function collectUsage(blocks: unknown, limit = 20): Usage {
 				usage.fields.set(tag.key, { hasFallback: (prev?.hasFallback ?? true) && tag.fallback !== null });
 			} else if (tag.kind === 'link') usage.links.add(tag.key);
 			else {
-				const text = tag.raw.replace(/\s+/g, ' ').slice(0, 60);
+				const text = excerpt(tag.raw);
 				if (!seenBad.has(text) && usage.unsupported.length < limit) {
 					seenBad.add(text);
 					usage.unsupported.push({ text, reason: tag.reason });
@@ -242,7 +258,7 @@ export function analyzePlaceholders(blocks: unknown, ctx: KnownContext, limit = 
 	for (const s of strings) {
 		if (!s.includes('{{')) continue;
 		for (const { tag } of scanTags(s)) {
-			const text = tag.raw.replace(/\s+/g, ' ').slice(0, 60);
+			const text = excerpt(tag.raw);
 			if (tag.kind === 'unsupported') push({ kind: 'unsupported', text, reason: tag.reason });
 			else if (tag.kind === 'field') {
 				if (ctx.fields && tag.fallback === null && !BUILTIN_KEYS.has(tag.key) && !ctx.fields.has(tag.key)) {
@@ -269,7 +285,7 @@ export function linkUrlError(url: string): string | null {
 	if (!LINK_SCHEME.test(u)) return 'The URL must start with http://, https:// or mailto:';
 	for (const { tag } of scanTags(u)) {
 		if (tag.kind === 'link') return 'A link cannot contain another link';
-		if (tag.kind === 'unsupported') return `${tag.raw.slice(0, 40)} is not allowed in a link: ${tag.reason}`;
+		if (tag.kind === 'unsupported') return `${excerpt(tag.raw)} is not allowed in a link: ${tag.reason}`;
 	}
 	// A stray brace outside a valid tag is almost certainly a typo.
 	let rest = u;
@@ -318,7 +334,7 @@ export function expandLink(urlTemplate: string, values: Values): Expansion {
 		out += urlTemplate.slice(last, start);
 		last = end;
 		if (tag.kind === 'link') return { ok: false, error: 'a link cannot contain another link' };
-		if (tag.kind === 'unsupported') return { ok: false, error: `${tag.raw.slice(0, 40)}: ${tag.reason}` };
+		if (tag.kind === 'unsupported') return { ok: false, error: `${excerpt(tag.raw)}: ${tag.reason}` };
 		const v = Object.hasOwn(values, tag.key) ? values[tag.key] : undefined;
 		if (!blank(v)) out += encodeURIComponent(String(v));
 		else if (tag.fallback !== null) out += encodeURIComponent(tag.fallback);
@@ -751,7 +767,7 @@ export function renderSubject(subject: string, values: Values, links: ReadonlyMa
 		out += subject.slice(last, start);
 		last = end;
 		if (tag.kind === 'unsupported') {
-			unsupported.push(tag.raw.slice(0, 60));
+			unsupported.push(excerpt(tag.raw));
 			continue;
 		}
 		if (tag.kind === 'field') {

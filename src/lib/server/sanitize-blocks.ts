@@ -14,7 +14,7 @@
 
 import sanitizeHtml, { type SanitizeHtmlOptions } from 'sanitize-html';
 import { blockDefs, type Block, type BlockType } from '$lib/blocks';
-import { firstUnsupported, isSafeLiteralUrl, MAX_SCAN_TAGS, scanTagsLimited } from '$lib/placeholders';
+import { firstUnsupported, isSafeLiteralUrl, LITERAL_BRACES_HINT, MAX_SCAN_TAGS, scanTagsLimited } from '$lib/placeholders';
 
 export const MAX_BLOCKS = 200;
 export const MAX_BLOCKS_BYTES = 1_000_000;
@@ -198,13 +198,22 @@ function limitDepth(html: string): { html: string; tooDeep: boolean } {
 	return { html: out + html.slice(last), tooDeep: true };
 }
 
+// Literal braces are written &#123;&#123; (see LITERAL_BRACES_HINT). sanitize-html decodes character
+// references, which would turn them into a live "{{", so they are swapped for two private use
+// characters around it and written back as references. The characters are removed from input.
+const BRACE_SENTINELS = /[\uE07B\uE07D]/g;
+const OPEN_BRACE_REF = /&#(?:0*123(?!\d)|[xX]0*7[bB](?![0-9a-fA-F]));?|&(?:lbrace|lcub);/g;
+const CLOSE_BRACE_REF = /&#(?:0*125(?!\d)|[xX]0*7[dD](?![0-9a-fA-F]));?|&(?:rbrace|rcub);/g;
+
 /** As sanitizeRichText, and says whether a tag, attribute or link was removed, or nesting cut. */
 export function cleanRichText(v: string): { html: string; removed: boolean; tooDeep: boolean } {
-	const s = v.replace(CONTROL, '');
+	const s = v.replace(CONTROL, '').replace(BRACE_SENTINELS, '');
 	if (!s.includes('<')) return { html: escapeQuotes(s).replace(/>/g, '&gt;'), removed: false, tooDeep: false };
 	removed = false;
-	const limited = limitDepth(sanitizeHtml(s, RICH));
-	return { html: limited.html, removed, tooDeep: limited.tooDeep };
+	const guarded = s.includes('&') ? s.replace(OPEN_BRACE_REF, '\uE07B').replace(CLOSE_BRACE_REF, '\uE07D') : s;
+	const limited = limitDepth(sanitizeHtml(guarded, RICH));
+	const html = limited.html.includes('\uE07B') || limited.html.includes('\uE07D') ? limited.html.replace(/\uE07B/g, '&#123;').replace(/\uE07D/g, '&#125;') : limited.html;
+	return { html, removed, tooDeep: limited.tooDeep };
 }
 
 // ---- Schema ----
@@ -497,7 +506,7 @@ export function sanitizeBlocks(input: unknown, opts: SanitizeOptions = {}): Bloc
 			if (!Object.hasOwn(src, key) || src[key] === undefined || src[key] === null) continue;
 			if (strict) {
 				const bad = unsupportedIn(src[key]);
-				if (bad) throw new BlocksValidationError(`${type}.${key} uses syntax that is not supported: ${bad.text} (${bad.reason}). Only {{field}}, {{field|fallback}} and {{link:key}} can be used`);
+				if (bad) throw new BlocksValidationError(`${type}.${key} uses syntax that is not supported: ${bad.text} (${bad.reason}). Only {{field}}, {{field|fallback}} and {{link:key}} can be used, and ${LITERAL_BRACES_HINT}`);
 				tagCount += countTags(src[key]);
 				if (tagCount > MAX_SCAN_TAGS) throw new BlocksValidationError(`the template has more than ${MAX_SCAN_TAGS} placeholders`);
 			}
