@@ -4,7 +4,12 @@ services:
     ports:
       - "127.0.0.1:3004:3000"
     env_file: .env
+    # A runaway request must not take down the shared host: cap the container, and cap the V8
+    # heap below it so Node fails with a heap error before the kernel OOM killer steps in.
+    mem_limit: 768m
+    memswap_limit: 768m
     environment:
+      NODE_OPTIONS: "--max-old-space-size=512"
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       JWT_SECRET: ${JWT_SECRET}

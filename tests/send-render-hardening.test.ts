@@ -300,6 +300,15 @@ test('F10: no emitted attribute holds theme, undefined or null, for every block 
 
 // ---- Finding 11: memory cap for the app container ----
 
+test('F11: docker-compose caps the app memory and the Node heap', () => {
+	const compose = fs.readFileSync(path.join(root, 'docker-compose.yml'), 'utf8');
+	const app = compose.slice(compose.indexOf('  app:'), compose.indexOf('\n  postgres:'));
+	assert.match(app, /\n {4}mem_limit: 768m\n/);
+	assert.match(app, /\n {4}memswap_limit: 768m\n/);
+	assert.match(app, /\n {6}NODE_OPTIONS: "?--max-old-space-size=512"?\n/);
+	assert.match(app, /\n {4}env_file: \.env\n/);
+});
+
 // ---- Starters and defaults still render ----
 
 test('every starter and default block renders for Send with no inert braces and a clean tripwire', () => {
