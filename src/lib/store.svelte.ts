@@ -9,6 +9,7 @@ import {
   defaultBlocks,
 } from "./blocks";
 import { blocksToMjml } from "./mjml";
+import { goto } from "$app/navigation";
 
 // State
 let blocks = $state<Block[]>(defaultBlocks());
@@ -302,8 +303,19 @@ async function saveTemplate() {
       }),
     });
     if (res.ok) {
+      const data = await res.json().catch(() => ({}));
       dirty = false;
       saveState = "saved";
+      // Saving a starter or someone else's public template forks it: continue on the new copy.
+      if (data.forked && typeof data.id === "string") {
+        const oldId = templateId;
+        templateId = data.id;
+        mailerTemplateId = "";
+        mailerTemplateName = "";
+        if (typeof location !== "undefined" && location.pathname === `/editor/${oldId}`) {
+          goto(`/editor/${data.id}`, { replaceState: true, noScroll: true, keepFocus: true });
+        }
+      }
       return true;
     }
     saveError =

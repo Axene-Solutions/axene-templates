@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { db } from '$lib/server/db';
 import { templates } from '$lib/server/db/schema';
 import { eq, or, and, desc } from 'drizzle-orm';
+import { randomBytes } from 'node:crypto';
 
 // GET /api/templates - list templates visible to the user
 export const GET: RequestHandler = async ({ locals }) => {
@@ -72,6 +73,24 @@ const { id, name, category, isPublic, blocks } = body;
 			.update(templates)
 			.set({ name, category: category || existing[0].category, blocks, isPublic, updatedAt: new Date() })
 			.where(and(eq(templates.id, id), eq(templates.userId, user.id)));
+	} else if (existing.length > 0) {
+		// Not yours. A starter or another user's public template is forked into a new private copy
+		// owned by you (the shared row is never touched); anything else is off limits.
+		if (!(existing[0].isStarter || existing[0].isPublic)) {
+			return json({ error: 'Forbidden' }, { status: 403 });
+		}
+		const forkId = `${String(id).slice(0, 60)}-${randomBytes(4).toString('hex')}`;
+		await db.insert(templates).values({
+			id: forkId,
+			userId: user.id,
+			name,
+			category: category || existing[0].category,
+			blocks,
+			isStarter: false,
+			isPublic: false,
+			updatedAt: new Date(),
+		});
+		return json({ id: forkId, saved: true, forked: true });
 	} else {
 		await db.insert(templates).values({
 			id,
