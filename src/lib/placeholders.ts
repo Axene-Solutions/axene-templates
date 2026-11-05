@@ -81,7 +81,7 @@ function parseInner(raw: string, inner: string, triple: boolean): Tag {
 	if (/^link\s*:/i.test(s)) {
 		const key = s.slice(s.indexOf(':') + 1).trim();
 		if (!s.startsWith('link:') || !LINK_KEY_MAILER.test(key)) {
-			return bad('named links are written {{link:key}}, with a lowercase key of letters, digits and underscores (at most 40 characters)');
+			return bad('named links are written {{link:key}}, with a lowercase key of letters, digits and underscores, at most 40 characters');
 		}
 		return { kind: 'link', raw, key };
 	}
@@ -179,12 +179,12 @@ export function firstUnsupported(text: string): { text: string; reason: string }
 	for (const { tag, start, end } of tags) {
 		const gap = text.slice(last, start);
 		const k = gap.indexOf('{{');
-		if (k !== -1) return { text: excerpt(gap.slice(k)), reason: `braces that do not form a placeholder (${LITERAL_BRACES_HINT})` };
+		if (k !== -1) return { text: excerpt(gap.slice(k)), reason: 'braces that do not form a placeholder' };
 		if (tag.kind === 'unsupported') return { text: excerpt(tag.raw), reason: tag.reason };
 		last = end;
 	}
 	const k = text.indexOf('{{', last);
-	if (k !== -1) return { text: excerpt(text.slice(k, k + 400)), reason: `braces that do not form a placeholder (${LITERAL_BRACES_HINT})` };
+	if (k !== -1) return { text: excerpt(text.slice(k, k + 400)), reason: 'braces that do not form a placeholder' };
 	return null;
 }
 
