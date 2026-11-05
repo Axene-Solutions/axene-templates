@@ -36,7 +36,7 @@ export const POST: RequestHandler = async (event) => {
 	inFlight.add(lock);
 	try {
 		const res = await getTemplate(apiKey, mailerId);
-		if (!res.ok) return mailerFailure(res.status, res.error);
+		if (!res.ok) return mailerFailure(res.status, res.error, { openUrl: `${getMailerPublicUrl()}/templates` });
 
 		const env = readEnvelope(res.data.blocksJson);
 		if (!env.ok) {

@@ -1,14 +1,27 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
+	import { page } from '$app/state'
 	import { editor } from '$lib/store.svelte'
+	import MailerLinkScreen from '$lib/components/MailerLinkScreen.svelte'
 	import Icon from '$lib/components/Icon.svelte'
 	import Sidebar from '$lib/components/Sidebar.svelte'
 	import Canvas from '$lib/components/Canvas.svelte'
 	import RightPanel from '$lib/components/RightPanel.svelte'
 
-	onMount(() => {
+	// Deep link from Mailer: ?mailer=new starts a fresh template that Save to Mailer will create,
+	// ?mailer=<id> opens the Templates copy of that Mailer template (see MailerLinkScreen).
+	const mailerTarget = $derived(page.url.searchParams.get('mailer'))
+	let started = $state(false)
+
+	function start() {
+		if (started) return
+		started = true
 		editor.newTemplate()
 		editor.compile()
+	}
+
+	onMount(() => {
+		if (!mailerTarget) start()
 	})
 </script>
 
@@ -32,11 +45,15 @@
 </div>
 
 <!-- Editor (hidden on mobile via CSS) -->
-<div class="editor-wrap">
-	<Sidebar />
-	<Canvas />
-	<RightPanel />
-</div>
+{#if mailerTarget && !started}
+	<MailerLinkScreen target={mailerTarget} oncontinue={start} />
+{:else}
+	<div class="editor-wrap">
+		<Sidebar />
+		<Canvas />
+		<RightPanel />
+	</div>
+{/if}
 
 <style>
 	/* Own flex row, same as /editor/[id]. `display: contents` made the three

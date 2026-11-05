@@ -51,6 +51,6 @@ export async function loadApiKey(auth: Authed): Promise<string | Response> {
 }
 
 /** Response for a failed Mailer call. A 401 also tells the client the stored key is dead. */
-export function mailerFailure(status: number, error: MappedError): Response {
-	return json({ error: error.message, code: error.code, ...(status === 401 ? { connected: false } : {}) }, { status: error.http });
+export function mailerFailure(status: number, error: MappedError, extra: Record<string, unknown> = {}): Response {
+	return json({ error: error.message, code: error.code, ...(status === 401 ? { connected: false } : {}), ...extra }, { status: error.http });
 }
