@@ -3,8 +3,8 @@ import type { RequestHandler } from './$types';
 import { eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { templates } from '$lib/server/db/schema';
-import { gate, loadApiKey, readJson } from '$lib/server/mailer/http';
-import { sendEmail } from '$lib/server/mailer/client';
+import { gate, loadApiKey, mailerFailure, readJson } from '$lib/server/mailer/http';
+import { listTemplateLinks, sendEmail } from '$lib/server/mailer/client';
 import { createRateLimiter } from '$lib/server/mailer/guard';
 import {
 	detectVariables,
@@ -17,7 +17,8 @@ import {
 	validateVariables,
 } from '$lib/server/mailer/validate';
 import { sendAll } from '$lib/server/mailer/sendall';
-import { renderTemplateHtml } from '$lib/server/render';
+import { renderTemplateForSend } from '$lib/server/render';
+import { collectUsage, linkFieldNeeds } from '$lib/placeholders';
 
 const INJECTOR_DEFAULTS = new Set(['theme_color', 'logo', 'company_name']);
 
@@ -69,6 +70,28 @@ export const POST: RequestHandler = async (event) => {
 	const apiKey = await loadApiKey(auth);
 	if (apiKey instanceof Response) return apiKey;
 
+	// Named links the template uses: loaded once per request with the user's key.
+	const usage = collectUsage(t.blocks);
+	const links = new Map<string, string>();
+	if (usage.links.size) {
+		const res = await listTemplateLinks(apiKey);
+		if (!res.ok) return mailerFailure(res.status, res.error);
+		for (const l of res.data) links.set(l.key, l.url);
+		const unknown = [...usage.links].filter((k) => !links.has(k));
+		if (unknown.length) {
+			return json({ error: `These links do not exist in your Mailer account: ${unknown.map((k) => `{{link:${k}}}`).join(', ')}`, code: 'unknown_links', unknown }, { status: 400 });
+		}
+		// A link can need a field the template itself never mentions.
+		const need = [...linkFieldNeeds(usage.links, links)].filter((n) => {
+			if (INJECTOR_DEFAULTS.has(n) && !(n in vars.value)) return false;
+			const v = vars.value[n];
+			return v === undefined || (typeof v === 'string' && v.trim() === '');
+		});
+		if (need.length) {
+			return json({ error: `These variables need a value: ${need.join(', ')}`, code: 'missing_variables', missing: need }, { status: 400 });
+		}
+	}
+
 	// Count only requests that would actually reach Mailer.
 	const wait = limiter.hit(auth.user.id);
 	if (wait > 0) {
@@ -77,7 +100,12 @@ export const POST: RequestHandler = async (event) => {
 
 	let html: string;
 	try {
-		html = renderTemplateHtml(t.blocks, escapeVariables(vars.value)).html;
+		const out = renderTemplateForSend(t.blocks, vars.value, links);
+		if (!out.ok) {
+			const keys = out.badLinks.map((b) => `{{link:${b.key}}} (${b.error})`).join(', ');
+			return json({ error: `These links cannot be used: ${keys}`, code: 'invalid_links', links: out.badLinks }, { status: 400 });
+		}
+		html = out.html;
 	} catch (e) {
 		console.error('Template render failed for send:', e instanceof Error ? e.message : 'unknown');
 		return json({ error: 'The template could not be rendered' }, { status: 422 });
