@@ -470,7 +470,7 @@
     }
     @media (max-width: 480px) {
         .grid { grid-template-columns: 1fr; }
-        .tpl-container { padding: 20px 16px 36px; }
+        .tpl-container { padding: 88px 16px 36px; }
         .title { font-size: 20px; }
     }
 </style>
