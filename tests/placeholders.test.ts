@@ -78,7 +78,8 @@ test('prepareGrammar: fallbacks, links, one level only, values are not rendered 
 	assert.ok(out.includes('href="https://pay.example.com/%7B%7Bname%7D%7D"'), out);
 	// The value of name contains a tag and is output as literal text.
 	assert.ok(out.includes('Hi {{order_id}}'), out);
-	assert.ok(out.includes('x&lt;b&gt;'), out);
+	// A fallback with < is not a placeholder (review 2, finding 2): it stays inert text.
+	assert.ok(out.includes('&#123;&#123;ghost|'), out);
 
 	const q = prepareGrammar('{{link:outer}} {{link:evil}} {{link:missing}} {{link:missing}}', {}, links, 'n');
 	assert.deepEqual(q.unknownLinks, ['missing']);

@@ -43,13 +43,23 @@ export function formatLink(key: string): string {
 	return `{{link:${key}}}`;
 }
 
-/** Why a fallback text is not allowed, or null. */
+/**
+ * Why a fallback text is not allowed, or null. A fallback is plain text that Mailer escapes once
+ * where it lands, so it may not hold placeholder syntax ({ } |), characters that are markup or
+ * can end an attribute (" < > and backtick), or control characters. The same holds for what its
+ * character references decode to, since a fallback written in rich text arrives encoded and is
+ * handed to Mailer decoded.
+ */
 export function fallbackError(fb: string): string | null {
 	const t = fb.trim();
 	if (!t) return 'The fallback is empty';
 	if (t.length > MAX_FALLBACK) return `The fallback is longer than ${MAX_FALLBACK} characters`;
-	if (/[{}|]/.test(t)) return 'The fallback cannot contain { } or |';
-	if (/[\u0000-\u001f\u007f]/.test(t)) return 'The fallback must be on one line';
+	for (const v of t.includes('&') ? [t, decodeCharRefs(t)] : [t]) {
+		if (!v.trim()) return 'The fallback is empty';
+		if (/[{}|]/.test(v)) return 'The fallback cannot contain { } or |';
+		if (/["<>`]/.test(v)) return 'The fallback cannot contain " < > or `';
+		if (/[\u0000-\u001f\u007f]/.test(v)) return 'The fallback must be on one line';
+	}
 	return null;
 }
 
@@ -663,7 +673,10 @@ export function prepareGrammar(
 			continue;
 		}
 		if (mode === 'keep') {
-			template += tag.raw;
+			// Mailer reads a fallback as raw text and escapes it once, so a fallback written in rich text
+			// (character references encoded) goes back decoded. fallbackError has already refused anything
+			// whose decoded form is not plain text.
+			template += tag.kind === 'field' && tag.fallback !== null ? formatField(tag.key, decodeCharRefs(tag.fallback)) : tag.raw;
 			continue;
 		}
 		const ctx = html.context();
