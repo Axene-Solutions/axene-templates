@@ -153,6 +153,16 @@ test('F2: rich text never carries a raw quote or > that could end an attribute',
 	}
 });
 
+test('F2: the tripwire decodes CSS escapes and catches full screen overlays', () => {
+	for (const h of [
+		'<a href="https://ok" style="width:expr\\65ssion(alert(1))">x</a>',
+		'<a href="https://ok" style="width:expr\\000065 ssion(alert(1))">x</a>',
+		'<a style="background:u\\72l(javascript:alert(1))">x</a>',
+		'<a href="https://ok" style="position:fixed;top:0;left:0;width:100%;height:100%">Click</a>',
+	]) assert.notEqual(compiledHtmlProblem(h), null, h);
+	assert.equal(compiledHtmlProblem('<p style="position:relative;top:0">ok</p><td style="width:100%">x</td>'), null);
+});
+
 // ---- Finding 3: placeholder values in URL attributes ----
 
 test('F3: a leading placeholder must be the whole URL or be followed by / ? #', () => {
@@ -214,6 +224,18 @@ test('F4: blocksToMjml tolerates missing arrays', () => {
 });
 
 // ---- Finding 5: the tripwire is linear and refuses what it cannot read ----
+
+test('F5: tags the tripwire cannot tokenise are refused quickly', () => {
+	for (const h of [big('<a ', 20_000), '<a' + ' x="1"'.repeat(22) + ' "', '<a' + ' x="1"'.repeat(200) + ' "', '<a b'.repeat(8000)]) {
+		const m = measure(() => compiledHtmlProblem(h));
+		assert.notEqual(m.value, null, h.slice(0, 30));
+		assert.ok(m.ms < 50, `${h.slice(0, 20)} took ${m.ms} ms`);
+		assert.ok(m.rssMB < 30);
+	}
+	const fine = measure(() => compiledHtmlProblem('<p x="1">t</p>'.repeat(70_000)));
+	assert.equal(fine.value, null);
+	assert.ok(fine.ms < 500, `1 MB of good tags took ${fine.ms} ms`);
+});
 
 // ---- Finding 6: the tag cap refuses instead of ignoring ----
 

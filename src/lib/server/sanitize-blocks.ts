@@ -515,27 +515,105 @@ function decodeRefs(s: string): string {
 	});
 }
 
+/** Decodes CSS escapes (\XX to \XXXXXX hex with one optional space, or \ before any other character). */
+function decodeCssEscapes(s: string): string {
+	if (!s.includes('\\')) return s;
+	return s.replace(/\\(?:([0-9a-f]{1,6})[ \t\n\r\f]?|([\s\S]))/gi, (_m, hex: string | undefined, ch: string | undefined) => {
+		if (hex) {
+			const code = parseInt(hex, 16);
+			return code > 0 && code < 0x110000 ? String.fromCodePoint(code) : '';
+		}
+		return ch === '\n' ? '' : (ch ?? '');
+	});
+}
+
+/** One attribute value as a browser or a CSS parser would read it, for the checks below. */
+function normalizeValue(v: string): string {
+	return decodeCssEscapes(decodeRefs(v))
+		.replace(/\/\*[\s\S]*?\*\//g, '')
+		.replace(/[\u0000- \u007f]/g, '')
+		.toLowerCase();
+}
+
+const FULL_OVERLAY = /(?:^|;)(?:top|left|right|bottom|inset):0|(?:^|;)(?:width|height):100(?:%|vw|vh)/;
+
+/** Why one attribute is refused, or null. */
+function attrProblem(name: string, rawValue: string): string | null {
+	if (/^on/i.test(name)) return 'it contains an event handler attribute';
+	if (!rawValue) return null;
+	const val = normalizeValue(rawValue);
+	if (/^(?:javascript|vbscript|livescript):|^data:text\/html/.test(val)) return 'it contains a script URL';
+	if (/url\((?:'|")?(?:javascript|vbscript):|expression\(/.test(val)) return 'it contains script in a style';
+	if (/position:(?:fixed|absolute)/.test(val) && FULL_OVERLAY.test(val)) return 'it contains a full screen overlay style';
+	return null;
+}
+
+const WS = new Set([' ', '\t', '\n', '\r', '\f']);
+
 /**
  * Final check on compiled email HTML before it leaves for Mailer or a recipient. Returns the
  * reason it is refused, or null. This never strips anything: if it fires, a sanitiser rule is
  * missing and the request must fail loudly.
+ *
+ * Start tags are read attribute by attribute, the way a browser tokenises them, with a hand
+ * written scanner: one forward pass, no regex over the tag, so cost is linear in the input. A
+ * "<" followed by a letter that does not form a complete start tag is itself a problem.
  */
-const START_TAG = /<[a-z][a-z0-9-]*((?:\s+[^\s"'>/=]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?)*)\s*\/?>/gi;
-const ATTR = /([^\s"'>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g;
-
 export function compiledHtmlProblem(html: string): string | null {
 	if (/<\s*script\b/i.test(html)) return 'it contains a script tag';
 	if (/<\s*\/?\s*mj-[a-z]/i.test(html)) return 'it contains raw MJML';
 	if (/<\s*(?:iframe|object|embed|base|form|svg|math)\b/i.test(html)) return 'it contains an embedded document or form';
-	// Attribute by attribute, the way a browser tokenises a start tag, so text inside a quoted
-	// value (an alt of 'x" onerror="y', escaped) is not mistaken for an attribute.
-	for (const m of html.matchAll(START_TAG)) {
-		for (const a of m[1].matchAll(ATTR)) {
-			if (/^on/i.test(a[1])) return 'it contains an event handler attribute';
-			const val = decodeRefs(a[2] ?? a[3] ?? a[4] ?? '').replace(/[\u0000- \u007f]/g, '').toLowerCase();
-			if (/^(?:javascript|vbscript):|^data:text\/html/.test(val)) return 'it contains a script URL';
-			if (/url\((?:'|")?(?:javascript|vbscript):|expression\(/.test(val)) return 'it contains script in a style';
+	const n = html.length;
+	let i = 0;
+	for (;;) {
+		i = html.indexOf('<', i);
+		if (i === -1) return null;
+		const c = html.charCodeAt(i + 1);
+		const letter = (c >= 65 && c <= 90) || (c >= 97 && c <= 122);
+		if (!letter) {
+			i++;
+			continue;
 		}
+		// Tag name.
+		let p = i + 1;
+		while (p < n && !WS.has(html[p]) && html[p] !== '/' && html[p] !== '>') p++;
+		// Attributes.
+		for (;;) {
+			while (p < n && (WS.has(html[p]) || html[p] === '/')) p++;
+			if (p >= n) return 'it contains a tag that is not closed';
+			if (html[p] === '>') break;
+			const ch = html[p];
+			if (ch === '"' || ch === "'" || ch === '<' || ch === '=') return 'it contains a tag that cannot be read safely';
+			const ns = p;
+			while (p < n && !WS.has(html[p]) && html[p] !== '/' && html[p] !== '>' && html[p] !== '=') {
+				const q = html[p];
+				if (q === '"' || q === "'" || q === '<') return 'it contains a tag that cannot be read safely';
+				p++;
+			}
+			const name = html.slice(ns, p);
+			let q = p;
+			while (q < n && WS.has(html[q])) q++;
+			let value = '';
+			if (html[q] === '=') {
+				q++;
+				while (q < n && WS.has(html[q])) q++;
+				if (q >= n) return 'it contains a tag that is not closed';
+				const quote = html[q];
+				if (quote === '"' || quote === "'") {
+					const close = html.indexOf(quote, q + 1);
+					if (close === -1) return 'it contains a tag that is not closed';
+					value = html.slice(q + 1, close);
+					p = close + 1;
+				} else {
+					const vs = q;
+					while (q < n && !WS.has(html[q]) && html[q] !== '>') q++;
+					value = html.slice(vs, q);
+					p = q;
+				}
+			}
+			const problem = attrProblem(name, value);
+			if (problem) return problem;
+		}
+		i = p + 1;
 	}
-	return null;
 }
