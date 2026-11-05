@@ -18,7 +18,7 @@ import {
 } from '$lib/server/mailer/validate';
 import { sendAll } from '$lib/server/mailer/sendall';
 import { renderTemplateForSend } from '$lib/server/render';
-import { collectUsage, linkFieldNeeds } from '$lib/placeholders';
+import { collectUsage, linkFieldNeeds, renderSubject, type Values } from '$lib/placeholders';
 import { compiledHtmlProblem, sanitizeBlocksForRead } from '$lib/server/sanitize-blocks';
 
 const INJECTOR_DEFAULTS = new Set(['theme_color', 'logo', 'company_name']);
@@ -61,7 +61,8 @@ export const POST: RequestHandler = async (event) => {
 
 	// Every {{variable}} the template uses needs a value, otherwise it would go out blank ("Hi ,").
 	// theme_color, logo and company_name have built-in defaults in the injector.
-	const missing = detectVariables(JSON.stringify(blocks)).filter((n) => {
+	// The subject is merged too (Mailer sends it as given), so its plain {{names}} need a value as well.
+	const missing = [...new Set([...detectVariables(JSON.stringify(blocks)), ...detectVariables(subject.value)])].filter((n) => {
 		if (INJECTOR_DEFAULTS.has(n)) return false;
 		const v = vars.value[n];
 		return v === undefined || (typeof v === 'string' && v.trim() === '');
@@ -74,7 +75,7 @@ export const POST: RequestHandler = async (event) => {
 	if (apiKey instanceof Response) return apiKey;
 
 	// Named links the template uses: loaded once per request with the user's key.
-	const usage = collectUsage(blocks);
+	const usage = collectUsage([blocks, subject.value]);
 	const links = new Map<string, string>();
 	if (usage.links.size) {
 		const res = await listTemplateLinks(apiKey);
@@ -93,6 +94,17 @@ export const POST: RequestHandler = async (event) => {
 		if (need.length) {
 			return json({ error: `These variables need a value: ${need.join(', ')}`, code: 'missing_variables', missing: need }, { status: 400 });
 		}
+	}
+
+	const subj = renderSubject(subject.value, vars.value as Values, links);
+	if (!subj.ok) {
+		const parts = [
+			...subj.missing.map((n) => `{{${n}}} needs a value`),
+			...subj.unknownLinks.map((k) => `{{link:${k}}} does not exist in your Mailer account`),
+			...subj.badLinks.map((b) => `{{link:${b.key}}} (${b.error})`),
+			...subj.unsupported.map((u) => `${u} is not supported`),
+		];
+		return json({ error: `The subject cannot be used: ${parts.join(', ')}`, code: 'invalid_subject' }, { status: 400 });
 	}
 
 	// Count only requests that would actually reach Mailer.
@@ -126,7 +138,7 @@ export const POST: RequestHandler = async (event) => {
 	// One Mailer request per recipient (so recipients never see each other), 5 at a time, within a
 	// 45 s budget that stays under the proxy timeout. Recipients not reached are reported as not sent.
 	const results = await sendAll(to.value, async (addr, timeoutMs) => {
-		const res = await sendEmail(apiKey, { from: from.value, to: addr, subject: subject.value, html, text, replyTo }, timeoutMs);
+		const res = await sendEmail(apiKey, { from: from.value, to: addr, subject: subj.subject, html, text, replyTo }, timeoutMs);
 		return res.ok ? { ok: true } : { ok: false, status: res.status, message: res.error.message };
 	});
 

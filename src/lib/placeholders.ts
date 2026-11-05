@@ -379,6 +379,53 @@ export function fillSlots(rendered: string, slots: string[], nonce: string): str
 	return rendered.replace(re, (_m, n: string) => slots[Number(n)] ?? '');
 }
 
+export type SubjectRender =
+	| { ok: true; subject: string }
+	| { ok: false; missing: string[]; unknownLinks: string[]; badLinks: { key: string; error: string }[]; unsupported: string[] };
+
+/**
+ * Merges a subject line the way Mailer merges a template subject: values and fallbacks go in as
+ * plain text (a subject is a header, not HTML) with control characters turned into a space, and
+ * {{link:key}} becomes the expanded URL. A plain {{name}} with no value, an unknown or unusable
+ * link and unsupported syntax are reported instead, so a literal "{{" never reaches an inbox.
+ */
+export function renderSubject(subject: string, values: Values, links: ReadonlyMap<string, string>): SubjectRender {
+	const missing = new Set<string>();
+	const unknown = new Set<string>();
+	const bad = new Map<string, string>();
+	const unsupported: string[] = [];
+	let out = '';
+	let last = 0;
+	for (const { tag, start, end } of scanTags(subject)) {
+		out += subject.slice(last, start);
+		last = end;
+		if (tag.kind === 'unsupported') {
+			unsupported.push(tag.raw.slice(0, 60));
+			continue;
+		}
+		if (tag.kind === 'field') {
+			const v = values[tag.key];
+			if (!blank(v)) out += String(v);
+			else if (tag.fallback !== null) out += tag.fallback;
+			else missing.add(tag.key);
+			continue;
+		}
+		const def = links.get(tag.key);
+		if (def === undefined) {
+			unknown.add(tag.key);
+			continue;
+		}
+		const ex = expandLink(def, values);
+		if (ex.ok) out += ex.url;
+		else if (!bad.has(tag.key)) bad.set(tag.key, ex.error);
+	}
+	out += subject.slice(last);
+	if (missing.size || unknown.size || bad.size || unsupported.length) {
+		return { ok: false, missing: [...missing], unknownLinks: [...unknown], badLinks: [...bad].map(([key, error]) => ({ key, error })), unsupported };
+	}
+	return { ok: true, subject: out.replace(/[\u0000-\u001f\u007f\u0085\u2028\u2029]/g, ' ') };
+}
+
 /** Field keys that MUST have a value because they appear bare in a link the template uses. */
 export function linkFieldNeeds(linkKeys: Iterable<string>, links: ReadonlyMap<string, string>): Set<string> {
 	const need = new Set<string>();

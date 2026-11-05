@@ -61,7 +61,17 @@ export function safeDetail(detail: unknown, max = 240): string | null {
 	return line.slice(0, max);
 }
 
-const CAP_RE = /\b(maximum|limit|reached|cap|upgrade)\b/i;
+/** A send Mailer accepted with 202 but stored as rejected. Its reason is Mailer's own sentence, cleaned. */
+export function mapRejection(reason: unknown): MappedError {
+	const d = safeDetail(reason);
+	return {
+		code: 'mailer_rejected',
+		message: d ? `Mailer rejected the message: ${d}` : 'Mailer rejected the message. Check that the sender address is on a verified domain.',
+		http: 422,
+	};
+}
+
+const CAP_RE =/\b(maximum|limit|reached|cap|upgrade)\b/i;
 const SCOPE_RE = /\bscope|permission\b/i;
 
 /** Errors for GET /v1/contacts/fields (scope contacts:read). */
