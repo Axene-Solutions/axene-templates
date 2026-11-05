@@ -2,9 +2,10 @@
 // Send modal both read and write this, so they can never disagree.
 
 type Status = 'loading' | 'unavailable' | 'disconnected' | 'connected';
+export type ScopeCheck = { scope: string; label: string; state: 'ok' | 'missing' | 'unknown' | 'unverified'; note?: string };
 export type CheckResult =
-	| { kind: 'ok'; senders: number }
-	| { kind: 'revoked' | 'missing_scope' | 'error'; message: string }
+	| { kind: 'ok'; scopes: ScopeCheck[]; senders: number | null; templates: number | null }
+	| { kind: 'revoked' | 'error'; message: string }
 	| null;
 
 let status = $state<Status>('loading');
@@ -82,16 +83,15 @@ async function disconnect(): Promise<boolean> {
 	}
 }
 
-/** Re-validates the stored key against Mailer through our senders endpoint. */
+/** Re-validates the stored key against Mailer and reports which scopes are known to work. */
 async function recheck() {
 	checking = true;
 	check = null;
 	try {
-		const res = await fetch('/api/mailer/senders');
+		const res = await fetch('/api/mailer/check');
 		const data = await res.json().catch(() => ({}));
-		if (res.ok) check = { kind: 'ok', senders: (data.senders ?? []).length };
+		if (res.ok) check = { kind: 'ok', scopes: data.scopes ?? [], senders: data.senders ?? null, templates: data.templates ?? null };
 		else if (res.status === 401) check = { kind: 'revoked', message: 'Mailer rejected this key. It was revoked or deleted. Disconnect and connect a new key.' };
-		else if (res.status === 403) check = { kind: 'missing_scope', message: 'This key is missing a scope. It needs "Send emails" and "Read sender addresses".' };
 		else if (res.status === 409) {
 			// The row is gone (disconnected elsewhere) or unreadable: reflect the server.
 			await load();

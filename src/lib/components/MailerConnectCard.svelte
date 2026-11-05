@@ -27,17 +27,17 @@
 		</div>
 	{:else if mailer.status === 'disconnected'}
 		<p class="mc-text">
-			Send your templates from your own Axene Mailer account. Connect a Mailer API key and emails go out from your verified domain. Your key is stored encrypted and is never shown again.
+			Connect your Axene Mailer account to send templates from your own verified domain, save templates into Mailer, and open Mailer templates here to edit them. Your key is stored encrypted and is never shown again.
 		</p>
 		<ol class="mc-steps">
 			<li>Open <a href="https://mail.axene.io/api-keys" target="_blank" rel="noopener noreferrer">mail.axene.io/api-keys</a> and create a key.</li>
 			<li>
-				Tick these scopes:
+				Tick all four scopes:
 				<ul>
 					<li><strong>Send emails</strong></li>
 					<li><strong>Read sender addresses</strong></li>
-					<li>Read templates (optional for now)</li>
-					<li>Write templates (optional for now)</li>
+					<li><strong>Read templates</strong> (required for From Mailer)</li>
+					<li><strong>Write templates</strong> (required for Save to Mailer)</li>
 				</ul>
 			</li>
 			<li>Paste the key below.</li>
@@ -59,16 +59,32 @@
 		</div>
 
 		{#if mailer.check}
-			<div class="mc-note" class:mc-note-ok={mailer.check.kind === 'ok'} class:mc-note-err={mailer.check.kind !== 'ok'} role="status">
-				<Icon name={mailer.check.kind === 'ok' ? 'check' : 'warning'} width={16} height={16} />
-				<span>
-					{#if mailer.check.kind === 'ok'}
-						Key works. {mailer.check.senders} sender address{mailer.check.senders === 1 ? '' : 'es'} available.
-					{:else}
-						{mailer.check.message}
-					{/if}
-				</span>
-			</div>
+			{#if mailer.check.kind === 'ok'}
+				<ul class="mc-scopes" role="status">
+					{#each mailer.check.scopes as sc}
+						<li class="mc-scope mc-scope-{sc.state}">
+							<Icon name={sc.state === 'ok' ? 'check' : 'warning'} width={14} height={14} />
+							<span class="mc-scope-main">
+								<span>{sc.label}</span>
+								<span class="mc-mono mc-scope-id">{sc.scope}</span>
+							</span>
+							<span class="mc-scope-state">
+								{#if sc.state === 'ok'}Works{:else if sc.state === 'missing'}Missing{:else if sc.state === 'unverified'}Not tested{:else}Could not check{/if}
+							</span>
+							{#if sc.note}<span class="mc-scope-note">{sc.note}</span>{/if}
+						</li>
+					{/each}
+				</ul>
+				<p class="mc-muted mc-scope-foot">
+					{mailer.check.senders ?? 0} sender address{mailer.check.senders === 1 ? '' : 'es'}{mailer.check.templates !== null ? `, ${mailer.check.templates} template${mailer.check.templates === 1 ? '' : 's'} in Mailer` : ''}.
+					Send and write access cannot be tested without sending mail or writing data, so they are verified on first use.
+				</p>
+			{:else}
+				<div class="mc-note mc-note-err" role="status">
+					<Icon name="warning" width={16} height={16} />
+					<span>{mailer.check.message}</span>
+				</div>
+			{/if}
 		{/if}
 		{#if mailer.error}
 			<div class="mc-note mc-note-err" role="alert"><Icon name="warning" width={16} height={16} /><span>{mailer.error}</span></div>
@@ -128,6 +144,21 @@
 	.mc-note-err { border-color: var(--mc-err); background: color-mix(in srgb, var(--mc-err) 12%, transparent); color: var(--mc-err); }
 	.mc-note-warn { border-color: var(--mc-warn); background: color-mix(in srgb, var(--mc-warn) 12%, transparent); color: var(--mc-warn); }
 	.mc-note-ok { border-color: var(--mc-ok); background: color-mix(in srgb, var(--mc-ok) 10%, transparent); color: var(--mc-ok); }
+	.mc-scopes { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+	.mc-scope {
+		display: grid; grid-template-columns: auto 1fr auto; align-items: center; column-gap: 8px; row-gap: 2px;
+		padding: 8px 10px; border-radius: 7px; border: 1px solid var(--mc-border);
+	}
+	.mc-scope-main { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
+	.mc-scope-id { color: var(--mc-muted); font-size: 11px; }
+	.mc-scope-state { font-size: 12px; font-weight: 600; }
+	.mc-scope-note { grid-column: 2 / 4; font-size: 11.5px; color: var(--mc-muted); }
+	.mc-scope-ok { border-color: var(--mc-ok); background: color-mix(in srgb, var(--mc-ok) 10%, transparent); }
+	.mc-scope-ok :global(.icon-wrapper), .mc-scope-ok .mc-scope-state { color: var(--mc-ok); }
+	.mc-scope-missing { border-color: var(--mc-err); background: color-mix(in srgb, var(--mc-err) 12%, transparent); }
+	.mc-scope-missing :global(.icon-wrapper), .mc-scope-missing .mc-scope-state { color: var(--mc-err); }
+	.mc-scope-unverified :global(.icon-wrapper), .mc-scope-unverified .mc-scope-state, .mc-scope-unknown :global(.icon-wrapper), .mc-scope-unknown .mc-scope-state { color: var(--mc-muted); }
+	.mc-scope-foot { margin-top: 8px; line-height: 1.45; }
 	.mc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 16px; }
 	.mc-btn {
 		display: inline-flex; align-items: center; gap: 6px; background: transparent; color: var(--mc-text);
