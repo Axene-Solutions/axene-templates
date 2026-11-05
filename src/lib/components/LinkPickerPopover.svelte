@@ -81,7 +81,7 @@
 	</div>
 
 	<div class="pop-body" id="lp-list" role="listbox" aria-label="Named links">
-		{#each shown as l, i (l.id)}
+		{#each shown as l, i (l.id + '/' + i)}
 			<button
 				type="button"
 				id="lp-opt-{i}"

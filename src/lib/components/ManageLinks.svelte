@@ -154,7 +154,7 @@
 			</div>
 		{:else}
 			<ul class="ml-list">
-				{#each links as l (l.id)}
+				{#each links as l, i (l.id + '/' + i)}
 					<li class="ml-row">
 						<div class="ml-row-main">
 							<span class="ml-row-label">{l.label}</span>
