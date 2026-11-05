@@ -1,14 +1,38 @@
 <script lang="ts">
-    import { goto } from '$app/navigation';
+    import { goto, invalidate } from '$app/navigation';
     import { page } from '$app/state';
     import ConfirmModal from '$lib/components/ConfirmModal.svelte';
     import SiteNav from '$lib/components/SiteNav.svelte';
     import SiteFooter from '$lib/components/SiteFooter.svelte';
+    import Icon from '$lib/components/Icon.svelte';
 
     let { data } = $props();
 
-    // Array of your templates fetched from the server
-    let templates = data.templates;
+    // Templates fetched from the server; kept in local state so deletes update the list
+    let templates = $state<any[]>([]);
+    $effect.pre(() => {
+        templates = data.templates;
+    });
+    const loadError = $derived<string | null>(data.loadError);
+    let retrying = $state(false);
+    let notice = $state<string | null>(null);
+    let noticeTimer: ReturnType<typeof setTimeout> | undefined;
+    let busyStarterId = $state<string | null>(null);
+
+    function showNotice(message: string) {
+        notice = message;
+        clearTimeout(noticeTimer);
+        noticeTimer = setTimeout(() => (notice = null), 4000);
+    }
+
+    async function retryLoad() {
+        retrying = true;
+        try {
+            await invalidate('app:templates');
+        } finally {
+            retrying = false;
+        }
+    }
     const user = $derived(page.data.user);
 
     // Dynamically extract unique categories from templates using a Set
@@ -61,8 +85,6 @@
     let searchQuery = $state('');
     
     let deleteTarget = $state<{ id: string; name: string } | null>(null);
-    let editingId = $state<string | null>(null);
-    let editingName = $state('');
 
     function formatDate(iso: string) {
         const d = new Date(iso);
@@ -88,65 +110,46 @@
 
     async function handleDelete() {
         if (!deleteTarget) return;
-        const id = deleteTarget.id;
+        const { id, name } = deleteTarget;
         try {
-            await fetch(`/api/templates/${id}`, { method: 'DELETE' });
-            templates = templates.filter((t: any) => t.id !== id);
+            const res = await fetch(`/api/templates/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                templates = templates.filter((t: any) => t.id !== id);
+            } else {
+                showNotice(`Could not delete "${name}" (error ${res.status}).`);
+            }
+        } catch {
+            showNotice(`Could not delete "${name}". Check your connection.`);
         } finally {
             deleteTarget = null;
         }
     }
 
     async function useStarter(starter: any) {
-        const fullRes = await fetch(`/api/templates/${starter.id}`);
-        if (!fullRes.ok) return;
-        const full = await fullRes.json();
+        if (busyStarterId) return;
+        busyStarterId = starter.id;
+        try {
+            const fullRes = await fetch(`/api/templates/${starter.id}`);
+            if (!fullRes.ok) throw new Error(String(fullRes.status));
+            const full = await fullRes.json();
 
-        const newId = starter.id + '-' + Date.now().toString(36);
-        const res = await fetch('/api/templates', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                id: newId,
-                name: starter.name,
-                blocks: full.blocks,
-            }),
-        });
-        if (res.ok) {
-            const saved = await res.json();
-            goto(`/editor/${saved.id}`);
-        }
-    }
-
-    function startEditing(id: string, name: string) {
-        editingId = id;
-        editingName = name;
-    }
-
-    async function finishEditing(id: string) {
-        const trimmed = editingName.trim();
-        if (!trimmed) {
-            editingId = null;
-            return;
-        }
-        const tpl = templates.find((t: any) => t.id === id);
-        if (tpl && tpl.name !== trimmed) {
-            tpl.name = trimmed;
-            templates = [...templates];
-            await fetch(`/api/templates/${id}`, {
+            const newId = starter.id + '-' + Date.now().toString(36);
+            const res = await fetch('/api/templates', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: trimmed }),
+                body: JSON.stringify({
+                    id: newId,
+                    name: starter.name,
+                    blocks: full.blocks,
+                }),
             });
-        }
-        editingId = null;
-    }
-
-    function handleEditKeydown(e: KeyboardEvent, id: string) {
-        if (e.key === 'Enter') {
-            (e.target as HTMLInputElement).blur();
-        } else if (e.key === 'Escape') {
-            editingId = null;
+            if (!res.ok) throw new Error(String(res.status));
+            const saved = await res.json();
+            await goto(`/editor/${saved.id}`);
+        } catch {
+            showNotice(`Could not create a template from "${starter.name}". Please try again.`);
+        } finally {
+            busyStarterId = null;
         }
     }
 </script>
@@ -162,33 +165,23 @@
     <div class="topbar">
         <div class="topbar-left">
             <h1 class="title">Templates</h1>
-            <span class="count-badge">{totalCount}</span>
+            {#if !loadError}<span class="count-badge">{totalCount}</span>{/if}
         </div>
         {#if user}
             <button class="btn-new" onclick={() => goto('/editor')}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="12" y1="5" x2="12" y2="19" />
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
+                <Icon name="plus" width={16} height={16} />
                 New Template
             </button>
         {:else}
             <a href="/auth/google" class="btn-signin-banner">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                    <polyline points="10 17 15 12 10 7" />
-                    <line x1="15" y1="12" x2="3" y2="12" />
-                </svg>
+                <Icon name="user" width={16} height={16} />
                 Sign in to create templates
             </a>
         {/if}
     </div>
 
     <div class="search-wrap">
-        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
+        <span class="search-icon"><Icon name="search" width={16} height={16} /></span>
         <input
             type="text"
             class="search-input"
@@ -197,6 +190,17 @@
         />
     </div>
 
+    {#if loadError}
+        <div class="state-card" role="alert">
+            <span class="state-icon"><Icon name="warning" width={28} height={28} /></span>
+            <h2 class="state-title">Could not load templates</h2>
+            <p class="state-text">{loadError}</p>
+            <button class="btn-retry" onclick={retryLoad} disabled={retrying}>
+                <Icon name="refresh" width={16} height={16} class={retrying ? 'spin' : ''} />
+                {retrying ? 'Retrying...' : 'Try again'}
+            </button>
+        </div>
+    {:else}
     <!-- Beautiful Filter UI -->
     <div class="filter-tabs">
         {#each categories() as cat}
@@ -216,7 +220,7 @@
             <div class="grid">
                 {#each ownTemplates as tpl (tpl.id)}
                     <div class="card">
-                        <div class="card-thumb">
+                        <a class="card-thumb" href="/editor/{tpl.id}" aria-label="Open {tpl.name} in the editor" tabindex="-1">
                             <div class="wire">
                                 <div class="wire-hdr"></div>
                                 <div class="wire-bd">
@@ -231,24 +235,9 @@
                                 </div>
                             </div>
                             <span class="card-hover-pill">Open</span>
-                        </div>
+                        </a>
                         <div class="card-info">
-                            {#if editingId === tpl.id}
-                                <input
-                                    class="name-input"
-                                    type="text"
-                                    bind:value={editingName}
-                                    onblur={() => finishEditing(tpl.id)}
-                                    onkeydown={(e) => handleEditKeydown(e, tpl.id)}
-                                    autofocus
-                                />
-                            {:else}
-                                <div
-                                    class="card-name"
-                                    onclick={(e) => { e.stopPropagation(); startEditing(tpl.id, tpl.name); }}
-                                    title="Click to rename"
-                                >{tpl.name}</div>
-                            {/if}
+                            <div class="card-name static">{tpl.name}</div>
                             <div class="card-meta">
                                 {tpl.blockCount ?? 0} blocks
                                 {#if tpl.updatedAt}
@@ -263,9 +252,7 @@
                             <div class="card-actions">
                                 <a class="action-open" href="/editor/{tpl.id}">Open in Editor</a>
                                 <button class="action-delete" onclick={() => { deleteTarget = { id: tpl.id, name: tpl.name }; }} aria-label="Delete template">
-                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                    </svg>
+                                    <Icon name="trash" width={16} height={16} />
                                 </button>
                             </div>
                         </div>
@@ -281,7 +268,7 @@
             <div class="grid">
                 {#each communityTemplates as tpl (tpl.id)}
                     <div class="card">
-                        <div class="card-thumb">
+                        <a class="card-thumb" href="/editor/{tpl.id}" aria-label="Open {tpl.name} in the editor" tabindex="-1">
                             <div class="wire">
                                 <div class="wire-hdr"></div>
                                 <div class="wire-bd">
@@ -293,8 +280,8 @@
                                     <div class="wire-bt"></div>
                                 </div>
                             </div>
-                            <span class="card-hover-pill">Use</span>
-                        </div>
+                            <span class="card-hover-pill">Open</span>
+                        </a>
                         <div class="card-info">
                             <div class="card-name static">{tpl.name}</div>
                             <div class="card-meta">
@@ -337,7 +324,9 @@
                             <div class="card-meta">{starter.blockCount ?? 0} blocks</div>
                             <div class="card-actions">
                                 {#if user}
-                                    <button class="btn-use" onclick={() => useStarter(starter)}>Use Template</button>
+                                    <button class="btn-use" onclick={() => useStarter(starter)} disabled={busyStarterId !== null}>
+                                        {busyStarterId === starter.id ? 'Creating...' : 'Use Template'}
+                                    </button>
                                 {:else}
                                     <a href="/auth/google" class="btn-use">Sign in to use</a>
                                 {/if}
@@ -347,13 +336,27 @@
                 {/each}
             </div>
         {:else}
-            <div class="no-results">No templates match your filters.</div>
+            <div class="no-results">
+                {templates.length === 0 ? 'No starter templates are available yet.' : 'No starter templates match your filters.'}
+            </div>
         {/if}
     </section>
+
+    {#if totalCount === 0 && templates.length > 0}
+        <div class="state-card">
+            <p class="state-text">Nothing matches your search or filter.</p>
+            <button class="btn-retry" onclick={() => { searchQuery = ''; activeCategoryFilter = 'all'; }}>Clear filters</button>
+        </div>
+    {/if}
+    {/if}
     </div>
 
     <SiteFooter />
 </div>
+
+{#if notice}
+    <div class="toast" role="status">{notice}</div>
+{/if}
 
 <ConfirmModal open={!!deleteTarget} title="Delete Template" message="Are you sure you want to delete '{deleteTarget?.name}'? This cannot be undone." variant="danger" confirmText="Delete" onconfirm={handleDelete} oncancel={() => (deleteTarget = null)} />
 
@@ -373,10 +376,10 @@
     .btn-signin-banner:hover { background: rgba(255,209,0,0.18); }
     
     .search-wrap { position: relative; margin-top: 20px; max-width: 400px; }
-    .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; }
-    .search-input { width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 8px 12px 8px 34px; font-size: 13px; font-family: inherit; color: #333; outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
-    .search-input:focus { border-color: #FFD100; box-shadow: 0 0 0 3px rgba(29, 170, 130, 0.1); }
-    .search-input::placeholder { color: #bbb; }
+    .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #888; display: flex; }
+    .search-input { width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 8px 12px 8px 34px; font-size: 13px; font-family: inherit; color: #fff; outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
+    .search-input:focus { border-color: #FFD100; box-shadow: 0 0 0 3px rgba(255, 209, 0, 0.12); }
+    .search-input::placeholder { color: #777; }
 
     /* ---------- Filters ---------- */
     .filter-tabs {
@@ -417,7 +420,7 @@
     .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
     .card { border: 1px solid rgba(0,0,0,0.06); border-radius: 14px; overflow: hidden; background: #101010; transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1); box-shadow: 0 1px 3px rgba(0,0,0,0.04); border: 1px solid #bbbab70d; }
     .card:hover { border-color: #ffd00037; transform: translateY(-3px); }
-    .card-thumb { height: 150px; display: flex; align-items: center; justify-content: center; padding: 16px; overflow: hidden; position: relative; }
+    .card-thumb { text-decoration: none; height: 150px; display: flex; align-items: center; justify-content: center; padding: 16px; overflow: hidden; position: relative; }
     
     .wire { width: 100px; background: rgba(255,255,255,0.15); backdrop-filter: blur(6px); border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); overflow: hidden; display: flex; flex-direction: column; opacity: 0.3; box-shadow: 0 4px 16px rgba(0,0,0,0.1); transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1); }
     .card:hover .wire { transform: scale(1.06) translateY(-2px); }
@@ -433,22 +436,31 @@
     .card-hover-pill { position: absolute; bottom: 10px; right: 10px; padding: 4px 12px; border-radius: 100px; background: rgba(255,255,255,0.9); backdrop-filter: blur(4px); font-size: 11px; font-weight: 600; color: #0f172a; opacity: 0; transform: translateY(6px); transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
     .card:hover .card-hover-pill { opacity: 1; transform: translateY(0); }
     .card-info { padding: 16px; }
-    .card-name { font-size: 14px; font-weight: 600; color: #fff; cursor: text; border-radius: 4px; padding: 1px 2px; margin: -1px -2px; transition: background 0.15s; }
-    .card-name:hover { background: rgba(255,255,255,0.03); }
+    .card-name { font-size: 14px; font-weight: 600; color: #fff; }
     .card-name.static { cursor: default; }
-    .card-name.static:hover { background: transparent; }
-    .name-input { font-size: 14px; font-weight: 600; color: #fff; font-family: inherit; border: 1px solid #FFD100; border-radius: 4px; padding: 1px 4px; margin: -2px -5px; outline: none; width: calc(100% + 10px); background: #101010; box-shadow: 0 0 0 3px rgba(29, 170, 130, 0.1); }
     .card-meta { font-size: 12px; color: #666; margin-top: 4px; display: flex; align-items: center; gap: 0; }
     .dot { margin: 0 5px; color: #555; }
     .public-badge { font-size: 10px; font-weight: 600; color: #FFD100; background: rgba(255,209,0,0.1); padding: 1px 6px; border-radius: 4px; }
     
     .card-actions { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
     .action-open { font-size: 12px; font-weight: 500; color: #FFD100; text-decoration: none; cursor: pointer; font-family: inherit; transition: color 0.15s; }
-    .action-open:hover { color: #158d6a; text-decoration: underline; }
+    .action-open:hover { color: #ffe033; text-decoration: underline; }
     .action-delete { background: none; border: none; color: #555; cursor: pointer; padding: 4px; display: flex; align-items: center; border-radius: 6px; transition: color 0.15s, background 0.15s; }
     .action-delete:hover { color: #dc2626; background: rgba(220,38,38,0.1); }
     .btn-use { background: none; border: 1px solid #ffd00037; color: #FFD100; border-radius: 10px; padding: 8px 20px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; text-decoration: none; transition: background 0.15s, color 0.15s; }
-    .btn-use:hover { background: #FFD100; color: #101010; }
+    .btn-use:hover:not(:disabled) { background: #FFD100; color: #101010; }
+    .btn-use:disabled { opacity: 0.6; cursor: progress; }
+
+    .state-card { margin-top: 32px; padding: 40px 24px; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; background: rgba(255,255,255,0.02); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .state-icon { color: #FFD100; display: flex; }
+    .state-title { font-size: 16px; font-weight: 600; color: #fff; margin: 0; }
+    .state-text { font-size: 13px; color: #888; margin: 0; max-width: 420px; line-height: 1.5; }
+    .btn-retry { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; background: #FFD100; color: #101010; border: none; border-radius: 8px; padding: 9px 18px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+    .btn-retry:hover:not(:disabled) { background: #e6bc00; }
+    .btn-retry:disabled { opacity: 0.7; cursor: progress; }
+    :global(.spin) { animation: tpl-spin 0.8s linear infinite; }
+    @keyframes tpl-spin { to { transform: rotate(360deg); } }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1c1c1c; color: #fff; border: 1px solid rgba(239,68,68,0.5); border-radius: 10px; padding: 10px 16px; font-size: 13px; z-index: 50; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
     
     .no-results { font-size: 13px; color: #666; padding: 24px 0; }
 
