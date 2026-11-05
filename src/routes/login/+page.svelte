@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import Logo from '$lib/components/Logo.svelte';
+	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 
 	const error = $derived(page.url.searchParams.get('error'));
 
@@ -12,8 +14,9 @@
 </script>
 
 <div class="login-page">
+	<div class="login-theme"><ThemeToggle variant="segmented" /></div>
 	<div class="login-card">
-		<img src="https://mail.axene.io/email-assets/logo.png" alt="Axene" width="80" height="80" style="border-radius:8px;" />
+		<Logo size={72} />
 
 		<h1>Sign in to Axene Templates</h1>
 		<p class="subtitle">
@@ -54,8 +57,9 @@
 
 <style>
 	.login-page {
+		position: relative;
 		min-height: 100vh;
-		background: #101010;
+		background: var(--color-surface);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -71,13 +75,14 @@
 		width: 100%;
 	}
 
-	.logo {
-		height: 32px;
-		margin-bottom: 8px;
+	.login-theme {
+		position: absolute;
+		top: 16px;
+		right: 16px;
 	}
 
 	h1 {
-		color: #fff;
+		color: var(--color-text);
 		font-size: 24px;
 		font-weight: 700;
 		margin: 0;
@@ -86,16 +91,16 @@
 	}
 
 	.subtitle {
-		color: #666;
+		color: var(--color-muted);
 		font-size: 14px;
 		margin: 0;
 		text-align: center;
 	}
 
 	.error {
-		background: rgba(239, 68, 68, 0.1);
-		border: 1px solid rgba(239, 68, 68, 0.3);
-		color: #ef4444;
+		background: var(--color-danger-soft);
+		border: 1px solid var(--color-danger);
+		color: var(--color-danger);
 		padding: 10px 16px;
 		border-radius: 8px;
 		font-size: 14px;
@@ -107,8 +112,9 @@
 		display: flex;
 		align-items: center;
 		gap: 12px;
-		background: #fff;
-		color: #000;
+		background: var(--color-surface-2);
+		border: 1px solid var(--color-border-1);
+		color: var(--color-text);
 		font-size: 15px;
 		font-weight: 500;
 		padding: 12px 28px;
@@ -119,17 +125,17 @@
 	}
 
 	.google-btn:hover {
-		background: #f0f0f0;
+		background: var(--color-border-1);
 	}
 
 	.back-link {
-		color: #666;
+		color: var(--color-muted);
 		font-size: 14px;
 		text-decoration: none;
 		margin-top: 8px;
 	}
 
 	.back-link:hover {
-		color: #999;
+		color: var(--color-text);
 	}
 </style>

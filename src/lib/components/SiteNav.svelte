@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import Logo from './Logo.svelte';
+	import ThemeToggle from './ThemeToggle.svelte';
 	const path = $derived(page.url.pathname);
 
 	interface Props {
@@ -25,7 +27,7 @@
 <nav class="site-nav">
 	<div class="sn-inner">
 		<a href="/" class="sn-brand">
-			<img src="https://mail.axene.io/email-assets/logo.png" width="40" height="40" alt="Axene" class="sn-logo" />
+			<Logo size={36} />
 			Axene Templates
 		</a>
 		<div class="sn-links">
@@ -34,6 +36,7 @@
 			<a href="/#features">Features</a>
 		</div>
 		<div class="sn-right">
+			<div class="sn-theme"><ThemeToggle variant="segmented" /></div>
 			{#if user}
 				<div class="sn-user-wrap">
 					<!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -77,9 +80,9 @@
 		left: 0;
 		right: 0;
 		z-index: 50;
-		background: rgba(16,16,16,0.75);
+		background: color-mix(in srgb, var(--color-bg) 75%, transparent);
 		backdrop-filter: blur(12px);
-		border-bottom: 1px solid rgba(255,255,255,0.06);
+		border-bottom: 1px solid var(--color-border-1);
 	}
 	.sn-inner {
 		max-width: 1100px;
@@ -96,11 +99,10 @@
 		gap: 8px;
 		font-weight: 700;
 		font-size: 15px;
-		color: #fff;
+		color: var(--color-text);
 		text-decoration: none;
 		letter-spacing: -0.3px;
 	}
-	.sn-logo { border-radius: 4px; }
 	.sn-links {
 		display: flex;
 		gap: 28px;
@@ -109,13 +111,14 @@
 	}
 	.sn-links a {
 		text-decoration: none;
-		color: #666;
+		color: var(--color-muted);
 		transition: color 0.15s;
 	}
-	.sn-links a:hover, .sn-links a.active { color: #fff; }
+	.sn-links a:hover, .sn-links a.active { color: var(--color-text); }
 	.sn-right {
 		display: flex;
 		align-items: center;
+		gap: 14px;
 	}
 	.sn-cta {
 		display: inline-flex;
@@ -123,13 +126,13 @@
 		padding: 7px 18px;
 		font-size: 13px;
 		font-weight: 600;
-		color: #000;
-		background: #FFD100;
+		color: #101010;
+		background: var(--color-accent);
 		border-radius: 100px;
 		text-decoration: none;
 		transition: all 0.2s;
 	}
-	.sn-cta:hover { background: #e6bc00; transform: scale(1.03); }
+	.sn-cta:hover { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text)); transform: scale(1.03); }
 
 	/* Avatar */
 	.sn-user-wrap {
@@ -144,12 +147,12 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: #333;
-		border: 2px solid rgba(255,209,0,0.4);
+		background: var(--color-surface-2);
+		border: 2px solid var(--color-accent);
 		transition: border-color 0.15s;
 	}
 	.sn-avatar:hover {
-		border-color: #FFD100;
+		border-color: var(--color-accent);
 	}
 	.sn-avatar-img {
 		width: 100%;
@@ -159,7 +162,7 @@
 	.sn-avatar-initials {
 		font-size: 11px;
 		font-weight: 700;
-		color: #FFD100;
+		color: var(--color-accent-ink);
 		line-height: 1;
 	}
 
@@ -169,25 +172,25 @@
 		top: 38px;
 		right: 0;
 		min-width: 200px;
-		background: #1a1a1a;
-		border: 1px solid rgba(255,255,255,0.08);
+		background: var(--color-surface-2);
+		border: 1px solid var(--color-border-1);
 		border-radius: 10px;
 		padding: 8px 0;
 		z-index: 60;
-		box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+		box-shadow: 0 8px 24px color-mix(in srgb, var(--color-text) 12%, transparent);
 	}
 	.sn-dropdown-info {
 		padding: 8px 14px 10px;
-		border-bottom: 1px solid rgba(255,255,255,0.06);
+		border-bottom: 1px solid var(--color-border-1);
 	}
 	.sn-dropdown-name {
 		font-size: 13px;
 		font-weight: 600;
-		color: #fff;
+		color: var(--color-text);
 	}
 	.sn-dropdown-email {
 		font-size: 12px;
-		color: #888;
+		color: var(--color-muted);
 		margin-top: 1px;
 	}
 	.sn-dropdown-btn {
@@ -197,15 +200,15 @@
 		padding: 8px 14px;
 		font-size: 13px;
 		font-family: inherit;
-		color: #ccc;
+		color: var(--color-text);
 		background: none;
 		border: none;
 		cursor: pointer;
 		transition: background 0.15s, color 0.15s;
 	}
 	.sn-dropdown-btn:hover {
-		background: rgba(255,255,255,0.05);
-		color: #fff;
+		background: var(--color-surface-2);
+		color: var(--color-text);
 	}
 
 	/* Backdrop to close dropdown */

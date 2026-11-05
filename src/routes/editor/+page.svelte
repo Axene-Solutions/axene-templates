@@ -65,7 +65,7 @@
 			flex: 1;
 			align-items: center;
 			justify-content: center;
-			background: #101010;
+			background: var(--color-surface);
 			padding: 32px;
 		}
 		.mg-card {
@@ -75,28 +75,28 @@
 		.mg-icon {
 			margin: 0 auto 20px;
 			opacity: 0.8;
-			color: #ffd100;
+			color: var(--color-accent-ink);
 			display: flex;
 			justify-content: center;
 		}
 		.mg-card h2 {
 			font-size: 20px;
 			font-weight: 700;
-			color: #fff;
+			color: var(--color-text);
 			margin: 0 0 10px;
 			letter-spacing: -0.5px;
 		}
 		.mg-card p {
 			font-size: 14px;
-			color: #666;
+			color: var(--color-muted);
 			line-height: 1.6;
 			margin: 0 0 24px;
 		}
 		.mg-btn {
 			display: inline-flex;
 			padding: 10px 24px;
-			background: #ffd100;
-			color: #000;
+			background: var(--color-accent);
+			color: #101010;
 			font-size: 14px;
 			font-weight: 600;
 			border-radius: 100px;
@@ -104,7 +104,7 @@
 			transition: background 0.15s;
 		}
 		.mg-btn:hover {
-			background: #e6bc00;
+			background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text));
 		}
 	}
 </style>

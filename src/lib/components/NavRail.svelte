@@ -1,5 +1,7 @@
 <script lang="ts">
 	import Icon from './Icon.svelte'
+	import Logo from './Logo.svelte'
+	import ThemeToggle from './ThemeToggle.svelte'
 	let {
 		user = null,
 	}: {
@@ -38,7 +40,7 @@
 
 <nav class="rail max-h-[100vh] sticky top-0">
 	<a href="/" class="logo" title="Home">
-		<img src="https://mail.axene.io/email-assets/logo.png" width="24" height="24" alt="Axene" />
+		<Logo size={26} />
 	</a>
 
 	<a href="/" class="nav-btn" class:active={isActive('/')} title="Home">
@@ -52,6 +54,8 @@
 	</a>
 
 	<div class="spacer"></div>
+
+	<ThemeToggle />
 
 	{#if user}
 		<div class="avatar" title={user.name ?? user.email}>
@@ -74,8 +78,8 @@
 <style>
 	.rail {
 		width: 46px;
-		background: #141414;
-		border-right: 1px solid rgba(255, 255, 255, 0.06);
+		background: var(--color-surface);
+		border-right: 1px solid var(--color-border-1);
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -93,9 +97,6 @@
 		margin-bottom: 10px;
 		overflow: hidden;
 	}
-	.logo img {
-		display: block;
-	}
 	.nav-btn {
 		width: 30px;
 		height: 30px;
@@ -104,7 +105,7 @@
 		align-items: center;
 		justify-content: center;
 		cursor: pointer;
-		color: #888;
+		color: var(--color-muted);
 		border: none;
 		background: transparent;
 		text-decoration: none;
@@ -113,12 +114,12 @@
 			color 0.12s;
 	}
 	.nav-btn:hover {
-		background: rgba(255, 255, 255, 0.05);
-		color: #ccc;
+		background: var(--color-surface-2);
+		color: var(--color-text);
 	}
 	.nav-btn.active {
-		background: rgba(255, 209, 0, 0.08);
-		color: #ffd100;
+		background: var(--color-accent-soft);
+		color: var(--color-accent-ink);
 	}
 	.spacer {
 		flex: 1;
@@ -127,7 +128,7 @@
 		width: 26px;
 		height: 26px;
 		border-radius: 50%;
-		background: #2a2a2a;
+		background: var(--color-surface-2);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -143,7 +144,7 @@
 	}
 	.nav-avatar-initials {
 		font-size: 13px;
-		color: #fff;
+		color: var(--color-text);
 		font-weight: 600;
 	}
 </style>

@@ -1,8 +1,12 @@
+<script lang="ts">
+	import Logo from './Logo.svelte'
+</script>
+
 <footer class="sf">
 	<div class="sf-inner">
 		<div class="sf-brand">
 			<a href="https://axene.io" class="sf-logo" target="_blank" rel="noopener">
-				<img src="https://mail.axene.io/email-assets/logo.png" width="24" height="24" alt="Axene" style="border-radius:4px;" />
+				<Logo size={26} />
 				<span class="sf-wm">axene<span class="sf-y">.io</span></span>
 			</a>
 			<p class="sf-tag">Developer infrastructure for Africa. Build smarter, scale faster.</p>
@@ -23,21 +27,21 @@
 </footer>
 
 <style>
-	.sf { border-top: 1px solid rgba(255,255,255,0.05); background: #0a0a0a; padding: 64px 24px 40px; font-family: 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif; }
+	.sf { border-top: 1px solid var(--color-border-soft); background: var(--color-surface); padding: 64px 24px 40px; font-family: 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif; }
 	.sf-inner { max-width: 1100px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 48px; justify-content: space-between; align-items: flex-start; }
 	.sf-brand { max-width: 260px; }
 	.sf-logo { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; text-decoration: none; }
-	.sf-wm { font-size: 16px; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
-	.sf-y { color: #FFD100; }
-	.sf-tag { font-size: 13px; color: #555; line-height: 1.65; margin-bottom: 18px; }
+	.sf-wm { font-size: 16px; font-weight: 800; color: var(--color-text); letter-spacing: -0.5px; }
+	.sf-y { color: var(--color-accent-ink); }
+	.sf-tag { font-size: 13px; color: var(--color-muted); line-height: 1.65; margin-bottom: 18px; }
 	.sf-social { display: flex; gap: 8px; }
-	.sf-soc { width: 32px; height: 32px; border-radius: 7px; border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; text-decoration: none; color: #555; transition: border-color 0.2s, color 0.2s; }
-	.sf-soc:hover { border-color: #FFD100; color: #FFD100; }
-	.sf-col h4 { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #555; margin-bottom: 14px; }
+	.sf-soc { width: 32px; height: 32px; border-radius: 7px; border: 1px solid var(--color-border-1); display: flex; align-items: center; justify-content: center; text-decoration: none; color: var(--color-muted); transition: border-color 0.2s, color 0.2s; }
+	.sf-soc:hover { border-color: var(--color-accent); color: var(--color-accent-ink); }
+	.sf-col h4 { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--color-muted); margin-bottom: 14px; }
 	.sf-col ul { list-style: none; display: flex; flex-direction: column; gap: 9px; padding: 0; margin: 0; }
-	.sf-col a { font-size: 13px; color: #777; text-decoration: none; transition: color 0.2s; }
-	.sf-col a:hover { color: #FFD100; }
-	.sf-bottom { max-width: 1100px; margin: 40px auto 0; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 12px; color: #444; }
+	.sf-col a { font-size: 13px; color: var(--color-muted); text-decoration: none; transition: color 0.2s; }
+	.sf-col a:hover { color: var(--color-accent-ink); }
+	.sf-bottom { max-width: 1100px; margin: 40px auto 0; padding-top: 20px; border-top: 1px solid var(--color-border-soft); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--color-muted); }
 
 	@media (max-width: 640px) {
 		.sf-inner { flex-direction: column; gap: 32px; }

@@ -32,7 +32,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: #101010;
+		background: var(--color-surface);
 		padding: 32px;
 		min-height: 100vh;
 	}
@@ -40,7 +40,7 @@
 	.error-code {
 		font-size: 80px;
 		font-weight: 800;
-		color: #FFD100;
+		color: var(--color-accent-ink);
 		opacity: 0.15;
 		line-height: 1;
 		letter-spacing: -4px;
@@ -49,37 +49,37 @@
 	.error-card h1 {
 		font-size: 22px;
 		font-weight: 700;
-		color: #fff;
+		color: var(--color-text);
 		margin: 0 0 10px;
 		letter-spacing: -0.5px;
 	}
 	.error-card p {
 		font-size: 14px;
-		color: #666;
+		color: var(--color-muted);
 		line-height: 1.6;
 		margin: 0 0 28px;
 	}
 	.error-actions { display: flex; gap: 10px; justify-content: center; }
 	.err-btn-primary {
 		padding: 10px 24px;
-		background: #FFD100;
-		color: #000;
+		background: var(--color-accent);
+		color: #101010;
 		font-size: 14px;
 		font-weight: 600;
 		border-radius: 100px;
 		text-decoration: none;
 		transition: background 0.15s;
 	}
-	.err-btn-primary:hover { background: #e6bc00; }
+	.err-btn-primary:hover { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text)); }
 	.err-btn-ghost {
 		padding: 10px 24px;
-		border: 1px solid rgba(255,255,255,0.1);
-		color: #888;
+		border: 1px solid var(--color-border-1);
+		color: var(--color-muted);
 		font-size: 14px;
 		font-weight: 600;
 		border-radius: 100px;
 		text-decoration: none;
 		transition: all 0.15s;
 	}
-	.err-btn-ghost:hover { color: #fff; border-color: rgba(255,255,255,0.2); }
+	.err-btn-ghost:hover { color: var(--color-text); border-color: var(--color-border-1); }
 </style>
