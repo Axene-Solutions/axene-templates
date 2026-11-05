@@ -1,0 +1,451 @@
+// Server-side allowlist for editor blocks. Every block that is stored, served to the editor,
+// compiled or sent goes through sanitizeBlocks first, whatever its source (the editor, the
+// public gallery, a Mailer template). Pure apart from sanitize-html, so it is unit tested
+// directly.
+//
+// Per block type, per prop:
+//   html   rich text, run through sanitize-html with a small tag set (only when it contains "<")
+//   text   plain text, escaped at every sink; length capped, control characters removed
+//   url    http, https, mailto, tel, relative or {{placeholder}} forms only, entities refused
+//   color  #rgb, #rgba, #rrggbb, #rrggbbaa, theme tokens, transparent, rgb()/rgba() numbers
+//   number finite, clamped to the prop's bounds
+//   enum   exactly one of the values the editor offers
+// Unknown props are dropped. Unknown block types and malformed structure are an error.
+
+import sanitizeHtml, { type SanitizeHtmlOptions } from 'sanitize-html';
+import { blockDefs, type Block, type BlockType } from '$lib/blocks';
+import { scanTags } from '$lib/placeholders';
+
+export const MAX_BLOCKS = 200;
+export const MAX_BLOCKS_BYTES = 1_000_000;
+export const MAX_HTML = 20_000;
+export const MAX_TEXT = 2_000;
+export const MAX_URL = 2_000;
+export const MAX_ITEMS = 100;
+export const MAX_ROWS = 200;
+export const MAX_LINKS = 20;
+
+export class BlocksValidationError extends Error {
+	readonly code = 'invalid_blocks';
+	constructor(message: string) {
+		super(message);
+		this.name = 'BlocksValidationError';
+	}
+}
+
+export interface SanitizeOptions {
+	/**
+	 * true (ingestion): a prop with the wrong shape is an error.
+	 * false (read, render): it is replaced with the block type's default, or dropped.
+	 * Rich text is always cleaned, never rejected, in both modes.
+	 */
+	strict?: boolean;
+	/** Allow an empty block list (the editor can save one). Default true. */
+	allowEmpty?: boolean;
+}
+
+// ---- Value checks ----
+
+const CONTROL = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g;
+const ALL_CONTROL = /[\u0000-\u001f\u007f]/g;
+const SAFE_SCHEMES = new Set(['http', 'https', 'mailto', 'tel']);
+
+/**
+ * Returns the URL (trimmed) when it is safe to put in an href or src, otherwise null.
+ * Placeholders are judged by what they can produce: a fallback must itself be safe in that
+ * position, a bare {{field}} or {{link:key}} counts as an absolute http(s) value (Mailer and
+ * the local send path check those at fill time). Character references are refused in the
+ * scheme part, so "javascript&#58;" and "java&#x09;script:" never decode into a scheme.
+ */
+export function safeUrl(value: unknown): string | null {
+	if (typeof value !== 'string') return null;
+	const t = value.trim();
+	if (t === '') return '';
+	if (t.length > MAX_URL) return null;
+	let effective = '';
+	let last = 0;
+	for (const { tag, start, end } of scanTags(t, 50)) {
+		effective += t.slice(last, start);
+		last = end;
+		if (tag.kind === 'unsupported') return null;
+		if (tag.kind === 'field' && tag.fallback !== null) effective += tag.fallback.trim();
+		else effective += effective === '' ? 'https://placeholder.invalid' : 'p';
+	}
+	effective += t.slice(last);
+	return isSafeLiteralUrl(effective) ? t : null;
+}
+
+/** The scheme check on a URL with no placeholders. Exported for the send path. */
+export function isSafeLiteralUrl(u: string): boolean {
+	if (/[\u0000- \u007f"<>`\\]/.test(u)) return false;
+	const cut = u.search(/[/?#]/);
+	const head = cut === -1 ? u : u.slice(0, cut);
+	if (head.includes('&')) return false;
+	const colon = head.indexOf(':');
+	if (colon === -1) return true; // relative
+	const m = /^([a-z][a-z0-9+.-]*):/i.exec(head);
+	return !!m && SAFE_SCHEMES.has(m[1].toLowerCase());
+}
+
+const HEX = /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
+const RGB = /^rgba?\(\s*\d{1,3}(?:\.\d+)?%?\s*,\s*\d{1,3}(?:\.\d+)?%?\s*,\s*\d{1,3}(?:\.\d+)?%?\s*(?:,\s*(?:0|1|0?\.\d{1,4}|1\.0{1,4})\s*)?\)$/i;
+const COLOR_TOKENS = new Set(['theme', 'theme-light', 'theme-dark', 'transparent']);
+
+export function isColor(v: unknown): v is string {
+	return typeof v === 'string' && v.length <= 40 && (HEX.test(v) || RGB.test(v) || COLOR_TOKENS.has(v));
+}
+
+export function isHexColor(v: unknown): v is string {
+	return typeof v === 'string' && HEX.test(v);
+}
+
+// ---- Rich text ----
+
+const RICH: SanitizeHtmlOptions = {
+	allowedTags: ['b', 'strong', 'i', 'em', 'u', 'br', 'p', 'span', 'a', 'ul', 'ol', 'li'],
+	allowedAttributes: { a: ['href', 'rel', 'target'] },
+	allowedSchemes: ['http', 'https', 'mailto', 'tel'],
+	allowedSchemesAppliedToAttributes: ['href'],
+	allowProtocolRelative: false,
+	disallowedTagsMode: 'discard',
+	parser: { decodeEntities: true, lowerCaseTags: true, lowerCaseAttributeNames: true },
+	transformTags: {
+		a: (tagName: string, attribs: Record<string, string>) => {
+			// attribs arrive entity-decoded, so the scheme check sees what a browser would.
+			const href = safeUrl(attribs.href ?? '');
+			return {
+				tagName,
+				attribs: href ? { href, rel: 'noopener noreferrer', target: '_blank' } : {},
+			};
+		},
+	},
+};
+
+/** Allowlist-sanitises one rich text value. Text without "<" cannot hold markup and is kept as is. */
+export function sanitizeRichText(v: string): string {
+	const s = v.replace(CONTROL, '');
+	if (!s.includes('<')) return s;
+	return sanitizeHtml(s, RICH);
+}
+
+// ---- Schema ----
+
+type Rule =
+	| { kind: 'html' }
+	| { kind: 'text'; max?: number }
+	| { kind: 'url' }
+	| { kind: 'color'; hexOnly?: boolean }
+	| { kind: 'number'; min: number; max: number; int?: boolean }
+	| { kind: 'enum'; values: readonly string[] }
+	| { kind: 'bool' }
+	| { kind: 'lineHeight' }
+	| { kind: 'boxPadding' }
+	| { kind: 'htmlList'; max: number }
+	| { kind: 'rows' }
+	| { kind: 'links' };
+
+const PAD: Record<string, Rule> = {
+	paddingTop: { kind: 'number', min: 0, max: 300 },
+	paddingBottom: { kind: 'number', min: 0, max: 300 },
+	paddingLeft: { kind: 'number', min: 0, max: 300 },
+	paddingRight: { kind: 'number', min: 0, max: 300 },
+};
+const ALIGN: Rule = { kind: 'enum', values: ['left', 'center', 'right'] };
+const WEIGHT: Rule = { kind: 'enum', values: ['normal', 'bold', '100', '200', '300', '400', '500', '600', '700', '800', '900'] };
+const FONT_SIZE: Rule = { kind: 'number', min: 1, max: 120 };
+const COLOR: Rule = { kind: 'color' };
+
+export const BLOCK_SCHEMA: Record<BlockType, Record<string, Rule>> = {
+	header: {
+		logoUrl: { kind: 'url' },
+		companyName: { kind: 'text', max: 200 },
+		tagline: { kind: 'text', max: 300 },
+		layout: { kind: 'enum', values: ['logo-left', 'logo-center', 'logo-right', 'logo-only', 'text-only'] },
+		accentColor: { kind: 'color', hexOnly: true },
+		backgroundColor: COLOR,
+		logoWidth: { kind: 'number', min: 0, max: 600 },
+		fontSize: FONT_SIZE,
+		color: COLOR,
+		align: ALIGN,
+		...PAD,
+	},
+	heading: { text: { kind: 'html' }, fontSize: FONT_SIZE, fontWeight: WEIGHT, color: COLOR, align: ALIGN, ...PAD },
+	subheading: { text: { kind: 'html' }, fontSize: FONT_SIZE, fontWeight: WEIGHT, color: COLOR, align: ALIGN, lineHeight: { kind: 'lineHeight' }, ...PAD },
+	content: { text: { kind: 'html' }, fontSize: FONT_SIZE, fontWeight: WEIGHT, color: COLOR, align: ALIGN, lineHeight: { kind: 'lineHeight' }, ...PAD },
+	image: {
+		src: { kind: 'url' },
+		alt: { kind: 'text', max: 300 },
+		width: { kind: 'number', min: 0, max: 1200 },
+		href: { kind: 'url' },
+		...PAD,
+	},
+	button: {
+		text: { kind: 'html' },
+		href: { kind: 'url' },
+		backgroundColor: COLOR,
+		color: COLOR,
+		fontSize: FONT_SIZE,
+		fontWeight: WEIGHT,
+		borderRadius: { kind: 'number', min: 0, max: 100 },
+		width: { kind: 'number', min: -1, max: 1200, int: true },
+		align: ALIGN,
+		innerPadding: { kind: 'boxPadding' },
+		...PAD,
+	},
+	list: { items: { kind: 'htmlList', max: MAX_ITEMS }, fontSize: FONT_SIZE, color: COLOR, bulletColor: COLOR, ...PAD },
+	table: {
+		headerRow: { kind: 'bool' },
+		col1Header: { kind: 'text', max: 300 },
+		col2Header: { kind: 'text', max: 300 },
+		rows: { kind: 'rows' },
+		headerBg: COLOR,
+		headerColor: COLOR,
+		cellColor: COLOR,
+		borderColor: COLOR,
+		fontSize: FONT_SIZE,
+		...PAD,
+	},
+	section: {
+		backgroundColor: COLOR,
+		borderRadius: { kind: 'number', min: 0, max: 100 },
+		borderStyle: { kind: 'enum', values: ['none', 'solid', 'dashed', 'dotted'] },
+		borderColor: COLOR,
+		...PAD,
+	},
+	footer: {
+		text: { kind: 'html' },
+		companyName: { kind: 'text', max: 200 },
+		companyAddress: { kind: 'text', max: 500 },
+		links: { kind: 'links' },
+		unsubText: { kind: 'text', max: 100 },
+		unsubUrl: { kind: 'url' },
+		fontSize: FONT_SIZE,
+		color: COLOR,
+		linkColor: COLOR,
+		align: ALIGN,
+		showDivider: { kind: 'bool' },
+		...PAD,
+	},
+};
+
+const DEFAULTS = new Map(blockDefs.map((d) => [d.type, d.defaultProps]));
+const INVALID = Symbol('invalid');
+type Out = unknown | typeof INVALID;
+
+function plainText(v: unknown, max: number): Out {
+	if (typeof v === 'number') v = String(v);
+	if (typeof v !== 'string' || v.length > max) return INVALID;
+	return v.replace(ALL_CONTROL, ' ');
+}
+
+function richText(v: unknown, max = MAX_HTML): Out {
+	if (typeof v === 'number') v = String(v);
+	if (typeof v !== 'string' || v.length > max) return INVALID;
+	return sanitizeRichText(v);
+}
+
+function num(v: unknown, r: { min: number; max: number; int?: boolean }, strict: boolean): Out {
+	const n = typeof v === 'number' ? v : typeof v === 'string' && /^-?\d{1,6}(?:\.\d{1,4})?$/.test(v.trim()) ? Number(v) : NaN;
+	if (!Number.isFinite(n)) return INVALID;
+	if (r.int && !Number.isInteger(n)) return INVALID;
+	if (n < r.min || n > r.max) return strict ? INVALID : Math.min(r.max, Math.max(r.min, n));
+	return n;
+}
+
+function check(rule: Rule, v: unknown, strict: boolean): Out {
+	switch (rule.kind) {
+		case 'html':
+			return richText(v);
+		case 'text':
+			return plainText(v, rule.max ?? MAX_TEXT);
+		case 'url': {
+			const u = safeUrl(v);
+			return u === null ? INVALID : u;
+		}
+		case 'color':
+			return (rule.hexOnly ? isHexColor(v) : isColor(v)) ? v : INVALID;
+		case 'number':
+			return num(v, rule, strict);
+		case 'enum':
+			return typeof v === 'string' && rule.values.includes(v) ? v : INVALID;
+		case 'bool':
+			return typeof v === 'boolean' ? v : INVALID;
+		case 'lineHeight': {
+			if (typeof v === 'number') return Number.isFinite(v) && v > 0 && v <= 5 ? v : INVALID;
+			return typeof v === 'string' && /^(?:[0-4](?:\.\d{1,3})?|5)$|^\d{1,3}px$/.test(v) ? v : INVALID;
+		}
+		case 'boxPadding':
+			return typeof v === 'string' && /^\d{1,3}px(?: \d{1,3}px){0,3}$/.test(v) ? v : INVALID;
+		case 'htmlList': {
+			if (!Array.isArray(v) || v.length > rule.max) return INVALID;
+			const out: string[] = [];
+			for (const item of v) {
+				const s = richText(item, MAX_TEXT);
+				if (s === INVALID) {
+					if (strict) return INVALID;
+					continue;
+				}
+				out.push(s as string);
+			}
+			return out;
+		}
+		case 'rows': {
+			if (!Array.isArray(v) || v.length > MAX_ROWS) return INVALID;
+			const out: { col1: string; col2: string }[] = [];
+			for (const row of v) {
+				if (!row || typeof row !== 'object' || Array.isArray(row)) {
+					if (strict) return INVALID;
+					continue;
+				}
+				const c1 = richText((row as any).col1 ?? '', MAX_TEXT);
+				const c2 = richText((row as any).col2 ?? '', MAX_TEXT);
+				if (c1 === INVALID || c2 === INVALID) {
+					if (strict) return INVALID;
+					continue;
+				}
+				out.push({ col1: c1 as string, col2: c2 as string });
+			}
+			return out;
+		}
+		case 'links': {
+			if (!Array.isArray(v) || v.length > MAX_LINKS) return INVALID;
+			const out: { label: string; url: string }[] = [];
+			for (const link of v) {
+				if (!link || typeof link !== 'object' || Array.isArray(link)) {
+					if (strict) return INVALID;
+					continue;
+				}
+				const label = plainText((link as any).label ?? '', 200);
+				const url = safeUrl((link as any).url ?? '');
+				if (label === INVALID || url === null) {
+					if (strict) return INVALID;
+					continue;
+				}
+				out.push({ label: label as string, url });
+			}
+			return out;
+		}
+	}
+}
+
+const ID = /^[A-Za-z0-9_.:-]{1,100}$/;
+
+function describe(rule: Rule): string {
+	switch (rule.kind) {
+		case 'url':
+			return 'a safe URL (http, https, mailto, tel or relative)';
+		case 'color':
+			return rule.hexOnly ? 'a hex colour' : 'a colour';
+		case 'number':
+			return `a number from ${rule.min} to ${rule.max}`;
+		case 'enum':
+			return `one of ${rule.values.join(', ')}`;
+		case 'bool':
+			return 'true or false';
+		default:
+			return 'valid';
+	}
+}
+
+/**
+ * Returns a sanitised copy of the blocks, or throws BlocksValidationError with a short message.
+ * The result holds only known block types and known props, as fresh plain objects.
+ */
+export function sanitizeBlocks(input: unknown, opts: SanitizeOptions = {}): Block[] {
+	const strict = opts.strict ?? false;
+	const allowEmpty = opts.allowEmpty ?? true;
+	if (!Array.isArray(input)) throw new BlocksValidationError('blocks must be an array');
+	if (input.length === 0 && !allowEmpty) throw new BlocksValidationError('blocks is empty');
+	if (input.length > MAX_BLOCKS) throw new BlocksValidationError(`at most ${MAX_BLOCKS} blocks are allowed`);
+	let size: number;
+	try {
+		size = JSON.stringify(input).length;
+	} catch {
+		throw new BlocksValidationError('blocks cannot be serialized');
+	}
+	if (size > MAX_BLOCKS_BYTES) throw new BlocksValidationError('blocks are too large');
+
+	const ids = new Set<string>();
+	const out: Block[] = [];
+	input.forEach((b, i) => {
+		if (!b || typeof b !== 'object' || Array.isArray(b)) throw new BlocksValidationError('every block must be an object');
+		const { type, props } = b as Record<string, unknown>;
+		let id = (b as Record<string, unknown>).id;
+		if (typeof type !== 'string' || !Object.hasOwn(BLOCK_SCHEMA, type)) {
+			if (strict) throw new BlocksValidationError('a block has an unknown type');
+			return;
+		}
+		if (typeof id !== 'string' || !ID.test(id)) {
+			if (strict) throw new BlocksValidationError('every block needs an id of letters, digits, _ . : or -');
+			id = `blk_fixed_${i}`;
+		}
+		if (ids.has(id as string)) {
+			if (strict) throw new BlocksValidationError('block ids must be unique');
+			id = `${String(id).slice(0, 80)}_${i}`;
+		}
+		ids.add(id as string);
+		if (!props || typeof props !== 'object' || Array.isArray(props)) {
+			if (strict) throw new BlocksValidationError('every block needs a props object');
+		}
+		const src = (props && typeof props === 'object' && !Array.isArray(props) ? props : {}) as Record<string, unknown>;
+		const schema = BLOCK_SCHEMA[type as BlockType];
+		const defaults = DEFAULTS.get(type as BlockType) ?? {};
+		const clean: Record<string, unknown> = {};
+		for (const [key, rule] of Object.entries(schema)) {
+			if (!Object.hasOwn(src, key) || src[key] === undefined || src[key] === null) continue;
+			const v = check(rule, src[key], strict);
+			if (v !== INVALID) {
+				clean[key] = v;
+				continue;
+			}
+			if (strict) throw new BlocksValidationError(`${type}.${key} must be ${describe(rule)}`);
+			if (Object.hasOwn(defaults, key)) clean[key] = structuredClone(defaults[key]);
+		}
+		out.push({ id: id as string, type: type as BlockType, props: clean });
+	});
+	return out;
+}
+
+/** sanitizeBlocks for reads: never throws, a hopeless value becomes an empty list. */
+export function sanitizeBlocksForRead(input: unknown): Block[] {
+	try {
+		return sanitizeBlocks(input, { strict: false });
+	} catch {
+		return [];
+	}
+}
+
+// ---- Compiled HTML tripwire ----
+
+const NAMED: Record<string, string> = { colon: ':', tab: '\t', newline: '\n', lpar: '(', rpar: ')', sol: '/', amp: '&', quot: '"', apos: "'" };
+
+function decodeRefs(s: string): string {
+	return s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);?/gi, (m, ref: string) => {
+		if (ref[0] === '#') {
+			const code = ref[1] === 'x' || ref[1] === 'X' ? parseInt(ref.slice(2), 16) : parseInt(ref.slice(1), 10);
+			return Number.isFinite(code) && code < 0x110000 ? String.fromCodePoint(code) : '';
+		}
+		return NAMED[ref.toLowerCase()] ?? m;
+	});
+}
+
+/**
+ * Final check on compiled email HTML before it leaves for Mailer or a recipient. Returns the
+ * reason it is refused, or null. This never strips anything: if it fires, a sanitiser rule is
+ * missing and the request must fail loudly.
+ */
+export function compiledHtmlProblem(html: string): string | null {
+	if (/<\s*script\b/i.test(html)) return 'it contains a script tag';
+	if (/<\s*\/?\s*mj-[a-z]/i.test(html)) return 'it contains raw MJML';
+	if (/<\s*(?:iframe|object|embed|base|form|svg|math)\b/i.test(html)) return 'it contains an embedded document or form';
+	for (const m of html.matchAll(/<[a-z][^>]*>/gi)) {
+		const tag = m[0];
+		if (/[\s"'/]on[a-z]+\s*=/i.test(tag)) return 'it contains an event handler attribute';
+		for (const a of tag.matchAll(/=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g)) {
+			const val = decodeRefs(a[1] ?? a[2] ?? a[3] ?? '').replace(/[\u0000- \u007f]/g, '').toLowerCase();
+			if (/^(?:javascript|vbscript):|^data:text\/html/.test(val)) return 'it contains a script URL';
+			if (/url\((?:'|")?(?:javascript|vbscript):|expression\(/.test(val)) return 'it contains script in a style';
+		}
+	}
+	return null;
+}
