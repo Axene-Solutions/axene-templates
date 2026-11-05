@@ -3,9 +3,7 @@ import type { RequestHandler } from "./$types";
 import { db } from "$lib/server/db";
 import { templates } from "$lib/server/db/schema";
 import { eq, and } from "drizzle-orm";
-import { injectVariables } from "$lib/server/injector";
-import { blocksToMjml } from "$lib/mjml"; // <-- Import your builder
-import mjml2html from "mjml";
+import { renderTemplateHtml } from "$lib/server/render";
 
 export const POST: RequestHandler = async ({ request, url }) => {
   const categoryQuery = url.searchParams.get("category") || "otp";
@@ -30,19 +28,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
       return json({ error: "Template not found" }, { status: 404 });
     }
 
-    // 1. Convert the JSON block definition into base MJML using your utility
-    // We cast to `any` or `Block[]` depending on your schema type definitions
-    const rawMjml = blocksToMjml(templateRecord.blocks as any);
-
-    // 2. Pass the base MJML to Handlebars to evaluate `{{otp}}` or `{{#each items}}`
-    const injectedMjml = injectVariables(rawMjml, dynamicData || {});
-
-    // 3. Compile the fully hydrated MJML into HTML
-    const result = mjml2html(injectedMjml, {
-      keepComments: false,
-      minify: true,
-      validationLevel: "soft",
-    });
+    const result = renderTemplateHtml(templateRecord.blocks, dynamicData || {});
 
     return json({
       html: result.html,
