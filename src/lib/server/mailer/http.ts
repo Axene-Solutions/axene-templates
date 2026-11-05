@@ -13,7 +13,7 @@ export type Authed = { user: NonNullable<App.Locals['user']>; key: Buffer };
  * Common gate for every Mailer endpoint, in this order:
  * 401 not signed in, 403 cross-origin state change, 503 encryption not configured.
  */
-export function gate(event: RequestEvent, stateChanging: boolean): Authed | Response {
+export function gate(event: RequestEvent, stateChanging: boolean, opts: { requireKey?: boolean } = {}): Authed | Response {
 	const user = event.locals.user;
 	if (!user) return json({ error: 'Authentication required' }, { status: 401 });
 	if (stateChanging) {
@@ -26,7 +26,11 @@ export function gate(event: RequestEvent, stateChanging: boolean): Authed | Resp
 		}
 	}
 	const key = getEncryptionKey();
-	if (!key) return json({ error: 'Sending is not configured', code: 'not_configured' }, { status: 503 });
+	if (!key) {
+		// Disconnecting only deletes a row, so it must work even when the key is not configured.
+		if (event.request.method === 'DELETE' || opts.requireKey === false) return { user, key: Buffer.alloc(0) };
+		return json({ error: 'Sending is not configured', code: 'not_configured' }, { status: 503 });
+	}
 	return { user, key };
 }
 
