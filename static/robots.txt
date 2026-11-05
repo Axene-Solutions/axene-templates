@@ -1,3 +1,8 @@
-# allow crawling everything by default
 User-agent: *
-Disallow:
+Allow: /
+Disallow: /editor
+Disallow: /login
+Disallow: /auth
+Disallow: /api
+
+Sitemap: https://templates.axene.io/sitemap.xml
