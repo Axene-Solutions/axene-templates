@@ -100,23 +100,80 @@ export function escapeVariables(vars: Record<string, string | number | boolean>)
 	return out;
 }
 
-/** Plain-text alternative: drop head/style/script, turn breaks and blocks into newlines, strip tags. */
+export const MAX_TEXT_INPUT = 200_000;
+
+const DROP_TAGS = ['head', 'style', 'script'];
+const BLOCK_CLOSE = new Set(['p', 'div', 'tr', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'table']);
+
+/**
+ * Plain-text alternative: drop head/style/script and comments, turn breaks and block ends
+ * into newlines, strip tags. One forward pass (no regex backtracking), input capped at
+ * MAX_TEXT_INPUT characters, so cost is linear in the input.
+ */
 export function htmlToText(html: string): string {
-	return html
-		.replace(/<(head|style|script)[\s\S]*?<\/\1>/gi, '')
-		.replace(/<!--[\s\S]*?-->/g, '')
-		.replace(/<br\s*\/?>/gi, '\n')
-		.replace(/<\/(p|div|tr|h[1-6]|li|table)>/gi, '\n')
-		.replace(/<[^>]*>/g, '')
+	const src = html.length > MAX_TEXT_INPUT ? html.slice(0, MAX_TEXT_INPUT) : html;
+	const lower = src.toLowerCase();
+	let out = '';
+	let i = 0;
+	while (i < src.length) {
+		const lt = src.indexOf('<', i);
+		if (lt === -1) {
+			out += src.slice(i);
+			break;
+		}
+		out += src.slice(i, lt);
+		if (lower.startsWith('<!--', lt)) {
+			const end = src.indexOf('-->', lt + 4);
+			i = end === -1 ? src.length : end + 3;
+			continue;
+		}
+		const gt = src.indexOf('>', lt + 1);
+		if (gt === -1) {
+			out += src.slice(lt);
+			break;
+		}
+		// Tag name, e.g. "/p", "br", "style".
+		let j = lt + 1;
+		const closing = src[j] === '/';
+		if (closing) j++;
+		let k = j;
+		while (k < gt && /[a-z0-9]/.test(lower[k])) k++;
+		const name = lower.slice(j, k);
+		if (!closing && DROP_TAGS.includes(name) && (k === gt || /[\s/]/.test(lower[k]))) {
+			const end = lower.indexOf('</' + name, gt + 1);
+			if (end === -1) {
+				i = src.length;
+			} else {
+				const endGt = src.indexOf('>', end);
+				i = endGt === -1 ? src.length : endGt + 1;
+			}
+			continue;
+		}
+		if (name === 'br' && !closing) out += '\n';
+		else if (closing && BLOCK_CLOSE.has(name)) out += '\n';
+		i = gt + 1;
+	}
+	out = out
 		.replace(/&nbsp;/g, ' ')
 		.replace(/&lt;/g, '<')
 		.replace(/&gt;/g, '>')
 		.replace(/&quot;/g, '"')
 		.replace(/&#39;/g, "'")
-		.replace(/&amp;/g, '&')
-		.replace(/[ \t]+\n/g, '\n')
-		.replace(/\n{3,}/g, '\n\n')
-		.trim();
+		.replace(/&amp;/g, '&');
+	// Trim line ends and keep at most one blank line, without backtracking regexes.
+	const lines: string[] = [];
+	let blank = 0;
+	for (const raw of out.split('\n')) {
+		const line = raw.trimEnd();
+		if (line === '') {
+			blank++;
+			if (blank <= 1) lines.push(line);
+		} else {
+			blank = 0;
+			lines.push(line);
+		}
+	}
+	return lines.join('\n').trim();
 }
 
 /** Names of {{variables}} a template references (simple identifiers only). */

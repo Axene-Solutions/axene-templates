@@ -108,3 +108,15 @@ test('rate limiter: 20 per hour then Retry-After, window slides', () => {
 	assert.equal(rl.hit('other', 2000), 0);
 	assert.equal(rl.hit('u', 1000 + 3600_000 + 1), 0);
 });
+
+test('htmlToText is linear on pathological input', () => {
+	const t0 = Date.now();
+	htmlToText('<p>' + '<style'.repeat(60_000) + '</p>');
+	htmlToText('<'.repeat(200_000));
+	htmlToText(' '.repeat(190_000) + 'x');
+	htmlToText('<p>a</p>'.repeat(30_000));
+	htmlToText('<script>' + '<script>'.repeat(30_000));
+	assert.ok(Date.now() - t0 < 1500, `took ${Date.now() - t0} ms`);
+	assert.equal(htmlToText('a'.repeat(300_000)).length, 200_000);
+	assert.equal(htmlToText('<p>a</p><!-- c --><br>b<script>x</script>c'), 'a\n\nbc');
+});
