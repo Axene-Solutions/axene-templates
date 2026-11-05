@@ -31,7 +31,7 @@
 		<div class="sn-links">
 			<a href="/" class:active={path === '/'}>Home</a>
 			<a href="/templates" class:active={path === '/templates'}>Templates</a>
-			<a href="#features">Features</a>
+			<a href="/#features">Features</a>
 		</div>
 		<div class="sn-right">
 			{#if user}
