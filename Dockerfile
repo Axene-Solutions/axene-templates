@@ -10,6 +10,10 @@ WORKDIR /app
 COPY --from=builder /app/build ./build
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
+# Schema + config so `drizzle-kit push` can run from this image at deploy time.
+COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
+COPY --from=builder /app/drizzle ./drizzle
+COPY --from=builder /app/src/lib/server/db/schema.ts ./src/lib/server/db/schema.ts
 
 ENV NODE_ENV=production
 ENV PORT=3000

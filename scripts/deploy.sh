@@ -264,11 +264,18 @@ else
   step_fail "build error"
 fi
 
-# -- Migrate (drizzle - best-effort, schema managed at setup) ---------------
+# -- Migrate (drizzle) ------------------------------------------------------
+# Runs in a one-off container from the NEW image, before the restart, so the
+# schema is in place when the new code starts. A failure aborts the deploy.
 run_step
-run_cmd /tmp/axene-migrate.log ssh "$SSH_HOST" \
-    "cd ${REMOTE_DIR} && docker compose exec -T app npx drizzle-kit push --config drizzle.config.ts --force 2>/dev/null || true"
-step_done
+if run_cmd /tmp/axene-migrate.log ssh "$SSH_HOST" \
+    "cd ${REMOTE_DIR} && docker compose -f ${COMPOSE_PROD} run --rm app npx drizzle-kit push --config drizzle.config.ts --force"; then
+  step_done
+else
+  printf "\n"
+  tail -15 /tmp/axene-migrate.log
+  step_fail "migration error"
+fi
 
 # -- Restart -----------------------------------------------------------------
 run_step
