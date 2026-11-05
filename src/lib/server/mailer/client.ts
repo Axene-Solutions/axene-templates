@@ -219,7 +219,7 @@ function failLink(status: number, json: unknown, op: 'read' | 'write'): { ok: fa
 }
 
 export async function listTemplateLinks(apiKey: string): Promise<MailerCall<TemplateLink[]>> {
-	const { status, json } = await call(apiKey, 'GET', '/template-links');
+	const { status, json } = await call(apiKey, 'GET', '/template-links/');
 	if (status < 200 || status >= 300) return failLink(status, json, 'read');
 	const arr: unknown[] = Array.isArray(json) ? json : Array.isArray((json as any)?.items) ? (json as any).items : [];
 	const out: TemplateLink[] = [];
@@ -231,7 +231,7 @@ export async function listTemplateLinks(apiKey: string): Promise<MailerCall<Temp
 }
 
 export async function createTemplateLink(apiKey: string, input: TemplateLinkInput): Promise<MailerCall<TemplateLink>> {
-	const { status, json } = await call(apiKey, 'POST', '/template-links', input);
+	const { status, json } = await call(apiKey, 'POST', '/template-links/', input);
 	if (status < 200 || status >= 300) return failLink(status, json, 'write');
 	const l = toLink(json);
 	return l ? { ok: true, data: l } : { ok: false, status: 502, error: mapMailerStatus(502) };

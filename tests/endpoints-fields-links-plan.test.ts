@@ -134,7 +134,7 @@ test('links GET: lists links in camelCase', async () => {
 	const body = await res.json();
 	assert.equal(body.links.length, 1);
 	assert.equal(body.links[0].token, '{{link:pay_now}}');
-	assert.equal(calls[0].path, '/v1/template-links');
+	assert.equal(calls[0].path, '/v1/template-links/');
 });
 
 test('links POST: validates like the server, then proxies; the key is optional', async () => {
@@ -325,7 +325,7 @@ const blocksWith = (text: string, href = '') => [
 
 function sendUpstream(links: any[], sentHtml: { v: string }) {
 	upstream = (c) => {
-		if (c.path === '/v1/template-links') return { status: 200, json: links };
+		if (c.path === '/v1/template-links/') return { status: 200, json: links };
 		if (c.path === '/v1/emails/') {
 			sentHtml.v = c.body.html;
 			return { status: 202, json: {} };
@@ -343,7 +343,7 @@ test('send: fallbacks and named links render, values are percent-encoded and not
 	assert.ok(sent.v.includes('Hi friend P'), sent.v);
 	assert.ok(sent.v.includes('https://pay.example.com/a%20b%2F%7B%7Bplain%7D%7D'), sent.v);
 	assert.ok(!sent.v.includes('__AXS'));
-	assert.equal(calls.filter((c) => c.path === '/v1/template-links').length, 1);
+	assert.equal(calls.filter((c) => c.path === '/v1/template-links/').length, 1);
 });
 
 test('send: an unknown link is a 400 that lists it, and nothing is sent', async () => {
@@ -392,6 +392,6 @@ test('send: templates without links never call the links endpoint', async () => 
 	sendUpstream([], sent);
 	const res = await send(ev({ method: 'POST', params: { id: 't1' }, body: sendBody }));
 	assert.equal(res.status, 200);
-	assert.ok(!calls.some((c) => c.path === '/v1/template-links'));
+	assert.ok(!calls.some((c) => c.path === '/v1/template-links/'));
 	assert.ok(sent.v.includes('Hi friend'));
 });
