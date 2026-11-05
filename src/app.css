@@ -1,17 +1,114 @@
 @import 'tailwindcss';
 
+/* Design tokens follow the Axene fleet theming standard (axene-theme-kit).
+   <html data-theme="light|dark"> is set by the bootstrap script in app.html
+   and by src/lib/stores/theme.svelte.ts. */
+@theme {
+	/* Surfaces */
+	--color-bg: #fafaf6;
+	--color-surface: #fafaf6;
+	--color-surface-2: #efeee5;
+	--color-border-1: #eceae1;
+	--color-border-soft: #f2f1e9;
+
+	/* Typography colors */
+	--color-text: #1a1a17;
+	--color-muted: #7a786f;
+	--color-muted-soft: #a9a79c;
+
+	/* Accent (brand yellow). Use --color-accent only as a fill with dark
+	   text (#101010). Use --color-accent-ink for yellow-ish text or icons. */
+	--color-accent: #ffd100;
+	--color-accent-soft: #fff6cc;
+	--color-accent-ink: #3f2e00;
+
+	/* Status */
+	--color-success: #1f8a5b;
+	--color-success-soft: #e4f3ec;
+	--color-danger: #c5503a;
+	--color-danger-soft: #f7e4de;
+	--color-info: #3d6ee0;
+	--color-info-soft: #e5ecfb;
+
+	--font-sans: 'Figtree', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+	--font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+	--radius-sm: 6px;
+	--radius-md: 8px;
+	--radius-lg: 14px;
+}
+
+:root {
+	--color-border: var(--color-border-1);
+	color-scheme: light;
+}
+
+[data-theme='dark'] {
+	color-scheme: dark;
+
+	--color-bg: #121211;
+	--color-surface: #121211;
+	--color-surface-2: #1e1c1a;
+	--color-border-1: #2a2825;
+	--color-border-soft: #1c1b19;
+	--color-border: #2a2825;
+
+	--color-text: #f2f1ec;
+	--color-muted: #8e8b7e;
+	--color-muted-soft: #5a584f;
+
+	--color-accent: #ffd100;
+	--color-accent-soft: rgba(255, 209, 0, 0.14);
+	--color-accent-ink: #ffe066;
+
+	--color-success: #4caf7d;
+	--color-success-soft: rgba(76, 175, 125, 0.14);
+	--color-danger: #ff7a5e;
+	--color-danger-soft: rgba(214, 63, 40, 0.18);
+	--color-info: #7aa3f3;
+	--color-info-soft: rgba(122, 163, 243, 0.14);
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { width: 100%; height: 100%; font-family: 'Figtree', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; }
+html, body {
+	width: 100%;
+	height: 100%;
+	font-family: var(--font-sans);
+	background: var(--color-bg);
+	color: var(--color-text);
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+::-webkit-scrollbar-thumb { background: var(--color-border-1); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-muted-soft); }
 
-html{
-  background: #101010;
+body {
+	overflow-x: hidden;
 }
 
-body{
-  overflow-x: hidden;
+/* Keep form controls on the theme text color. In @layer base so Tailwind
+   color utilities still win. */
+@layer base {
+	input,
+	button,
+	select,
+	textarea {
+		font: inherit;
+		color: inherit;
+	}
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:focus {
+	-webkit-box-shadow: 0 0 0 9999px var(--color-surface) inset !important;
+	box-shadow: 0 0 0 9999px var(--color-surface) inset !important;
+	-webkit-text-fill-color: var(--color-text) !important;
+	caret-color: var(--color-text);
+	transition: background-color 0s 99999s;
 }
