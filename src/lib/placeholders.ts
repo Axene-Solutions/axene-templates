@@ -136,7 +136,10 @@ export function scanTagsLimited(text: string, max = MAX_SCAN_TAGS): { tags: Loca
 		if (out.length >= max) return { tags: out, capped: true };
 		const end = i + open + j + open;
 		const raw = text.slice(i, end);
-		out.push({ tag: parseInner(raw, window.slice(0, j), triple), start: i, end });
+		// "{{{x}}" (a stray brace right before a tag): Mailer pairs the first "{{" with "{x}}", so it is
+		// not a placeholder there either.
+		const tag: Tag = !triple && i > 0 && text[i - 1] === '{' ? { kind: 'unsupported', raw, reason: 'a { right before a placeholder is not supported' } : parseInner(raw, window.slice(0, j), triple);
+		out.push({ tag, start: i, end });
 		i = end;
 	}
 	return { tags: out, capped: false };
