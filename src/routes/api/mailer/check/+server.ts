@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { gate, loadApiKey, mailerFailure } from '$lib/server/mailer/http';
-import { listSenders, listTemplates, type MailerCall } from '$lib/server/mailer/client';
+import { listContactFields, listSenders, listTemplates, type MailerCall } from '$lib/server/mailer/client';
 import { mapMailerStatus } from '$lib/server/mailer/errors';
 import { createRateLimiter } from '$lib/server/mailer/guard';
 
@@ -35,11 +35,11 @@ export const GET: RequestHandler = async (event) => {
 		return json({ error: 'Too many checks. Try again later.', code: 'rate_limited' }, { status: 429, headers: { 'Retry-After': String(wait) } });
 	}
 
-	const [senders, tpls] = await Promise.all([listSenders(apiKey), listTemplates(apiKey)]);
-	if ((!senders.ok && senders.status === 401) || (!tpls.ok && tpls.status === 401)) {
+	const [senders, tpls, contacts] = await Promise.all([listSenders(apiKey), listTemplates(apiKey), listContactFields(apiKey)]);
+	if ((!senders.ok && senders.status === 401) || (!tpls.ok && tpls.status === 401) || (!contacts.ok && contacts.status === 401)) {
 		return mailerFailure(401, mapMailerStatus(401));
 	}
-	if (!senders.ok && !tpls.ok && senders.status !== 403 && tpls.status !== 403) {
+	if (!senders.ok && !tpls.ok && !contacts.ok && senders.status !== 403 && tpls.status !== 403 && contacts.status !== 403) {
 		return mailerFailure(senders.status, senders.error);
 	}
 
@@ -51,6 +51,12 @@ export const GET: RequestHandler = async (event) => {
 			state: stateOf(tpls),
 			...(!tpls.ok && tpls.status === 403 ? { note: 'Missing, or your Mailer plan does not include templates.' } : {}),
 		},
+		{
+			scope: 'contacts:read',
+			label: 'Read contacts',
+			state: stateOf(contacts),
+			...(!contacts.ok && contacts.status === 403 ? { note: 'Recommended. Without it, Insert field cannot list your own contact fields.' } : {}),
+		},
 		{ scope: 'emails:send', label: 'Send emails', state: 'unverified', note: 'Not tested, a test would send mail. Verified on first send.' },
 		{ scope: 'templates:write', label: 'Write templates', state: 'unverified', note: 'Not tested, a test would write data. Verified on first save.' },
 	];
@@ -58,5 +64,6 @@ export const GET: RequestHandler = async (event) => {
 		scopes,
 		senders: senders.ok ? senders.data.length : null,
 		templates: tpls.ok ? tpls.data.length : null,
+		contactFields: contacts.ok ? contacts.data.fields.length : null,
 	});
 };
