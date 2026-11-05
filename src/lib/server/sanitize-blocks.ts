@@ -14,10 +14,12 @@
 
 import sanitizeHtml, { type SanitizeHtmlOptions } from 'sanitize-html';
 import { blockDefs, type Block, type BlockType } from '$lib/blocks';
-import { isSafeLiteralUrl, scanTags } from '$lib/placeholders';
+import { firstUnsupported, isSafeLiteralUrl, MAX_SCAN_TAGS, scanTagsLimited } from '$lib/placeholders';
 
 export const MAX_BLOCKS = 200;
 export const MAX_BLOCKS_BYTES = 1_000_000;
+/** Most the cleaned blocks may weigh: escaping can grow text, and the result is stored and rendered. */
+export const MAX_CLEAN_BYTES = 1_500_000;
 export const MAX_HTML = 20_000;
 export const MAX_TEXT = 2_000;
 export const MAX_URL = 2_000;
@@ -58,24 +60,34 @@ const ALL_CONTROL = /[\u0000-\u001f\u007f]/g;
  * Returns the URL (trimmed) when it is safe to put in an href or src, otherwise null.
  * Placeholders are judged by what they can produce: a fallback must itself be safe in that
  * position, a bare {{field}} or {{link:key}} counts as an absolute http(s) value (Mailer and
- * the local send path check those at fill time). Character references are refused in the
- * scheme part, so "javascript&#58;" and "java&#x09;script:" never decode into a scheme.
+ * the local send path check those at fill time). A placeholder that starts the URL must be the
+ * whole URL or be followed at once by / ? or #, so the text after it can never finish a scheme
+ * ({{x}}:alert(1) or {{x|/ok}}script:alert(1)). Any {{ that is not a supported placeholder is
+ * refused. Character references are refused in the scheme part, so "javascript&#58;" and
+ * "java&#x09;script:" never decode into a scheme.
  */
 export function safeUrl(value: unknown): string | null {
 	if (typeof value !== 'string') return null;
 	const t = value.trim();
 	if (t === '') return '';
 	if (t.length > MAX_URL) return null;
+	const { tags, capped } = scanTagsLimited(t, 50);
+	if (capped) return null;
 	let effective = '';
 	let last = 0;
-	for (const { tag, start, end } of scanTags(t, 50)) {
-		effective += t.slice(last, start);
+	for (const { tag, start, end } of tags) {
+		const gap = t.slice(last, start);
+		if (gap.includes('{{')) return null;
+		effective += gap;
 		last = end;
 		if (tag.kind === 'unsupported') return null;
+		if (start === 0 && end < t.length && !'/?#'.includes(t[end])) return null;
 		if (tag.kind === 'field' && tag.fallback !== null) effective += tag.fallback.trim();
 		else effective += effective === '' ? 'https://placeholder.invalid' : 'p';
 	}
-	effective += t.slice(last);
+	const tail = t.slice(last);
+	if (tail.includes('{{')) return null;
+	effective += tail;
 	return isSafeLiteralUrl(effective) ? t : null;
 }
 
@@ -100,7 +112,8 @@ const RICH_TAGS = new Set(['b', 'strong', 'i', 'em', 'u', 'br', 'p', 'span', 'a'
 // Set by the transform below when sanitising removes something, so strict callers can refuse.
 let removed = false;
 
-const RICH: SanitizeHtmlOptions = {
+// textFilter is part of sanitize-html at runtime but missing from its bundled types.
+const RICH: SanitizeHtmlOptions & { textFilter: (text: string, tagName: string) => string } = {
 	allowedTags: [...RICH_TAGS],
 	allowedAttributes: { a: ['href', 'rel', 'target'] },
 	allowedSchemes: ['http', 'https', 'mailto', 'tel'],
@@ -108,6 +121,8 @@ const RICH: SanitizeHtmlOptions = {
 	allowProtocolRelative: false,
 	disallowedTagsMode: 'discard',
 	parser: { decodeEntities: true, lowerCaseTags: true, lowerCaseAttributeNames: true },
+	// Text arrives with & < > escaped; quotes are escaped too, so text can never end an attribute.
+	textFilter: (text: string) => escapeQuotes(text),
 	transformTags: {
 		'*': (tagName: string, attribs: Record<string, string>) => {
 			if (!RICH_TAGS.has(tagName)) {
@@ -126,7 +141,14 @@ const RICH: SanitizeHtmlOptions = {
 	},
 };
 
-/** Allowlist-sanitises one rich text value. Text without "<" cannot hold markup and is kept as is. */
+function escapeQuotes(s: string): string {
+	return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+/**
+ * Allowlist-sanitises one rich text value. Text without "<" cannot hold markup; its quotes and
+ * ">" are escaped so it cannot end an attribute either, whatever stage puts it next to one.
+ */
 export function sanitizeRichText(v: string): string {
 	return cleanRichText(v).html;
 }
@@ -134,7 +156,7 @@ export function sanitizeRichText(v: string): string {
 /** As sanitizeRichText, and says whether a tag, attribute or link was removed. */
 export function cleanRichText(v: string): { html: string; removed: boolean } {
 	const s = v.replace(CONTROL, '');
-	if (!s.includes('<')) return { html: s, removed: false };
+	if (!s.includes('<')) return { html: escapeQuotes(s).replace(/>/g, '&gt;'), removed: false };
 	removed = false;
 	const html = sanitizeHtml(s, RICH);
 	return { html, removed };
@@ -387,6 +409,8 @@ export function sanitizeBlocks(input: unknown, opts: SanitizeOptions = {}): Bloc
 
 	const ids = new Set<string>();
 	const out: Block[] = [];
+	let cleanSize = 0;
+	let tagCount = 0;
 	input.forEach((b, i) => {
 		if (!b || typeof b !== 'object' || Array.isArray(b)) throw new BlocksValidationError('every block must be an object');
 		const { type, props } = b as Record<string, unknown>;
@@ -413,6 +437,12 @@ export function sanitizeBlocks(input: unknown, opts: SanitizeOptions = {}): Bloc
 		const clean: Record<string, unknown> = {};
 		for (const [key, rule] of Object.entries(schema)) {
 			if (!Object.hasOwn(src, key) || src[key] === undefined || src[key] === null) continue;
+			if (strict) {
+				const bad = unsupportedIn(src[key]);
+				if (bad) throw new BlocksValidationError(`${type}.${key} uses syntax that is not supported: ${bad.text} (${bad.reason}). Only {{field}}, {{field|fallback}} and {{link:key}} can be used`);
+				tagCount += countTags(src[key]);
+				if (tagCount > MAX_SCAN_TAGS) throw new BlocksValidationError(`the template has more than ${MAX_SCAN_TAGS} placeholders`);
+			}
 			const v = check(rule, src[key], strict);
 			if (v !== INVALID) {
 				clean[key] = v;
@@ -421,9 +451,30 @@ export function sanitizeBlocks(input: unknown, opts: SanitizeOptions = {}): Bloc
 			if (strict) throw new BlocksValidationError(`${type}.${key} must be ${describe(rule)}`);
 			if (Object.hasOwn(defaults, key)) clean[key] = structuredClone(defaults[key]);
 		}
+		cleanSize += JSON.stringify(clean).length;
+		if (cleanSize > MAX_CLEAN_BYTES) throw new BlocksValidationError('blocks are too large once cleaned');
 		out.push({ id: id as string, type: type as BlockType, props: clean });
 	});
 	return out;
+}
+
+function countTags(v: unknown, depth = 0): number {
+	if (typeof v === 'string') return v.includes('{{') ? scanTagsLimited(v).tags.length : 0;
+	if (depth > 3 || !v || typeof v !== 'object') return 0;
+	let n = 0;
+	for (const x of Array.isArray(v) ? v : Object.values(v)) n += countTags(x, depth + 1);
+	return n;
+}
+
+/** The first `{{` in any string of `v` that is not a supported placeholder, or null. */
+function unsupportedIn(v: unknown, depth = 0): { text: string; reason: string } | null {
+	if (typeof v === 'string') return firstUnsupported(v);
+	if (depth > 3 || !v || typeof v !== 'object') return null;
+	for (const x of Array.isArray(v) ? v : Object.values(v)) {
+		const r = unsupportedIn(x, depth + 1);
+		if (r) return r;
+	}
+	return null;
 }
 
 /** Blocks that arrive from Mailer: strict shapes, and markup the allowlist would remove is refused. */

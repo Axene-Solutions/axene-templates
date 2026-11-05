@@ -96,6 +96,24 @@ test('F1: comments, triple braces, helpers and dotted paths are shown, not evalu
 	assert.ok(r.html.includes(' N<') || r.html.includes(' N\n') || r.html.includes(' N'), 'the plain field still fills');
 });
 
+test('F1: a strict save refuses unsupported constructs with a clear message', () => {
+	for (const [text, part] of [
+		['{{#each items}}x{{/each}}', '{{#each items}}'],
+		['{{> part}}', '{{> part}}'],
+		['{{{raw}}}', '{{{raw}}}'],
+		['{{! c }}', '{{! c }}'],
+		['{{!-- c --}}', '{{!-- c --}}'],
+		['{{upper name}}', '{{upper name}}'],
+		['{{a.b}}', '{{a.b}}'],
+		['{{log "x" level="error"}}', '{{log'],
+		['{{{{raw}}}}x{{{{/raw}}}}', '{{'],
+	]) {
+		assert.throws(() => sanitizeBlocks([content(text)], { strict: true }), (e: any) => e.code === 'invalid_blocks' && /not supported/.test(e.message) && e.message.includes(part), text);
+	}
+	// The supported grammar still saves.
+	assert.equal(sanitizeBlocks([content('Hi {{name}}, {{ name }}, {{first|friend}} <a href="{{link:pay}}">pay</a>')], { strict: true }).length, 1);
+});
+
 test('F1: total rendered size above 2,000,000 characters is refused, never sent', () => {
 	const text = '{{v}}'.repeat(3998);
 	const m = measure(() => send([content(text)], { v: 'x'.repeat(600) }));
@@ -111,7 +129,36 @@ const spanning = [
 	{ id: 'b', type: 'content', props: { text: overlay } },
 ];
 
+test('F2: the comment-spanning payload is refused on strict save', () => {
+	assert.throws(() => sanitizeBlocks(spanning, { strict: true }), /not supported|safe URL/);
+});
+
+test('F2: a stored row with the payload renders with no attacker attribute', () => {
+	const r = send(spanning);
+	assert.equal(r.ok, true);
+	assert.doesNotMatch(r.html, /style="position:fixed/);
+	for (const a of r.html.match(/<a [^>]*>/g) ?? []) assert.doesNotMatch(a, /position|style="width/, a);
+	assert.equal(compiledHtmlProblem(r.html), null);
+});
+
+test('F2: safeUrl refuses any {{ that is not a supported placeholder', () => {
+	for (const u of ['{{!--', '#{{!--', 'https://x.test/{{!--', 'https://x.test/{{', '{{{x}}}', 'https://x.test/{{a}}{{#if}}']) assert.equal(safeUrl(u), null, u);
+	assert.equal(safeUrl('https://x.test/{{id}}?e={{email|none}}'), 'https://x.test/{{id}}?e={{email|none}}');
+});
+
+test('F2: rich text never carries a raw quote or > that could end an attribute', () => {
+	for (const t of ['x" onmouseover="a(1)', "x' onmouseover='a(1)", 'a > b', '<b>x</b>" y=\'z\' >', overlay]) {
+		const out = sanitizeRichText(t).replace(/<\/?(?:b|strong|i|em|u|br|p|span|ul|ol|li)>|<a href="[^"]*" rel="noopener noreferrer" target="_blank">|<\/a>/g, '');
+		assert.doesNotMatch(out, /["'<>]/, `${t} -> ${out}`);
+	}
+});
+
 // ---- Finding 3: placeholder values in URL attributes ----
+
+test('F3: a leading placeholder must be the whole URL or be followed by / ? #', () => {
+	for (const u of ['{{name}}:alert(1)', '{{x|/ok}}script:alert(1)', '{{name}}x', '{{link:k}}script:1']) assert.equal(safeUrl(u), null, u);
+	for (const u of ['{{name}}', '{{site}}/path', '{{site|https://a.test}}?q=1', '{{site}}#top', '{{link:k}}']) assert.equal(safeUrl(u), u, u);
+});
 
 test('F3: the verified bypasses never produce a script or data URL', () => {
 	const btn = (href: string) => [{ id: 'a', type: 'button', props: { text: 'Go', href } }];
@@ -157,6 +204,10 @@ test('F6: more than 5000 placeholders refuses the render, for Send and for Maile
 	assert.throws(() => renderTemplateForMailer(sanitizeBlocks(capped, {})));
 });
 
+test('F6: more than 5000 placeholders refuses the strict save', () => {
+	assert.throws(() => sanitizeBlocks(capped, { strict: true }), /5000/);
+});
+
 // ---- Finding 7: no look-back per tag ----
 
 test('F7: URL attribute detection is linear in the input', () => {
@@ -167,6 +218,21 @@ test('F7: URL attribute detection is linear in the input', () => {
 });
 
 // ---- Finding 8: size after cleaning ----
+
+test('F8: sanitised output above 1.5 MB is refused in strict and normal mode', () => {
+	const blocks = Array.from({ length: 49 }, (_, i) => content(big('<', 19_990), 'b' + i));
+	for (const strict of [true, false]) {
+		const m = measure(() => {
+			try {
+				return JSON.stringify(sanitizeBlocks(blocks, { strict })).length;
+			} catch (e) {
+				return e as Error;
+			}
+		});
+		assert.ok(m.value instanceof Error && /too large/.test(m.value.message), `strict=${strict}: ${typeof m.value === 'number' ? m.value + ' chars stored' : m.value}`);
+		assert.ok(m.ms < 2000);
+	}
+});
 
 // ---- Finding 10: colour tokens are resolved at every sink ----
 
