@@ -39,3 +39,14 @@ export const templates = pgTable('templates', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// One Axene Mailer API key per Templates user, encrypted at rest (AES-256-GCM).
+// Only the last four characters are kept in the clear, for display.
+export const mailerConnections = pgTable('mailer_connections', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
+  apiKeyEncrypted: text('api_key_encrypted').notNull(),
+  keyHint: text('key_hint').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
