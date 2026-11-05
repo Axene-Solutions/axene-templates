@@ -1,5 +1,5 @@
 import { getMailerBaseUrl } from './config';
-import { mapMailerStatus, type MappedError } from './errors';
+import { mapMailerStatus, mapTemplateStatus, type MappedError } from './errors';
 
 export interface MailerSender {
 	email: string;
@@ -69,4 +69,82 @@ export async function sendEmail(apiKey: string, m: OutgoingEmail): Promise<Maile
 	});
 	if (status >= 200 && status < 300) return { ok: true, data: null };
 	return { ok: false, status, error: mapMailerStatus(status) };
+}
+
+// ---- Templates (scopes templates:read and templates:write) ----
+
+/** A Mailer template as returned by its API, read defensively: nothing here is trusted. */
+export interface MailerTemplate {
+	id: string;
+	name: string;
+	subject: string | null;
+	blocksJson: unknown;
+	updatedAt: string | null;
+}
+
+export interface MailerTemplateInput {
+	name?: string;
+	subject?: string;
+	html_body?: string;
+	text_body?: string;
+	blocks_json?: unknown;
+}
+
+function str(v: unknown, max: number): string | null {
+	return typeof v === 'string' ? v.slice(0, max) : null;
+}
+
+function toTemplate(raw: unknown): MailerTemplate | null {
+	if (!raw || typeof raw !== 'object') return null;
+	const t = raw as Record<string, unknown>;
+	const id = str(t.id, 64);
+	if (!id) return null;
+	return {
+		id,
+		name: str(t.name, 300) ?? 'Untitled',
+		subject: str(t.subject, 1000),
+		blocksJson: t.blocks_json ?? null,
+		updatedAt: str(t.updated_at, 64),
+	};
+}
+
+function failTemplate(status: number, json: unknown, op: 'read' | 'write'): { ok: false; status: number; error: MappedError } {
+	const detail = json && typeof json === 'object' ? (json as any).detail : undefined;
+	return { ok: false, status, error: mapTemplateStatus(status, detail, op) };
+}
+
+export async function listTemplates(apiKey: string): Promise<MailerCall<MailerTemplate[]>> {
+	const { status, json } = await call(apiKey, 'GET', '/templates/');
+	if (status < 200 || status >= 300) return failTemplate(status, json, 'read');
+	const arr: unknown[] = Array.isArray(json) ? json : Array.isArray((json as any)?.items) ? (json as any).items : [];
+	const out: MailerTemplate[] = [];
+	for (const raw of arr.slice(0, 500)) {
+		const t = toTemplate(raw);
+		if (t) out.push(t);
+	}
+	return { ok: true, data: out };
+}
+
+export async function getTemplate(apiKey: string, id: string): Promise<MailerCall<MailerTemplate>> {
+	const { status, json } = await call(apiKey, 'GET', `/templates/${encodeURIComponent(id)}`);
+	if (status < 200 || status >= 300) return failTemplate(status, json, 'read');
+	const t = toTemplate(json);
+	if (!t) return { ok: false, status: 502, error: mapMailerStatus(502) };
+	return { ok: true, data: t };
+}
+
+export async function createTemplate(apiKey: string, input: MailerTemplateInput): Promise<MailerCall<MailerTemplate>> {
+	const { status, json } = await call(apiKey, 'POST', '/templates/', input);
+	if (status < 200 || status >= 300) return failTemplate(status, json, 'write');
+	const t = toTemplate(json);
+	if (!t) return { ok: false, status: 502, error: mapMailerStatus(502) };
+	return { ok: true, data: t };
+}
+
+export async function updateTemplate(apiKey: string, id: string, input: MailerTemplateInput): Promise<MailerCall<MailerTemplate>> {
+	const { status, json } = await call(apiKey, 'PATCH', `/templates/${encodeURIComponent(id)}`, input);
+	if (status < 200 || status >= 300) return failTemplate(status, json, 'write');
+	const t = toTemplate(json);
+	if (!t) return { ok: false, status: 502, error: mapMailerStatus(502) };
+	return { ok: true, data: t };
 }

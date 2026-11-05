@@ -48,11 +48,11 @@ function clean(s: string): string {
 	return s.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-export function validateSubject(input: unknown): Checked<string> {
+export function validateSubject(input: unknown, max: number = MAX_SUBJECT): Checked<string> {
 	if (typeof input !== 'string') return { ok: false, error: 'Subject is required' };
 	const s = clean(input);
 	if (!s) return { ok: false, error: 'Subject is required' };
-	if (s.length > MAX_SUBJECT) return { ok: false, error: `Subject must be at most ${MAX_SUBJECT} characters` };
+	if (s.length > max) return { ok: false, error: `Subject must be at most ${max} characters` };
 	return { ok: true, value: s };
 }
 

@@ -5,6 +5,7 @@ import { mailerConnections } from '$lib/server/db/schema';
 import { getEncryptionKey } from './config';
 import { decryptSecret } from './crypto.ts';
 import { isSameOrigin } from './guard.ts';
+import type { MappedError } from './errors.ts';
 
 export type Authed = { user: NonNullable<App.Locals['user']>; key: Buffer };
 
@@ -47,4 +48,9 @@ export async function loadApiKey(auth: Authed): Promise<string | Response> {
 	} catch {
 		return json({ error: 'The stored Mailer key could not be read. Disconnect and connect Mailer again.', code: 'mailer_key_unreadable' }, { status: 409 });
 	}
+}
+
+/** Response for a failed Mailer call. A 401 also tells the client the stored key is dead. */
+export function mailerFailure(status: number, error: MappedError): Response {
+	return json({ error: error.message, code: error.code, ...(status === 401 ? { connected: false } : {}) }, { status: error.http });
 }

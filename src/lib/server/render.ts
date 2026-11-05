@@ -15,3 +15,15 @@ export function renderTemplateHtml(blocks: unknown, variables: Record<string, an
 		validationLevel: 'soft',
 	});
 }
+
+/**
+ * Blocks -> MJML -> HTML for Mailer, WITHOUT variable injection: {{placeholders}}
+ * stay in the output because Mailer fills them in later.
+ */
+export function renderTemplateForMailer(blocks: unknown) {
+	return mjml2html(blocksToMjml(blocks as any), {
+		keepComments: false,
+		minify: true,
+		validationLevel: 'soft',
+	});
+}

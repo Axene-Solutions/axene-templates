@@ -10,3 +10,8 @@ export function getEncryptionKey(): Buffer | null {
 export function getMailerBaseUrl(): string {
 	return (env.MAILER_API_URL || 'https://mail.axene.io').replace(/\/+$/, '');
 }
+
+/** Where "Open in Mailer" links point. Fixed by the operator, never from user input. */
+export function getMailerPublicUrl(): string {
+	return (env.MAILER_PUBLIC_URL || 'https://mail.axene.io').replace(/\/+$/, '');
+}

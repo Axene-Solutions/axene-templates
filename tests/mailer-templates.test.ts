@@ -109,3 +109,22 @@ test('safeNext accepts only same-origin relative paths', () => {
 		if (bad !== '/%0d%0aLocation:x') assert.equal(r, null, String(bad));
 	}
 });
+
+import { mapTemplateStatus, planLimitMessage } from '../src/lib/server/mailer/errors.ts';
+
+test('template errors: plan limit message is surfaced, other Mailer text is not', () => {
+	const limit = "You've reached the maximum of 5 templates on the starter plan.";
+	const e = mapTemplateStatus(403, limit, 'write');
+	assert.equal(e.code, 'mailer_plan_limit');
+	assert.ok(e.message.includes(limit));
+	assert.equal(e.http, 403);
+	const other = mapTemplateStatus(403, 'secret internal detail axm_k_leak', 'write');
+	assert.equal(other.code, 'mailer_missing_scope');
+	assert.ok(!other.message.includes('axm_k_leak'));
+	assert.ok(other.message.includes('templates:write'));
+	assert.ok(mapTemplateStatus(403, undefined, 'read').message.includes('templates:read'));
+	assert.equal(planLimitMessage("You've reached the maximum of 5 templates on the <b>x</b> plan."), null);
+	assert.equal(mapTemplateStatus(404, null, 'read').http, 404);
+	assert.equal(mapTemplateStatus(401, null, 'read').code, 'mailer_key_invalid');
+	assert.equal(mapTemplateStatus(0, null, 'write').http, 502);
+});
