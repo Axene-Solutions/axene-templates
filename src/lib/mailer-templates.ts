@@ -2,6 +2,7 @@
 // No SvelteKit or Node imports, so it can be unit tested directly.
 
 import type { BlockType } from './blocks';
+import { collectUsage, parseTag } from './placeholders';
 
 export const ENVELOPE_FORMAT = 'axene-blocks';
 export const ENVELOPE_VERSION = 1;
@@ -49,61 +50,23 @@ export interface UnsupportedSyntax {
 	reason: string;
 }
 
-function collectStrings(v: unknown, out: string[], depth = 0): void {
-	if (depth > 12) return;
-	if (typeof v === 'string') out.push(v);
-	else if (Array.isArray(v)) for (const x of v) collectStrings(x, out, depth + 1);
-	else if (v && typeof v === 'object') for (const x of Object.values(v)) collectStrings(x, out, depth + 1);
-}
-
-const TAG_RE = /\{\{\{[\s\S]*?\}\}\}|\{\{[\s\S]*?\}\}/g;
-const SIMPLE_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
-
-/** Why a `{{ ... }}` tag would not work in Mailer, or null if it is a plain {{name}}. */
+/** Why a `{{ ... }}` tag is Handlebars logic or otherwise outside the placeholder grammar, or null if it is valid. */
 export function classifyTag(tag: string): string | null {
-	if (tag.startsWith('{{{')) return 'triple braces (unescaped output) are not supported';
-	const inner = tag.slice(2, -2).trim();
-	if (!inner) return 'empty tag';
-	if (/^[#/^>!&@]/.test(inner)) {
-		if (inner.startsWith('#') || inner.startsWith('/') || inner.startsWith('^')) return 'blocks such as each, if and unless are not supported';
-		if (inner.startsWith('>')) return 'partials are not supported';
-		if (inner.startsWith('!')) return 'comments are not supported';
-		return 'this syntax is not supported';
-	}
-	if (inner === 'else' || inner.startsWith('else ')) return 'else is not supported';
-	if (/\s/.test(inner)) return 'helpers with arguments are not supported';
-	if (inner.includes('.') || inner.includes('/')) return 'dotted or nested names are not supported, use a plain name';
-	if (!SIMPLE_NAME.test(inner)) return 'only plain names such as {{first_name}} are supported';
-	return null;
+	const t = parseTag(tag);
+	return t.kind === 'unsupported' ? t.reason : null;
 }
 
-/** Placeholder syntax in the blocks that Mailer's plain {{name}} substitution cannot handle. */
+/**
+ * Syntax Mailer cannot fill in. {{name}}, {{name|fallback}} and {{link:key}} are valid;
+ * only Handlebars logic such as {{#if}}, {{a.b}} and {{{x}}} is reported.
+ */
 export function detectUnsupportedSyntax(blocks: unknown, limit = 20): UnsupportedSyntax[] {
-	const strings: string[] = [];
-	collectStrings(blocks, strings);
-	const seen = new Set<string>();
-	const out: UnsupportedSyntax[] = [];
-	for (const s of strings) {
-		for (const m of s.matchAll(TAG_RE)) {
-			const reason = classifyTag(m[0]);
-			if (!reason) continue;
-			const text = m[0].replace(/\s+/g, ' ').slice(0, 60);
-			if (seen.has(text)) continue;
-			seen.add(text);
-			out.push({ text, reason });
-			if (out.length >= limit) return out;
-		}
-	}
-	return out;
+	return collectUsage(blocks, limit).unsupported;
 }
 
-/** Plain {{name}} placeholders the blocks use. */
+/** Merge field keys the blocks use (with or without a fallback). */
 export function detectPlaceholders(blocks: unknown): string[] {
-	const strings: string[] = [];
-	collectStrings(blocks, strings);
-	const names = new Set<string>();
-	for (const s of strings) for (const m of s.matchAll(TAG_RE)) if (!classifyTag(m[0])) names.add(m[0].slice(2, -2).trim());
-	return [...names];
+	return [...collectUsage(blocks).fields.keys()];
 }
 
 export type Checked<T> = { ok: true; value: T } | { ok: false; error: string };
