@@ -68,3 +68,9 @@ test('CSP is configured and the theme bootstrap script carries the nonce', () =>
 	const html = read('src/app.html');
 	for (const m of html.matchAll(/<script(?![^>]*\ssrc=)[^>]*>/g)) assert.match(m[0], /nonce="%sveltekit\.nonce%"/);
 });
+
+test('/api/templates/compile renders starter templates only, never user-published ones', () => {
+	const src = read('src/routes/api/templates/compile/+server.ts');
+	assert.match(src, /eq\(templates\.isStarter, true\)/);
+	assert.doesNotMatch(src, /templates\.isPublic/);
+});

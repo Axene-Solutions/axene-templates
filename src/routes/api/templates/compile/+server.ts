@@ -19,7 +19,9 @@ export const POST: RequestHandler = async ({ request, url }) => {
         and(
           eq(templates.category, categoryQuery),
           eq(templates.version, versionQuery),
-          eq(templates.isPublic, true),
+          // Only the seeded starters. A user-published template with the same category and version
+          // must never be able to take over the email other services render through this endpoint.
+          eq(templates.isStarter, true),
         ),
       )
       .limit(1);

@@ -9,6 +9,7 @@ import { GET as getTemplate, PATCH as patchTemplate } from '../src/routes/api/te
 import { POST as open } from '../src/routes/api/mailer/templates/[mailerId]/open/+server.ts';
 import { POST as mailerSave } from '../src/routes/api/templates/[id]/mailer-save/+server.ts';
 import { POST as send } from '../src/routes/api/templates/[id]/send/+server.ts';
+import { POST as compileTpl } from '../src/routes/api/templates/compile/+server.ts';
 
 const ENC = randomBytes(32);
 const SECRET = 'axm_k_testonlykey00000001';
@@ -346,4 +347,15 @@ test('open: reload: true replaces local edits with the Mailer copy', async () =>
 	const body = await (await open(openEv('m1', { body: { reload: true } }))).json();
 	assert.equal(body.state, 'refreshed');
 	assert.equal(writes().filter((w) => w.op === 'update').length, 1);
+});
+
+// ---- /api/templates/compile ----
+
+test('compile: renders the starter row it finds, sanitised, with variables', async () => {
+	q([row({ userId: null, isStarter: true, isPublic: true, category: 'otp', blocks: [{ id: 'a', type: 'heading', props: { text: 'Code {{code}} <img src=x onerror=1>' } }] })]);
+	const res = await compileTpl({ request: new Request('https://app.test/api/templates/compile?category=otp', { method: 'POST', body: JSON.stringify({ data: { code: '123456' } }) }), url: new URL('https://app.test/api/templates/compile?category=otp') } as any);
+	assert.equal(res.status, 200);
+	const body = await res.json();
+	assert.match(body.html, /Code 123456/);
+	assert.doesNotMatch(body.html, /onerror|<img src="x"/);
 });
