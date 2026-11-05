@@ -2,6 +2,7 @@
 // Everything reloads when the connection changes (see mailer.epoch), and nothing here is ever
 // persisted: names and URLs only live in memory.
 
+import { page } from '$app/state';
 import { mailer } from './mailer.svelte';
 import { BUILTIN_FIELDS } from './placeholders';
 import type { PlanSummary } from './mailer-plan';
@@ -177,8 +178,8 @@ let manageOpen = $state(false);
 
 /** Where Settings sends the user back to after linking (a relative path), for the current page. */
 export function settingsHref(): string {
-	if (typeof location === 'undefined') return '/settings';
-	return `/settings?next=${encodeURIComponent(location.pathname + location.search)}`;
+	// Reads page.url (reactive), so a link rendered before the editor replaced its URL stays correct.
+	return `/settings?next=${encodeURIComponent(page.url.pathname + page.url.search)}`;
 }
 
 export const mailerData = {
