@@ -2,6 +2,7 @@
 	import { editor } from '$lib/store.svelte';
 	import { mailer } from '$lib/mailer.svelte';
 	import { detectUnsupportedSyntax, MAX_SUBJECT_MAILER, MAX_TEMPLATE_NAME } from '$lib/mailer-templates';
+	import { trapFocus } from '$lib/focus';
 	import Icon from './Icon.svelte';
 	import MailerConnectCard from './MailerConnectCard.svelte';
 
@@ -84,8 +85,12 @@
 		}
 	}
 
+	// While saving, Escape and backdrop clicks do nothing, so the result is not lost.
+	function close() {
+		if (!saving) onclose();
+	}
 	function onkeydown(e: KeyboardEvent) {
-		if (open && e.key === 'Escape') onclose();
+		if (open && e.key === 'Escape') close();
 	}
 </script>
 
@@ -94,11 +99,11 @@
 {#if open}
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div class="mt mt-overlay" onclick={onclose}>
-		<div class="mt-card" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Save to Mailer" tabindex="-1">
+	<div class="mt mt-overlay" onclick={close}>
+		<div class="mt-card" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Save to Mailer" tabindex="-1" use:trapFocus>
 			<div class="mt-head">
 				<div class="mt-title">{verb}</div>
-				<button class="mt-x" onclick={onclose} aria-label="Close"><Icon name="close" width={16} height={16} /></button>
+				<button class="mt-x" onclick={close} aria-label="Close" disabled={saving}><Icon name="close" width={16} height={16} /></button>
 			</div>
 
 			{#if mailer.status !== 'connected'}

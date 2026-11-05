@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { editor } from '$lib/store.svelte';
 	import { mailer } from '$lib/mailer.svelte';
+	import { autofocus, trapFocus } from '$lib/focus';
 	import Icon from './Icon.svelte';
 	import MailerConnectCard from './MailerConnectCard.svelte';
 
@@ -17,7 +18,7 @@
 	let fromEmail = $state('');
 	let recipientsText = $state('');
 	let subject = $state('');
-	let variablesText = $state('');
+	let varValues = $state<Record<string, string>>({});
 	let sending = $state(false);
 	let formError = $state('');
 	let results = $state<Result[]>([]);
@@ -34,6 +35,8 @@
 	const variableNames = $derived.by(() => {
 		const names = new Set<string>();
 		for (const m of JSON.stringify(editor.blocks).matchAll(/\{\{\{?\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}?\}\}/g)) names.add(m[1]);
+		// These three have built-in defaults on the server.
+		for (const d of ['theme_color', 'logo', 'company_name']) names.delete(d);
 		return [...names];
 	});
 
@@ -54,7 +57,7 @@
 		results = [];
 		confirming = false;
 		subject = editor.templateName;
-		variablesText = variableNames.length ? JSON.stringify(Object.fromEntries(variableNames.map((n) => [n, ''])), null, 2) : '';
+		varValues = Object.fromEntries(variableNames.map((n) => [n, '']));
 		await mailer.load();
 	}
 
@@ -68,7 +71,9 @@
 				if (!senders.some((s) => s.email === fromEmail)) fromEmail = senders[0]?.email ?? '';
 				if (!senders.length) sendersError = 'No sender addresses found in your Mailer account. Register one in Mailer first.';
 			} else if (res.status === 409) {
-				await mailer.load();
+				// Unreadable key: show it once and stop, do not reload (that would re-trigger this load).
+				if (data.code === 'mailer_key_unreadable') mailer.markUnreadable();
+				else await mailer.load();
 			} else {
 				sendersError = data.error ?? 'Could not load your sender addresses.';
 			}
@@ -87,18 +92,11 @@
 	async function send() {
 		formError = '';
 		results = [];
-		let variables: Record<string, unknown> | undefined;
-		if (variablesText.trim()) {
-			try {
-				variables = JSON.parse(variablesText);
-			} catch {
-				formError = 'Variables must be valid JSON';
-				return;
-			}
-		}
+		const variables = variableNames.length ? { ...varValues } : undefined;
 		sending = true;
 		try {
-			if (editor.dirty && !(await editor.saveTemplate())) {
+			// Pending edits and brand new templates are saved first (the server sends the saved copy).
+			if ((editor.dirty || editor.templateId.startsWith('untitled-')) && !(await editor.saveTemplate())) {
 				formError = 'Save the template before sending (it could not be saved).';
 				return;
 			}
@@ -118,7 +116,8 @@
 				results = data.results ?? [];
 				if (data.keyInvalid) formError = 'Your Mailer key is invalid or has been revoked. Open Settings to reconnect.';
 			} else if (res.status === 409) {
-				await mailer.load();
+				if (data.code === 'mailer_key_unreadable') mailer.markUnreadable();
+				else await mailer.load();
 			} else {
 				formError =
 					res.status === 429
@@ -132,13 +131,25 @@
 		}
 	}
 
+	const varsFilled = $derived(variableNames.every((n) => (varValues[n] ?? '').trim() !== ''));
 	const canSend = $derived(
-		!sending && !!fromEmail && recipients.length > 0 && !tooMany && subject.trim().length > 0 && subject.length <= 200
+		!sending && varsFilled && !!fromEmail && recipients.length > 0 && !tooMany && subject.trim().length > 0 && subject.length <= 200
 	);
 	const sentCount = $derived(results.filter((r) => r.ok).length);
 
+	const failed = $derived(results.filter((r) => !r.ok));
+	function retryFailed() {
+		recipientsText = failed.map((r) => r.to).join(', ');
+		results = [];
+		formError = '';
+	}
+
+	// While a send is running, Escape and backdrop clicks do nothing, so results are never discarded.
+	function close() {
+		if (!sending) onclose();
+	}
 	function onkeydown(e: KeyboardEvent) {
-		if (open && e.key === 'Escape') onclose();
+		if (open && e.key === 'Escape') close();
 	}
 </script>
 
@@ -147,11 +158,11 @@
 {#if open}
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div class="sm sm-overlay" onclick={onclose}>
-		<div class="sm-card" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Send email" tabindex="-1">
+	<div class="sm sm-overlay" onclick={close}>
+		<div class="sm-card" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Send email" tabindex="-1" use:trapFocus>
 			<div class="sm-head">
 				<div class="sm-title">Send email</div>
-				<button class="sm-x" onclick={onclose} aria-label="Close"><Icon name="close" width={16} height={16} /></button>
+				<button class="sm-x" onclick={close} aria-label="Close" disabled={sending}><Icon name="close" width={16} height={16} /></button>
 			</div>
 
 			{#if mailer.status !== 'connected'}
@@ -178,8 +189,15 @@
 				<input id="sm-subj" class="sm-input" type="text" maxlength="200" bind:value={subject} />
 
 				{#if variableNames.length}
-					<label class="sm-label" for="sm-vars">Variables (JSON)</label>
-					<textarea id="sm-vars" class="sm-input sm-mono" rows="4" spellcheck="false" bind:value={variablesText}></textarea>
+					<div class="sm-label">Variables (all required)</div>
+					<div class="sm-vars">
+						{#each variableNames as n (n)}
+							<label class="sm-var" for="sm-var-{n}">
+								<span class="sm-mono sm-var-name">{n}</span>
+								<input id="sm-var-{n}" class="sm-input" type="text" required aria-required="true" aria-invalid={(varValues[n] ?? '').trim() === ''} bind:value={varValues[n]} />
+							</label>
+						{/each}
+					</div>
 				{/if}
 
 				{#if formError}
@@ -197,6 +215,12 @@
 							</div>
 						{/each}
 					</div>
+					{#if failed.length}
+						<div class="sm-retry">
+							<span class="sm-muted">Send again to only the {failed.length} that did not go out, so nobody gets it twice.</span>
+							<button class="sm-link" type="button" onclick={retryFailed}>Retry failed</button>
+						</div>
+					{/if}
 				{/if}
 
 				<p class="sm-disclosure">Mail is sent from your Mailer account and counts toward its plan and limits.</p>
@@ -207,7 +231,7 @@
 					{:else}
 						<span class="sm-confirm">
 							<span class="sm-muted">Delete the stored key?</span>
-							<button class="sm-link sm-link-danger" type="button" disabled={mailer.busy} onclick={disconnect}>Yes, disconnect</button>
+							<button class="sm-link sm-link-danger" type="button" disabled={mailer.busy} onclick={disconnect} use:autofocus>Yes, disconnect</button>
 							<button class="sm-link sm-link-quiet" type="button" onclick={() => (confirming = false)}>Cancel</button>
 						</span>
 					{/if}
@@ -297,6 +321,11 @@
 	}
 	.sm-res-ok { border-color: var(--sm-ok); background: color-mix(in srgb, var(--sm-ok) 10%, transparent); color: var(--sm-ok); }
 	.sm-res-err { border-color: var(--sm-err); background: color-mix(in srgb, var(--sm-err) 10%, transparent); color: var(--sm-err); }
+	.sm-vars { display: flex; flex-direction: column; gap: 8px; }
+	.sm-var { display: grid; grid-template-columns: 9rem 1fr; align-items: center; gap: 10px; }
+	.sm-var-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--sm-muted); }
+	.sm-var .sm-input[aria-invalid='true'] { border-color: var(--sm-err); }
+	.sm-retry { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 10px; }
 	.sm-res-to { color: var(--sm-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 	.sm-res-msg { margin-left: auto; font-size: 12px; text-align: right; }
 	.sm-disclosure { margin: 14px 0 0; font-size: 11.5px; color: var(--sm-muted); }
