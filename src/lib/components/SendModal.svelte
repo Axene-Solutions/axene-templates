@@ -63,11 +63,22 @@
 		else senders = [];
 	});
 
+	// Same per user and template key the Save to Mailer dialog writes, so Send opens with the saved subject.
+	function savedSubject(): string {
+		const uid = (page.data as { user?: { id?: string } | null }).user?.id;
+		if (!uid) return '';
+		try {
+			return localStorage.getItem(`axene.mailerSubject.${uid}.${editor.templateId}`) ?? '';
+		} catch {
+			return '';
+		}
+	}
+
 	async function init() {
 		formError = '';
 		results = [];
 		confirming = false;
-		subject = editor.templateName;
+		subject = savedSubject() || editor.templateName;
 		varValues = Object.fromEntries([...variableNames, ...optionalNames].map((n) => [n, '']));
 		await mailer.load();
 		if (mailer.status === 'connected' && usage.links.size) mailerData.loadLinks();
