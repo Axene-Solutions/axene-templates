@@ -601,7 +601,8 @@ function scheduleAutosave() {
   if (autosaveTimer) clearTimeout(autosaveTimer);
   autosaveTimer = setTimeout(async () => {
     if (dirty && templateId) {
-      await saveTemplate();
+      // Quiet: a half-typed placeholder is refused by validation, which is not worth an error bar.
+      await saveTemplate({ quiet: true });
     }
   }, 2000);
 }
@@ -679,7 +680,7 @@ async function copyHtml(): Promise<boolean> {
 }
 
 // Save template
-async function saveTemplate() {
+async function saveTemplate(opts: { quiet?: boolean } = {}) {
   if (saveState === "saving") return false;
   saveState = "saving";
   saveError = "";
@@ -712,6 +713,11 @@ async function saveTemplate() {
         }
       }
       return true;
+    }
+    if (opts.quiet && res.status === 422) {
+      // The edit stays unsaved (dirty) and the next change schedules another autosave.
+      saveState = "idle";
+      return false;
     }
     saveError =
       res.status === 401
