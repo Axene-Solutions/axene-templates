@@ -89,7 +89,7 @@ test('every new block (design defaults) survives the strict sanitiser and compil
 
 test('new block props have bounds in the schema', () => {
 	const bad = (type: string, props: Record<string, unknown>) =>
-		assert.throws(() => sanitizeBlocks([{ id: 'a', type, props }], { strict: true }), undefined, JSON.stringify(props));
+		assert.throws(() => sanitizeBlocks([{ id: "a", type, props }], { strict: true }), Error, JSON.stringify(props));
 	bad('heading', { blockRadius: 99 });
 	bad('heading', { borderStyle: 'groove' });
 	bad('image', { imageHeight: 5000 });
