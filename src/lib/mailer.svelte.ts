@@ -1,3 +1,5 @@
+import { page } from '$app/state';
+
 // Shared client state for the Mailer connection. The Settings page and the
 // Send modal both read and write this, so they can never disagree.
 
@@ -21,12 +23,34 @@ let check = $state<CheckResult>(null);
 let epoch = $state(0);
 let loadedOnce = false;
 
+// Until the first client load finishes, a page that sent the connection state from its server
+// load (data.mailerConnection) is shown from that, so the server render and the first paint
+// already show the right state rather than "Loading...".
+let settled = false;
+type Seed = { status: Status; keyHint: string; connectedAt: string | null; configured: boolean };
+function statusOf(data: { connected?: boolean; configured?: boolean; unreadable?: boolean }): Status {
+	const conf = data.configured !== false;
+	if (data.connected && data.unreadable) return 'unreadable';
+	if (!data.connected && !conf) return 'unavailable';
+	return data.connected ? 'connected' : 'disconnected';
+}
+function seed(): Seed | null {
+	if (settled || status !== 'loading') return null;
+	let d: any;
+	try {
+		d = (page.data as Record<string, unknown> | undefined)?.mailerConnection;
+	} catch {
+		return null;
+	}
+	if (!d || typeof d !== 'object') return null;
+	return { status: statusOf(d), keyHint: d.keyHint ?? '', connectedAt: d.connectedAt ?? null, configured: d.configured !== false };
+}
+
 let signature = '';
 function apply(data: { connected?: boolean; keyHint?: string | null; connectedAt?: string | null; configured?: boolean; unreadable?: boolean }) {
+	settled = true;
 	configured = data.configured !== false;
-	if (data.connected && data.unreadable) status = 'unreadable';
-	else if (!data.connected && !configured) status = 'unavailable';
-	else status = data.connected ? 'connected' : 'disconnected';
+	status = statusOf(data);
 	keyHint = data.keyHint ?? '';
 	connectedAt = data.connectedAt ?? null;
 	const sig = `${status}:${keyHint}`;
@@ -50,12 +74,14 @@ async function doLoad() {
 		const res = await fetch('/api/mailer/connection');
 		if (res.status === 503) {
 			status = 'unavailable';
+			settled = true;
 			return;
 		}
 		if (!res.ok) throw new Error();
 		apply(await res.json());
 	} catch {
 		status = 'unavailable';
+		settled = true;
 	}
 }
 
@@ -134,10 +160,10 @@ async function ensureLoaded() {
 
 export const mailer = {
 	get epoch() { return epoch; },
-	get status() { return status; },
-	get keyHint() { return keyHint; },
-	get connectedAt() { return connectedAt; },
-	get configured() { return configured; },
+	get status() { return seed()?.status ?? status; },
+	get keyHint() { return seed()?.keyHint ?? keyHint; },
+	get connectedAt() { return seed()?.connectedAt ?? connectedAt; },
+	get configured() { return seed()?.configured ?? configured; },
 	get busy() { return busy; },
 	get error() { return error; },
 	get checking() { return checking; },
