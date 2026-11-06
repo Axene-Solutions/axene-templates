@@ -180,5 +180,5 @@
 	.thumb { background: var(--color-surface-2); border-radius: 12px; height: 172px; display: flex; align-items: center; justify-content: center; overflow: hidden; transition: background 0.12s; }
 	.card:hover .thumb { background: var(--color-surface-3); }
 	.mock { width: 58%; background: #ffffff; border-radius: 8px; box-shadow: 0 8px 22px rgba(20, 20, 10, 0.1); overflow: hidden; }
-	.card :global(.card-logo) { border-radius: 4px; }
+	.card :global(.card-logo) { border-radius: 4px; width: 12px; height: 12px; object-fit: fill; }
 </style>

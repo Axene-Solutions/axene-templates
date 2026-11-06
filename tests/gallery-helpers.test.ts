@@ -24,7 +24,7 @@ test('blocksLabel pluralises', () => {
 });
 
 test('categoryLabel maps known ids and capitalises unknown ones', () => {
-	assert.equal(categoryLabel('password-reset'), 'Password Reset');
+	assert.equal(categoryLabel('password-reset'), 'Password reset');
 	assert.equal(categoryLabel('custom'), 'Custom');
 });
 

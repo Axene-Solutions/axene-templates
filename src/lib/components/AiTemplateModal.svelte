@@ -265,15 +265,15 @@
 
 <style>
 	.ai-overlay { position: fixed; inset: 0; z-index: 1000; background: var(--color-scrim); display: flex; align-items: flex-start; justify-content: center; padding: 40px 16px; box-sizing: border-box; overflow-y: auto; }
-	.ai-card { width: 100%; max-width: 580px; background: var(--color-bg); color: var(--color-text); border-radius: 16px; padding: 26px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35); display: flex; flex-direction: column; gap: 18px; font-family: var(--font-sans); outline: none; }
+	.ai-card { box-sizing: content-box; width: 100%; max-width: 580px; background: var(--color-bg); color: var(--color-text); border-radius: 16px; padding: 26px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35); display: flex; flex-direction: column; gap: 18px; font-family: var(--font-sans); outline: none; line-height: normal; }
 	.ai-h { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
 	.ai-p { margin: 5px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--color-muted); }
 	.ai-bar { height: 4px; border-radius: 4px; flex: 1; background: var(--color-surface-3); }
 	.ai-bar-on { background: var(--color-text); }
-	.ai-ex { background: var(--color-surface-2); padding: 8px 14px; border-radius: 4px; font: inherit; font-size: 13px; font-weight: 500; line-height: 1.3; text-align: left; border: 0; color: var(--color-text); cursor: pointer; }
+	.ai-ex { background: var(--color-surface-2); padding: 8px 14px; border-radius: 4px; font: inherit; font-size: 13px; font-weight: 500; line-height: 1.3; text-align: left; border: 1px solid var(--color-surface-3); color: var(--color-text); cursor: pointer; }
 	.ai-ex:hover { background: var(--color-surface-3); }
 	.ai-ex:focus-visible { outline: 2px solid #ffd100; outline-offset: 1px; }
-	.ai-pre { margin: 8px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--color-surface-2); color: var(--color-text); font-size: 11.5px; line-height: 1.55; white-space: pre-wrap; max-height: 180px; overflow: auto; }
+	.ai-pre { box-sizing: content-box; margin: 8px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--color-surface-2); color: var(--color-text); font-size: 11.5px; line-height: 1.55; white-space: pre-wrap; max-height: 180px; overflow: auto; }
 	.ai-file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 	.ai-drop { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 22px 16px; border: 0; border-radius: 12px; background: var(--color-surface-2); cursor: pointer; color: var(--color-text); font: inherit; }
 	.ai-drop:hover, .ai-drop-on { background: var(--color-surface-3); }

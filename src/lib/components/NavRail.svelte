@@ -75,6 +75,7 @@
 
 <style>
 	.rail {
+		line-height: normal;
 		position: sticky;
 		top: 0;
 		align-self: flex-start;
@@ -97,6 +98,9 @@
 	}
 	.rail-logo :global(.logo) {
 		border-radius: 8px;
+		width: 34px;
+		height: 34px;
+		object-fit: fill;
 	}
 	.rail-btn {
 		width: 40px;

@@ -33,6 +33,8 @@
 			? [['Send emails', ''], ['Read sender addresses', ''], ['Read templates', ' required'], ['Write templates', ' for Save'], ['Read contacts', ' recommended']]
 			: [['Send emails', ''], ['Read sender addresses', ''], ['Read templates', ' required'], ['Write templates', ' for Save and named links'], ['Read contacts', ' recommended']]
 	);
+	// The board lists the scopes in the order of the key form, not the order the server probes them.
+	const SCOPE_ORDER = ['emails:send', 'senders:read', 'templates:read', 'templates:write', 'contacts:read'];
 	const stateLabel = { ok: 'Works', missing: 'Missing', unverified: 'Not tested', unknown: 'Could not check' } as const;
 </script>
 
@@ -44,7 +46,7 @@
 			<p style="margin:0;font-size:13.5px;line-height:1.55;color:var(--color-muted)">Connect your Axene Mailer account to send templates from your own verified domain, save templates into Mailer, and open Mailer templates here to edit them. Your key is stored encrypted and is never shown again.</p>
 		{/if}
 		<ol style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:{compact ? 10 : 12}px;font-size:13.5px;line-height:1.55">
-			<li style="display:flex;gap:{compact ? 10 : 12}px;align-items:flex-start"><span class="dz-num">1</span><span>Open <a class="mc-keylink" href="https://mail.axene.io/api-keys" target="_blank" rel="noopener noreferrer">mail.axene.io/api-keys</a> and create a key.</span></li>
+			<li style="display:flex;gap:{compact ? 10 : 12}px;align-items:flex-start"><span class="dz-num">1</span><span>Open {#if compact}<b>mail.axene.io/api-keys</b>{:else}<a class="mc-keylink" href="https://mail.axene.io/api-keys" target="_blank" rel="noopener noreferrer">mail.axene.io/api-keys</a>{/if} and create a key.</span></li>
 			<li style="display:flex;gap:{compact ? 10 : 12}px;align-items:flex-start"><span class="dz-num">2</span><span style="display:flex;flex-direction:column;gap:8px">Tick these scopes.<span style="display:flex;flex-wrap:wrap;gap:6px">{#each chips as c (c[0])}<span class="dz-badge" style="background:var(--color-bg);font-size:12px;padding:4px 10px">{c[0]}<span style="color:var(--color-muted);font-weight:500">{c[1]}</span></span>{/each}</span></span></li>
 			<li style="display:flex;gap:{compact ? 10 : 12}px;align-items:flex-start"><span class="dz-num">3</span><span>Paste the key below.</span></li>
 		</ol>
@@ -53,7 +55,7 @@
 			<div style="display:flex;gap:{compact ? 8 : 10}px;align-items:center">
 				<span style="position:relative;flex-grow:1;display:block">
 					<span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--color-muted);display:flex"><Icon name="padlock" width={15} height={15} /></span>
-					<input id="mc-key" class="dz-field dz-mono" style="padding-left:36px;background:var(--color-bg);font-size:13px" type="password" autocomplete="off" spellcheck="false" placeholder="axm_k_..." aria-label="Mailer API key" bind:value={apiKey} />
+					<input id="mc-key" class="dz-field dz-mono" style="padding-left:36px;background:var(--color-bg);font-size:{compact ? 13.5 : 13}px" type="password" autocomplete="off" spellcheck="false" placeholder="axm_k_..." aria-label="Mailer API key" bind:value={apiKey} />
 				</span>
 				<button class="dz-btn dz-btn-primary" type="button" disabled={mailer.busy || !apiKey.trim()} onclick={connect}>
 					{#if mailer.busy}<span class="dz-spinner"></span>{/if}{mailer.busy ? 'Checking key' : mailer.status === 'unreadable' ? 'Reconnect' : 'Connect'}
@@ -117,7 +119,7 @@
 		{:else if mailer.check?.kind === 'ok'}
 			{@const ck = mailer.check}
 			<div role="status" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px">
-				{#each ck.scopes as sc (sc.scope)}
+				{#each [...ck.scopes].sort((a, b) => SCOPE_ORDER.indexOf(a.scope) - SCOPE_ORDER.indexOf(b.scope)) as sc (sc.scope)}
 					<div style="display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:12px;background:var(--color-bg)">
 						<div style="display:flex;align-items:center;gap:10px">
 							<span style="width:9px;height:9px;border-radius:4px;flex-shrink:0;background:{sc.state === 'ok' ? 'var(--color-success)' : sc.state === 'missing' ? 'var(--color-danger)' : 'var(--color-muted)'}"></span>
@@ -128,7 +130,7 @@
 							<span class="dz-mono" style="font-size:11.5px;color:var(--color-muted)">{sc.scope}</span>
 							{#if sc.scope === 'contacts:read'}<span class="dz-badge" style="background:var(--color-surface-3);color:var(--color-muted);font-size:11px">Recommended</span>{/if}
 						</div>
-						{#if sc.note}<div style="font-size:12px;line-height:1.45;color:var(--color-danger);padding-left:19px">{sc.note}</div>{/if}
+						{#if sc.note && sc.state === 'missing'}<div style="font-size:12px;line-height:1.45;color:var(--color-danger);padding-left:19px">Create a new key with this scope and connect it again.</div>{/if}
 					</div>
 				{/each}
 			</div>
@@ -147,6 +149,5 @@
 	.mc { display: flex; flex-direction: column; gap: 18px; color: var(--color-text); font-family: var(--font-sans); }
 	.mc-compact { gap: 16px; }
 	.mc :global(.dz-note-bad) { margin: 0; }
-	.mc-keylink { color: var(--color-text); font-weight: 600; text-decoration: none; }
-	.mc-keylink:hover { text-decoration: underline; }
+	.mc-keylink { color: var(--color-text); font-weight: 600; text-decoration: underline; }
 </style>
