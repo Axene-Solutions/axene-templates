@@ -33,6 +33,8 @@
 			? [['Send emails', ''], ['Read sender addresses', ''], ['Read templates', ' required'], ['Write templates', ' for Save'], ['Read contacts', ' recommended']]
 			: [['Send emails', ''], ['Read sender addresses', ''], ['Read templates', ' required'], ['Write templates', ' for Save and named links'], ['Read contacts', ' recommended']]
 	);
+	// The board lists the scopes in the order of the key form, not the order the server probes them.
+	const SCOPE_ORDER = ['emails:send', 'senders:read', 'templates:read', 'templates:write', 'contacts:read'];
 	const stateLabel = { ok: 'Works', missing: 'Missing', unverified: 'Not tested', unknown: 'Could not check' } as const;
 </script>
 
@@ -117,7 +119,7 @@
 		{:else if mailer.check?.kind === 'ok'}
 			{@const ck = mailer.check}
 			<div role="status" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px">
-				{#each ck.scopes as sc (sc.scope)}
+				{#each [...ck.scopes].sort((a, b) => SCOPE_ORDER.indexOf(a.scope) - SCOPE_ORDER.indexOf(b.scope)) as sc (sc.scope)}
 					<div style="display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:12px;background:var(--color-bg)">
 						<div style="display:flex;align-items:center;gap:10px">
 							<span style="width:9px;height:9px;border-radius:4px;flex-shrink:0;background:{sc.state === 'ok' ? 'var(--color-success)' : sc.state === 'missing' ? 'var(--color-danger)' : 'var(--color-muted)'}"></span>
@@ -128,7 +130,7 @@
 							<span class="dz-mono" style="font-size:11.5px;color:var(--color-muted)">{sc.scope}</span>
 							{#if sc.scope === 'contacts:read'}<span class="dz-badge" style="background:var(--color-surface-3);color:var(--color-muted);font-size:11px">Recommended</span>{/if}
 						</div>
-						{#if sc.note}<div style="font-size:12px;line-height:1.45;color:var(--color-danger);padding-left:19px">{sc.note}</div>{/if}
+						{#if sc.note && sc.state === 'missing'}<div style="font-size:12px;line-height:1.45;color:var(--color-danger);padding-left:19px">Create a new key with this scope and connect it again.</div>{/if}
 					</div>
 				{/each}
 			</div>

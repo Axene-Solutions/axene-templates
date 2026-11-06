@@ -40,3 +40,5 @@
 .dz-set .dz-btn-sm{padding:7px 12px}
 .dz-set .dz-field{padding:10px 12px}
 .dz-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:var(--color-surface-2)}
+/* The boards let the icon of a note shrink when the text is long, which nudges the text; keep that. */
+.dz-note > .icon-wrapper{flex-shrink:1}
