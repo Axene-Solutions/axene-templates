@@ -2,16 +2,15 @@
 	import claude from '$lib/brand/claude.svg?raw';
 	import openai from '$lib/brand/openai.svg?raw';
 
-	// Third party service marks for the AI buttons. They take the surrounding text colour, except
-	// Claude, which keeps its own orange.
+	// Third party service marks for the AI buttons. The path comes from the vendored file, so no
+	// raw HTML is rendered. They take the text colour, except Claude, which keeps its own orange.
 	let { name, size = 16 }: { name: 'claude' | 'chatgpt'; size?: number } = $props();
-	const svg = $derived((name === 'claude' ? claude : openai).replace(/<title>.*?<\/title>/, ''));
+	const d = $derived(/<path d="([^"]+)"/.exec(name === 'claude' ? claude : openai)?.[1] ?? '');
 </script>
 
-<span class="bm" class:bm-claude={name === 'claude'} style="width:{size}px;height:{size}px" aria-hidden="true">{@html svg}</span>
+<svg class="bm" class:bm-claude={name === 'claude'} width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path {d} /></svg>
 
 <style>
-	.bm { display: inline-flex; flex-shrink: 0; line-height: 0; }
-	.bm :global(svg) { width: 100%; height: 100%; fill: currentColor; }
+	.bm { flex-shrink: 0; }
 	.bm-claude { color: #d97757; }
 </style>
