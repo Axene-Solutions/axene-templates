@@ -51,7 +51,7 @@
 		display: flex; align-items: flex-start; justify-content: center; padding: 120px 16px; box-sizing: border-box;
 	}
 	.cm-card {
-		width: 100%; max-width: 420px; background: var(--color-bg); border-radius: 16px; padding: 24px;
+		box-sizing: content-box; width: 100%; max-width: 420px; background: var(--color-bg); border-radius: 16px; padding: 24px;
 		box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35); display: flex; flex-direction: column; gap: 12px;
 		font-family: var(--font-sans); color: var(--color-text); line-height: normal;
 	}

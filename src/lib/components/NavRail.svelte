@@ -98,6 +98,9 @@
 	}
 	.rail-logo :global(.logo) {
 		border-radius: 8px;
+		width: 34px;
+		height: 34px;
+		object-fit: fill;
 	}
 	.rail-btn {
 		width: 40px;

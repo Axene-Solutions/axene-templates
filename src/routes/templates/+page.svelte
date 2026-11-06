@@ -54,7 +54,7 @@
             /* ignore */
         }
     }
-    const showNudge = $derived(!!user && !nudgeDismissed && (mailer.status === 'disconnected' || mailer.status === 'unreadable'));
+    const showNudge = $derived(!!user && !nudgeDismissed && (mailer.status === 'disconnected' || mailer.status === 'unreadable' || mailer.status === 'unavailable'));
 
     function say(message: string, ms = 2400) {
         toast = message;

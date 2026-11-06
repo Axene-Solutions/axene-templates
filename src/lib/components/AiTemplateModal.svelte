@@ -265,7 +265,7 @@
 
 <style>
 	.ai-overlay { position: fixed; inset: 0; z-index: 1000; background: var(--color-scrim); display: flex; align-items: flex-start; justify-content: center; padding: 40px 16px; box-sizing: border-box; overflow-y: auto; }
-	.ai-card { width: 100%; max-width: 580px; background: var(--color-bg); color: var(--color-text); border-radius: 16px; padding: 26px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35); display: flex; flex-direction: column; gap: 18px; font-family: var(--font-sans); outline: none; line-height: normal; }
+	.ai-card { box-sizing: content-box; width: 100%; max-width: 580px; background: var(--color-bg); color: var(--color-text); border-radius: 16px; padding: 26px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35); display: flex; flex-direction: column; gap: 18px; font-family: var(--font-sans); outline: none; line-height: normal; }
 	.ai-h { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
 	.ai-p { margin: 5px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--color-muted); }
 	.ai-bar { height: 4px; border-radius: 4px; flex: 1; background: var(--color-surface-3); }
