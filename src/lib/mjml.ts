@@ -60,6 +60,8 @@ interface Pos {
 	first: boolean;
 	last: boolean;
 	cpx: number;
+	/** Width inside the container (email width less container padding and border). */
+	innerW: number;
 }
 
 /**
@@ -115,12 +117,15 @@ function blockToMjml(block: Block, pos: Pos): string {
 			}
 
 			const logoCol = `<mj-column width="${logoWidth + 20}px" vertical-align="middle"><mj-image padding="0" src="${logoUrl}" width="${logoWidth}px" align="center" /></mj-column>`;
+			// MJML splits columns without a width evenly, so the name column gets the rest explicitly.
+			const restW = Math.max(40, pos.innerW - (Number(p.paddingLeft) || 0) - (Number(p.paddingRight) || 0) - (logoWidth + 20));
+			const nameCol = `<mj-column width="${restW}px" vertical-align="middle">`;
 			if (layout === 'logo-left') {
-				return `<mj-section padding="${pad(block)}"${sec}>${logoCol}<mj-column vertical-align="middle"><mj-text padding="0" align="${p.align === 'right' ? 'right' : 'left'}">${nameBlock}</mj-text></mj-column></mj-section>`;
+				return `<mj-section padding="${pad(block)}"${sec}>${logoCol}${nameCol}<mj-text padding="0" align="${p.align === 'right' ? 'right' : 'left'}">${nameBlock}</mj-text></mj-column></mj-section>`;
 			}
 
 			// logo-right
-			return `<mj-section padding="${pad(block)}"${sec}><mj-column vertical-align="middle"><mj-text padding="0" align="right">${nameBlock}</mj-text></mj-column>${logoCol}</mj-section>`;
+			return `<mj-section padding="${pad(block)}"${sec}>${nameCol}<mj-text padding="0" align="right">${nameBlock}</mj-text></mj-column>${logoCol}</mj-section>`;
 		}
 
 		case 'heading':
@@ -235,7 +240,8 @@ export function blocksToMjml(blocks: Block[], settingsOrBg?: Partial<TemplateSet
 	_theme = s.color;
 	_font = fontCss(s.font);
 	const cpx = cornerPx(s);
-	const inner = blocks.map((b, i) => blockToMjml(b, { first: i === 0, last: i === blocks.length - 1, cpx })).join('\n');
+	const innerW = s.width - 2 * s.pad - (s.bStyle !== 'none' ? 2 * s.bWidth : 0);
+	const inner = blocks.map((b, i) => blockToMjml(b, { first: i === 0, last: i === blocks.length - 1, cpx, innerW })).join('\n');
 	const href = webFontHref(s.font);
 	const font = href ? `\n    <mj-font name="${s.font}" href="${href}" />` : '';
 	const pageBg = s.pageBg || '#f5f5f5';
