@@ -16,6 +16,7 @@
 	let rows = $state<Row[]>([]);
 	let loading = $state(false);
 	let loadError = $state('');
+	let loadForbidden = $state(false);
 	let loaded = $state(false);
 	let openingId = $state<string | null>(null);
 	let openError = $state<{ id: string; message: string } | null>(null);
@@ -46,6 +47,7 @@
 	async function loadList() {
 		loading = true;
 		loadError = '';
+		loadForbidden = false;
 		try {
 			const res = await fetch('/api/mailer/templates');
 			const data = await res.json().catch(() => ({}));
@@ -56,6 +58,8 @@
 				await mailer.load();
 			} else {
 				loadError = data.error ?? `Could not load your Mailer templates (error ${res.status}).`;
+				// A missing scope or plan is not fixed by trying again: say what Mailer needs instead.
+				loadForbidden = res.status === 403 && typeof data.error === 'string';
 			}
 		} catch {
 			loadError = 'Could not load your Mailer templates. Check your connection.';
@@ -118,7 +122,7 @@
 	<div role="alert" class="dz-panel state">
 		<span style="color:var(--color-danger);display:flex"><Icon name="danger" width={28} height={28} /></span>
 		<h2 class="state-title">Could not load your Mailer templates</h2>
-		<p class="state-text">Mailer did not answer. Check your connection and try again.</p>
+		<p class="state-text">{loadForbidden ? loadError : 'Mailer did not answer. Check your connection and try again.'}</p>
 		<div style="display:flex;gap:8px;margin-top:6px;align-items:center">
 			<button class="dz-btn" type="button" disabled={loading} onclick={loadList}>{#if loading}<span class="dz-spinner"></span>{:else}<Icon name="refresh-arrow" width={15} height={15} />{/if}Try again</button>
 			<a class="dz-btn" href="/settings">Check connection in Settings</a>
