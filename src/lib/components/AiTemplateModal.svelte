@@ -3,6 +3,7 @@
 	import { trapFocus } from '$lib/focus';
 	import { AI_TARGETS, aiUrl, buildAiPrompt, buildFixPrompt, type AiTarget } from '$lib/ai-prompt';
 	import Icon from './Icon.svelte';
+	import BrandMark from './BrandMark.svelte';
 
 	let { open = false, onclose }: { open: boolean; onclose: () => void } = $props();
 
@@ -123,8 +124,8 @@
 					{/each}
 				</div>
 				<div class="ai-actions">
-					<button class="ai-btn ai-btn-primary" type="button" onclick={() => openIn('claude')}>Open in Claude<Icon name="chevron-right" width={14} height={14} /></button>
-					<button class="ai-btn ai-btn-primary" type="button" onclick={() => openIn('chatgpt')}>Open in ChatGPT<Icon name="chevron-right" width={14} height={14} /></button>
+					<button class="ai-btn ai-btn-brand" type="button" onclick={() => openIn('claude')}><BrandMark name="claude" size={18} />Open in Claude<Icon name="chevron-right" width={14} height={14} /></button>
+					<button class="ai-btn ai-btn-brand" type="button" onclick={() => openIn('chatgpt')}><BrandMark name="chatgpt" size={18} />Open in ChatGPT<Icon name="chevron-right" width={14} height={14} /></button>
 					<button class="ai-btn" type="button" onclick={copyPrompt}><Icon name="copy" width={14} height={14} />Copy prompt</button>
 				</div>
 				<details class="ai-details">
@@ -177,33 +178,34 @@
 
 <style>
 	.ai-overlay { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px; background: color-mix(in srgb, var(--color-bg) 70%, transparent); backdrop-filter: blur(3px); }
-	.ai-card { width: 100%; max-width: 640px; max-height: calc(100vh - 32px); overflow-y: auto; background: var(--color-surface-2); color: var(--color-text); border: 1px solid var(--color-border-1); border-radius: 14px; padding: 22px; font-family: var(--font-sans); font-size: 13px; display: flex; flex-direction: column; gap: 18px; }
+	.ai-card { width: 100%; max-width: 640px; max-height: calc(100vh - 32px); overflow-y: auto; background: var(--color-surface-2); color: var(--color-text); border-radius: 16px; padding: 22px; box-shadow: 0 24px 60px color-mix(in srgb, var(--color-bg) 80%, transparent); font-family: var(--font-sans); font-size: 13px; display: flex; flex-direction: column; gap: 18px; }
 	.ai-head { display: flex; justify-content: space-between; gap: 12px; }
 	.ai-title { font-size: 18px; font-weight: 700; }
 	.ai-sub { margin-top: 4px; color: var(--color-muted); line-height: 1.45; }
 	.ai-x { background: none; border: 0; color: var(--color-muted); cursor: pointer; align-self: flex-start; padding: 4px; border-radius: 6px; }
 	.ai-x:hover { color: var(--color-text); background: var(--color-bg); }
-	.ai-step { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--color-border-1); border-radius: 12px; background: var(--color-bg); }
+	.ai-step { display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 12px; background: var(--color-bg); }
 	.ai-step-head { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
 	.ai-num { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: var(--color-accent); color: var(--color-on-accent); font-size: 12px; font-weight: 700; }
-	.ai-input { width: 100%; resize: vertical; background: var(--color-surface-2); color: var(--color-text); border: 1px solid var(--color-border-1); border-radius: 8px; padding: 9px 10px; font: inherit; line-height: 1.45; }
+	.ai-input { width: 100%; resize: vertical; background: var(--color-surface-2); color: var(--color-text); border: 0; border-radius: 8px; padding: 10px 12px; font: inherit; line-height: 1.45; }
 	.ai-input:focus { outline: 2px solid var(--color-accent); }
 	.ai-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; }
 	.ai-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-	.ai-chip { font: inherit; font-size: 12px; padding: 3px 10px; border-radius: 99px; border: 1px solid var(--color-border-1); background: transparent; color: var(--color-muted); cursor: pointer; }
-	.ai-chip:hover { color: var(--color-text); border-color: var(--color-muted); }
+	.ai-chip { font: inherit; font-size: 12px; padding: 3px 10px; border-radius: 99px; border: 0; background: var(--color-surface-2); color: var(--color-muted); cursor: pointer; }
+	.ai-chip:hover { color: var(--color-text); }
 	.ai-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-	.ai-btn { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-weight: 600; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--color-border-1); background: transparent; color: var(--color-text); cursor: pointer; }
-	.ai-btn:hover:not(:disabled) { background: var(--color-surface-2); }
+	.ai-btn { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-weight: 600; padding: 8px 14px; border-radius: 8px; border: 0; background: var(--color-surface-2); color: var(--color-text); cursor: pointer; }
+	.ai-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--color-surface-2) 80%, var(--color-text)); }
 	.ai-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-	.ai-btn-primary { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-on-accent); }
+	.ai-btn-brand { padding: 9px 14px; background: var(--color-surface-2); }
+	.ai-btn-primary { background: var(--color-accent); color: var(--color-on-accent); }
 	.ai-btn-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text)); }
 	.ai-details summary { cursor: pointer; color: var(--color-muted); font-size: 12px; }
 	.ai-pre { margin-top: 8px; max-height: 220px; overflow: auto; white-space: pre-wrap; word-break: break-word; font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 11px; line-height: 1.5; color: var(--color-muted); padding: 10px; border-radius: 8px; background: var(--color-surface-2); }
 	.ai-note { color: var(--color-muted); font-size: 12px; }
-	.ai-msg { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 9px; border: 1px solid; line-height: 1.45; }
-	.ai-msg-err { color: var(--color-danger); border-color: var(--color-danger); background: var(--color-danger-soft); }
-	.ai-msg-ok { color: var(--color-success); border-color: var(--color-success); background: var(--color-success-soft); }
+	.ai-msg { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 9px; line-height: 1.45; }
+	.ai-msg-err { color: var(--color-danger); background: var(--color-danger-soft); }
+	.ai-msg-ok { color: var(--color-success); background: var(--color-success-soft); }
 	.ai-ok-title { font-weight: 600; color: var(--color-text); }
 	.ai-ok-sub { color: var(--color-muted); font-size: 12px; word-break: break-word; }
 	.ai-warn { margin-top: 4px; font-size: 12px; color: var(--color-text); }

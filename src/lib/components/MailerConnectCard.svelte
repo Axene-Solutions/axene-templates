@@ -158,7 +158,7 @@
 	.mc-label { display: block; font-size: 11.5px; font-weight: 600; color: var(--mc-muted); margin: 12px 0 5px; }
 	.mc-input {
 		width: 100%; background: var(--mc-field); color: var(--mc-text);
-		border: 1px solid var(--mc-border); border-radius: 7px; padding: 8px 10px;
+		border: 0; border-radius: 8px; padding: 9px 11px;
 		font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px;
 	}
 	.mc-input:focus { outline: 2px solid var(--mc-accent); }
@@ -179,30 +179,30 @@
 	.mc-keyval { font-size: 13px; }
 	.mc-scope {
 		display: grid; grid-template-columns: auto 1fr auto; align-items: center; column-gap: 8px; row-gap: 2px;
-		padding: 8px 10px; border-radius: 7px; border: 1px solid var(--mc-border);
+		padding: 8px 10px; border-radius: 8px; background: var(--mc-field);
 	}
 	.mc-scope-main { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
 	.mc-scope-id { color: var(--mc-muted); font-size: 11px; }
 	.mc-rec { font-size: 10.5px; font-weight: 600; padding: 0 7px; border-radius: 99px; background: var(--color-accent-soft); color: var(--color-accent-ink); box-shadow: 0 0 0 1px var(--color-accent); }
 	.mc-scope-state { font-size: 12px; font-weight: 600; }
 	.mc-scope-note { grid-column: 2 / 4; font-size: 11.5px; color: var(--mc-muted); }
-	.mc-scope-ok { border-color: var(--mc-ok); background: color-mix(in srgb, var(--mc-ok) 10%, transparent); }
+	.mc-scope-ok { background: color-mix(in srgb, var(--mc-ok) 10%, transparent); }
 	.mc-scope-ok :global(.icon-wrapper), .mc-scope-ok .mc-scope-state { color: var(--mc-ok); }
-	.mc-scope-missing { border-color: var(--mc-err); background: color-mix(in srgb, var(--mc-err) 12%, transparent); }
+	.mc-scope-missing { background: color-mix(in srgb, var(--mc-err) 12%, transparent); }
 	.mc-scope-missing :global(.icon-wrapper), .mc-scope-missing .mc-scope-state { color: var(--mc-err); }
 	.mc-scope-unverified :global(.icon-wrapper), .mc-scope-unverified .mc-scope-state, .mc-scope-unknown :global(.icon-wrapper), .mc-scope-unknown .mc-scope-state { color: var(--mc-muted); }
 	.mc-scope-foot { margin-top: 8px; line-height: 1.45; }
 	.mc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 16px; }
 	.mc-compact .mc-actions { margin-top: 14px; }
 	.mc-btn {
-		display: inline-flex; align-items: center; gap: 6px; background: transparent; color: var(--mc-text);
-		border: 1px solid var(--mc-border); border-radius: 7px; padding: 7px 14px; font: inherit; font-weight: 600; cursor: pointer;
+		display: inline-flex; align-items: center; gap: 6px; color: var(--mc-text);
+		border: 0; background: var(--mc-field); border-radius: 8px; padding: 8px 14px; font: inherit; font-weight: 600; cursor: pointer;
 	}
-	.mc-btn:hover:not(:disabled) { background: var(--color-surface-2); }
+	.mc-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--mc-field) 80%, var(--mc-text)); }
 	.mc-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 	.mc-btn-primary { background: var(--mc-accent); color: var(--color-on-accent); border-color: var(--mc-accent); }
 	.mc-btn-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text)); }
-	.mc-btn-danger { color: var(--mc-err); border-color: var(--mc-err); }
+	.mc-btn-danger { color: var(--mc-err); }
 	.mc-btn-danger-solid { background: var(--color-danger); color: var(--color-bg); border-color: var(--color-danger); }
 	.mc-btn-danger-solid:hover:not(:disabled) { opacity: 0.9; }
 </style>

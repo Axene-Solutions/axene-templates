@@ -81,15 +81,15 @@
 	.st-top { margin-bottom: 8px; }
 	.st-h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.01em; }
 	.st-sub { margin-top: 4px; font-size: 13.5px; color: var(--color-muted); }
-	.st-card { background: var(--color-surface-2); border: 1px solid var(--color-border-1); border-radius: 14px; overflow: hidden; }
-	.st-card-head { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--color-border-1); }
+	.st-card { background: var(--color-surface-2); border-radius: 14px; overflow: hidden; }
+	.st-card-head { display: flex; align-items: center; gap: 12px; padding: 18px 20px 4px; }
 	.st-card-meta { flex: 1; min-width: 0; }
 	.st-card-title { font-size: 15px; font-weight: 600; }
 	.st-card-desc { font-size: 12.5px; color: var(--color-muted); margin-top: 2px; line-height: 1.4; }
-	.st-card-body { padding: 20px; }
-	.st-tile { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 10px; background: var(--color-accent-soft); color: var(--color-accent-ink); box-shadow: inset 0 0 0 1px var(--color-accent); flex-shrink: 0; }
-	.st-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 99px; border: 1px solid var(--color-border-1); color: var(--color-muted); white-space: nowrap; }
-	.st-pill-ok { color: var(--color-success); border-color: var(--color-success); background: var(--color-success-soft); }
+	.st-card-body { padding: 14px 20px 20px; }
+	.st-tile { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 10px; background: var(--color-accent-soft); color: var(--color-accent-ink); flex-shrink: 0; }
+	.st-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 99px; background: var(--color-bg); color: var(--color-muted); white-space: nowrap; }
+	.st-pill-ok { color: var(--color-success); background: var(--color-success-soft); }
 	.st-pill-off { color: var(--color-muted); }
 	.st-back { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--color-info); background: var(--color-info-soft); font-size: 13px; }
 	.st-back-ok { border-color: var(--color-success); background: var(--color-success-soft); }

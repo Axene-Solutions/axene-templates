@@ -103,7 +103,7 @@
 	.pc { display: flex; flex-direction: column; gap: 10px; font-size: 13px; color: var(--color-text); }
 	.pc-compact { gap: 8px; padding: 10px 12px; border: 1px solid var(--color-border-1); border-radius: 8px; background: var(--color-bg); margin-bottom: 4px; }
 	.pc-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
-	.pc:not(.pc-compact) .pc-meter { padding: 12px 14px; border: 1px solid var(--color-border-1); border-radius: 10px; background: var(--color-bg); }
+	.pc:not(.pc-compact) .pc-meter { padding: 12px 14px; border-radius: 10px; background: var(--color-bg); }
 	.pc-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
 	.pc-name { font-weight: 600; }
 	.pc-expiry { font-size: 12px; color: var(--color-muted); }
