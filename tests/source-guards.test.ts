@@ -53,8 +53,8 @@ test('blocks served to the editor and every render path go through the sanitiser
 	assert.match(read('src/routes/api/templates/[id]/+server.ts'), /blocks: sanitizeBlocksForRead\(t\.blocks\)/);
 	const render = read('src/lib/server/render.ts');
 	// Send and Save to Mailer share one path that sanitises (throwing, so a hopeless row is refused).
-	assert.equal((render.match(/blocksToMjml\(sanitizeBlocks\(blocks, \{ strict: false \}\)\)/g) ?? []).length, 1);
-	assert.equal((render.match(/mjmlOf\(blocks\)/g) ?? []).length, 2);
+	assert.equal((render.match(/blocksToMjml\(sanitizeBlocks\(blocks, \{ strict: false \}\)(?:, settings)?\)/g) ?? []).length, 1);
+	assert.equal((render.match(/mjmlOf\(blocks(?:, settings)?\)/g) ?? []).length, 2);
 	assert.doesNotMatch(render, /blocksToMjml\(blocks/);
 	assert.match(read('src/lib/server/render-starter.ts'), /blocksToMjml\(sanitizeBlocksForRead\(blocks\)\)/);
 	assert.match(read('src/routes/api/templates/+server.ts'), /sanitizeBlocks\(rawBlocks, \{ strict: true \}\)/);

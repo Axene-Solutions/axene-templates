@@ -4,9 +4,7 @@
 	import { editor } from '$lib/store.svelte'
 	import MailerLinkScreen from '$lib/components/MailerLinkScreen.svelte'
 	import Icon from '$lib/components/Icon.svelte'
-	import Sidebar from '$lib/components/Sidebar.svelte'
-	import Canvas from '$lib/components/Canvas.svelte'
-	import RightPanel from '$lib/components/RightPanel.svelte'
+	import EditorShell from '$lib/components/editor/EditorShell.svelte'
 
 	// Deep link from Mailer: ?mailer=new starts a fresh template that Save to Mailer will create,
 	// ?mailer=<id> opens the Templates copy of that Mailer template (see MailerLinkScreen).
@@ -66,9 +64,7 @@
 	<MailerLinkScreen target={mailerTarget} oncontinue={start} />
 {:else}
 	<div class="editor-wrap">
-		<Sidebar />
-		<Canvas />
-		<RightPanel />
+		<EditorShell />
 	</div>
 {/if}
 
@@ -79,6 +75,7 @@
 	   user): they stacked vertically and the right panel fell off-screen. */
 	.editor-wrap {
 		display: flex;
+		flex-direction: column;
 		flex: 1;
 		min-width: 0;
 		min-height: 0;

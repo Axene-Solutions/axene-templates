@@ -6,6 +6,8 @@ import { eq, or, and, desc } from 'drizzle-orm';
 import { randomBytes } from 'node:crypto';
 import { sanitizeBlocks, BlocksValidationError } from '$lib/server/sanitize-blocks';
 import type { Block } from '$lib/blocks';
+import { cleanSettings, legacySettings, type TemplateSettings } from '$lib/template-settings';
+import { themeColorOf } from '$lib/mailer-templates';
 
 // GET /api/templates - list templates visible to the user
 export const GET: RequestHandler = async ({ locals }) => {
@@ -67,7 +69,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		return json({ error: 'Invalid JSON body' }, { status: 400 });
 	}
 	if (!body || typeof body !== 'object') return json({ error: 'Invalid JSON body' }, { status: 400 });
-	const { id, name, category, isPublic: rawPublic, blocks: rawBlocks } = body as Record<string, any>;
+	const { id, name, category, isPublic: rawPublic, blocks: rawBlocks, settings: rawSettings } = body as Record<string, any>;
 	if (!id || !name || !rawBlocks) {
 		return json({ error: 'id, name, and blocks are required' }, { status: 400 });
 	}
@@ -85,6 +87,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		if (e instanceof BlocksValidationError) return json({ error: `The template content is not valid: ${e.message}`, code: e.code }, { status: 422 });
 		throw e;
 	}
+	// Template settings are optional (older clients send none) and always cleaned to safe values.
+	if (rawSettings !== undefined && rawSettings !== null && (typeof rawSettings !== 'object' || Array.isArray(rawSettings))) {
+		return json({ error: 'settings must be an object' }, { status: 400 });
+	}
+	const settings: TemplateSettings | undefined = rawSettings ? cleanSettings(rawSettings, legacySettings(themeColorOf(blocks))) : undefined;
 
 	const existing = await db
 		.select()
@@ -95,7 +102,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	if (existing.length > 0 && existing[0].userId === user.id) {
 		await db
 			.update(templates)
-			.set({ name, category: category || existing[0].category, blocks, isPublic: rawPublic === undefined ? existing[0].isPublic : isPublic, updatedAt: new Date() })
+			.set({ name, category: category || existing[0].category, blocks, ...(settings ? { settings } : {}), isPublic: rawPublic === undefined ? existing[0].isPublic : isPublic, updatedAt: new Date() })
 			.where(and(eq(templates.id, id), eq(templates.userId, user.id)));
 	} else if (existing.length > 0) {
 		// Not yours. A starter or another user's public template is forked into a new private copy
@@ -110,6 +117,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			name,
 			category: category || existing[0].category,
 			blocks,
+			settings: settings ?? existing[0].settings ?? null,
 			isStarter: false,
 			isPublic: false,
 			updatedAt: new Date(),
@@ -122,6 +130,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			name,
 			category: category || 'general',
 			blocks,
+			settings: settings ?? null,
 			isStarter: false,
 			isPublic,
 			updatedAt: new Date(),

@@ -21,11 +21,12 @@
 {#each parts as p, i (i)}{#if p.tag}<span class="ph {cls(p.tag)}">{p.text}</span>{:else}{p.text}{/if}{/each}
 
 <style>
+	/* Design chip (Editor.dc.html segs): scaled to the surrounding text. */
 	.ph {
-		font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.88em;
-		border-radius: 4px; padding: 0 4px; background: var(--color-accent-soft); color: var(--color-accent-ink);
-		box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 55%, transparent);
+		font-family: 'JetBrains Mono', monospace; font-size: .7em; font-weight: 500; letter-spacing: 0;
+		padding: 1px 6px; border-radius: 4px; line-height: 1.3; vertical-align: middle; white-space: nowrap;
+		background: #ecf2fe; color: #1e40af;
 	}
-	.ph-link { background: var(--color-info-soft); color: var(--color-info); box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-info) 55%, transparent); }
-	.ph-bad { background: var(--color-danger-soft); color: var(--color-danger); box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-danger) 55%, transparent); }
+	.ph-link { background: #f4effe; color: #5b21b6; }
+	.ph-bad { background: #fdeeec; color: #a8231a; }
 </style>

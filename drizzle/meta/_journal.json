@@ -29,6 +29,13 @@
       "when": 1793907435581,
       "tag": "0003_add_mailer_sync",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793952541045,
+      "tag": "0004_add_template_settings",
+      "breakpoints": true
     }
   ]
 }

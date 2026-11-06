@@ -15,8 +15,19 @@ export interface BlockDefinition {
 	type: BlockType;
 	label: string;
 	icon: string;
+	/**
+	 * What a stored block that lacks a prop gets (the sanitiser fills missing props from here).
+	 * New props default to the value that renders exactly as before they existed.
+	 */
 	defaultProps: Record<string, any>;
+	/** Design defaults for a block created now, applied over defaultProps by createBlock. */
+	newProps?: Record<string, any>;
 }
+
+/** Props every block type has: the block box (fill, border, corner radius). */
+const COMMON_DEFAULTS = { backgroundColor: 'transparent', borderStyle: 'none', borderColor: '#d1d5db', blockRadius: 0 };
+/** Design padding for a new block (14 top and bottom, 24 at the sides). */
+const NEW_PAD = { paddingTop: 14, paddingBottom: 14, paddingLeft: 24, paddingRight: 24 };
 
 let _counter = 0;
 export function uid(): string {
@@ -37,13 +48,18 @@ export const blockDefs: BlockDefinition[] = [
 			backgroundColor: '#1daa82',
 			logoWidth: 40,
 			fontSize: 20,
+			fontWeight: 'bold',
 			color: '#ffffff',
 			align: 'left',
 			paddingTop: 14,
 			paddingBottom: 14,
 			paddingLeft: 20,
 			paddingRight: 20,
+			borderStyle: 'none',
+			borderColor: '#d1d5db',
+			blockRadius: 0,
 		},
+		newProps: { ...NEW_PAD, logoUrl: '', fontWeight: '700', backgroundColor: 'theme', color: 'auto', paddingTop: 16, paddingBottom: 16 },
 	},
 	{
 		type: 'heading',
@@ -53,13 +69,16 @@ export const blockDefs: BlockDefinition[] = [
 			text: 'Your Heading Here',
 			fontSize: 26,
 			fontWeight: 'bold',
+			lineHeight: 1.6,
 			color: '#111827',
 			align: 'center',
 			paddingTop: 14,
 			paddingBottom: 14,
 			paddingLeft: 20,
 			paddingRight: 20,
+			...COMMON_DEFAULTS,
 		},
+		newProps: { ...NEW_PAD, text: 'Your heading here', fontWeight: '700', lineHeight: 1.25 },
 	},
 	{
 		type: 'subheading',
@@ -76,7 +95,9 @@ export const blockDefs: BlockDefinition[] = [
 			paddingBottom: 14,
 			paddingLeft: 20,
 			paddingRight: 20,
+			...COMMON_DEFAULTS,
 		},
+		newProps: { ...NEW_PAD, fontSize: 15, fontWeight: '400', lineHeight: 1.6 },
 	},
 	{
 		type: 'content',
@@ -93,7 +114,9 @@ export const blockDefs: BlockDefinition[] = [
 			paddingBottom: 14,
 			paddingLeft: 20,
 			paddingRight: 20,
+			...COMMON_DEFAULTS,
 		},
+		newProps: { ...NEW_PAD, text: 'Write your email content here. Keep it short, clear and kind.', fontWeight: '400', lineHeight: 1.65 },
 	},
 	{
 		type: 'image',
@@ -104,11 +127,16 @@ export const blockDefs: BlockDefinition[] = [
 			alt: 'Image',
 			width: 600,
 			href: '',
+			imageHeight: 0, // 0 = natural height
+			borderRadius: 0,
+			align: 'center',
 			paddingTop: 0,
 			paddingBottom: 0,
 			paddingLeft: 0,
 			paddingRight: 0,
+			...COMMON_DEFAULTS,
 		},
+		newProps: { ...NEW_PAD, src: 'https://placehold.co/600x240', imageHeight: 200, borderRadius: 8, paddingTop: 8, paddingBottom: 8 },
 	},
 	{
 		type: 'button',
@@ -129,7 +157,11 @@ export const blockDefs: BlockDefinition[] = [
 			paddingBottom: 14,
 			paddingLeft: 20,
 			paddingRight: 20,
+			borderStyle: 'none',
+			borderColor: '#d1d5db',
+			blockRadius: 0,
 		},
+		newProps: { ...NEW_PAD, text: 'Click here', color: 'auto', borderRadius: 8, innerPadding: '12px 30px' },
 	},
 	{
 		type: 'list',
@@ -140,11 +172,15 @@ export const blockDefs: BlockDefinition[] = [
 			fontSize: 14,
 			color: '#374151',
 			bulletColor: 'theme',
+			lineHeight: 1.6,
+			align: 'left',
 			paddingTop: 14,
 			paddingBottom: 14,
 			paddingLeft: 20,
 			paddingRight: 20,
+			...COMMON_DEFAULTS,
 		},
+		newProps: { ...NEW_PAD },
 	},
 	{
 		type: 'table',
@@ -162,12 +198,25 @@ export const blockDefs: BlockDefinition[] = [
 			headerBg: '#f3f4f6',
 			headerColor: '#111827',
 			cellColor: '#374151',
-			borderColor: '#e5e7eb',
+			borderColor: '#e5e7eb', // the cell lines
 			fontSize: 13,
+			align: 'left',
 			paddingTop: 14,
 			paddingBottom: 14,
 			paddingLeft: 20,
 			paddingRight: 20,
+			backgroundColor: 'transparent',
+			borderStyle: 'none',
+			blockRadius: 0,
+		},
+		newProps: {
+			...NEW_PAD,
+			col1Header: 'Item',
+			headerColor: 'auto',
+			rows: [
+				{ col1: 'First item', col2: 'Description of the first item' },
+				{ col1: 'Second item', col2: 'Description of the second item' },
+			],
 		},
 	},
 	{
@@ -176,11 +225,22 @@ export const blockDefs: BlockDefinition[] = [
 		icon: 'section',
 		defaultProps: {
 			backgroundColor: '#f5f5f5',
+			// An empty text keeps the old spacer section.
+			text: '',
+			color: '#374151',
+			fontSize: 14,
+			lineHeight: 1.6,
+			borderRadius: 0,
+			align: 'left',
 			paddingTop: 14,
 			paddingBottom: 14,
 			paddingLeft: 20,
 			paddingRight: 20,
+			borderStyle: 'none',
+			borderColor: '#d1d5db',
+			blockRadius: 0,
 		},
+		newProps: { ...NEW_PAD, text: 'A highlighted note for your readers.', borderRadius: 8, paddingTop: 18, paddingBottom: 18 },
 	},
 	{
 		type: 'footer',
@@ -205,19 +265,30 @@ export const blockDefs: BlockDefinition[] = [
 			paddingBottom: 14,
 			paddingLeft: 20,
 			paddingRight: 20,
+			...COMMON_DEFAULTS,
 		},
+		newProps: { ...NEW_PAD, linkColor: '#6b7280' },
 	},
 ];
 
-export function createBlock(type: BlockType): Block {
+export function createBlock(type: BlockType, over?: Record<string, any>): Block {
 	const def = blockDefs.find(d => d.type === type);
 	if (!def) throw new Error(`Unknown block type: ${type}`);
 	return {
 		id: uid(),
 		type,
-		props: { ...def.defaultProps },
+		props: structuredClone({ ...def.defaultProps, ...(def.newProps ?? {}), ...(over ?? {}) }),
 	};
 }
+
+/** Display name of a block type (the toolbar chip and the layers list). */
+export const TYPE_NAME: Record<BlockType, string> = {
+	header: 'Header', heading: 'Heading', subheading: 'Subheading', content: 'Content', image: 'Image',
+	button: 'Button', list: 'List', table: 'Table', section: 'Section', footer: 'Footer',
+};
+
+/** Tile order in the Blocks tab. */
+export const BLOCK_ORDER: BlockType[] = ['header', 'heading', 'subheading', 'content', 'image', 'button', 'list', 'table', 'section', 'footer'];
 
 export function getBlockDef(type: BlockType): BlockDefinition | undefined {
 	return blockDefs.find(d => d.type === type);

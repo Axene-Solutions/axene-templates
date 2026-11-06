@@ -3,6 +3,7 @@ import { blocksToMjml } from '$lib/mjml';
 import { randomBytes } from 'node:crypto';
 import { fillSlots, MAX_RENDERED_HTML, prepareGrammar, type Values } from '$lib/placeholders';
 import { BlocksValidationError, sanitizeBlocks } from '$lib/server/sanitize-blocks';
+import type { TemplateSettings } from '$lib/template-settings';
 
 // Grammar only: nothing here (or imported from here) runs a template engine over block text or
 // any other user-controlled text. {{field}}, {{field|fallback}} and {{link:key}} are the whole
@@ -59,9 +60,12 @@ const SEND_DEFAULTS: Record<string, string> = {
 	company_name: 'Axene',
 };
 
-function mjmlOf(blocks: unknown): string {
+/** Stored template settings (any shape: blocksToMjml cleans them), or null for a template without. */
+type SettingsIn = Partial<TemplateSettings> | null | undefined;
+
+function mjmlOf(blocks: unknown, settings: SettingsIn): string {
 	try {
-		return blocksToMjml(sanitizeBlocks(blocks, { strict: false }));
+		return blocksToMjml(sanitizeBlocks(blocks, { strict: false }), settings);
 	} catch (e) {
 		if (e instanceof BlocksValidationError) throw new RenderRefused(`the template content is not valid: ${e.message}`);
 		throw e;
@@ -76,8 +80,8 @@ function checkSize(html: string): void {
  * Blocks -> MJML -> HTML for Mailer: supported {{placeholders}} stay in the output because Mailer
  * fills them in later; any other {{ ... }} becomes inert text. Throws RenderRefused.
  */
-export function renderTemplateForMailer(blocks: unknown) {
-	const prepared = prepareGrammar(mjmlOf(blocks), {}, new Map(), '', 'keep');
+export function renderTemplateForMailer(blocks: unknown, settings?: SettingsIn) {
+	const prepared = prepareGrammar(mjmlOf(blocks, settings), {}, new Map(), '', 'keep');
 	if (prepared.refused) throw new RenderRefused(prepared.refused);
 	const html = compile(prepared.template);
 	checkSize(html);
@@ -98,11 +102,12 @@ export function renderTemplateForSend(
 	blocks: unknown,
 	variables: Record<string, string | number | boolean>,
 	links: ReadonlyMap<string, string>,
+	settings?: SettingsIn,
 ): SendRender {
 	const nonce = randomBytes(6).toString('hex');
 	let mjml: string;
 	try {
-		mjml = mjmlOf(blocks);
+		mjml = mjmlOf(blocks, settings);
 	} catch (e) {
 		if (e instanceof RenderRefused) return { ok: false, unknownLinks: [], badLinks: [], badUrls: [], refused: e.message };
 		throw e;

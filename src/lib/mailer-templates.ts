@@ -2,6 +2,7 @@
 // No SvelteKit or Node imports, so it can be unit tested directly.
 
 import { collectUsage, parseTag } from './placeholders';
+import { cleanSettings, legacySettings, type TemplateSettings } from './template-settings';
 
 export const ENVELOPE_FORMAT = 'axene-blocks';
 export const ENVELOPE_VERSION = 1;
@@ -15,6 +16,11 @@ export interface BlocksEnvelope {
 	version: typeof ENVELOPE_VERSION;
 	blocks: unknown[];
 	themeColor: string;
+	/**
+	 * Template level settings (width, font, container look). Optional: Mailer stores blocks_json
+	 * as an opaque JSON object, so the extra key round-trips; older envelopes have none.
+	 */
+	settings?: TemplateSettings;
 }
 
 /** Same rule as the editor store: the header block's accent color drives the theme. */
@@ -25,13 +31,15 @@ export function themeColorOf(blocks: unknown[]): string {
 }
 
 /** The blocks_json object Mailer stores for a template made in this editor. */
-export function buildEnvelope(blocks: unknown[], themeColor?: string): BlocksEnvelope {
-	return {
+export function buildEnvelope(blocks: unknown[], themeColor?: string, settings?: TemplateSettings | null): BlocksEnvelope {
+	const env: BlocksEnvelope = {
 		format: ENVELOPE_FORMAT,
 		version: ENVELOPE_VERSION,
 		blocks,
-		themeColor: themeColor || themeColorOf(blocks),
+		themeColor: settings?.color || themeColor || themeColorOf(blocks),
 	};
+	if (settings) env.settings = settings;
+	return env;
 }
 
 export interface UnsupportedSyntax {
@@ -61,7 +69,7 @@ export function detectPlaceholders(blocks: unknown): string[] {
 }
 
 export type EnvelopeCheck =
-	| { ok: true; blocks: unknown[]; themeColor: string }
+	| { ok: true; blocks: unknown[]; themeColor: string; settings: TemplateSettings | null }
 	| { ok: false; reason: 'classic' | 'unsupported_version' | 'invalid'; error?: string };
 
 /**
@@ -81,7 +89,8 @@ export function readEnvelope(blocksJson: unknown, sanitize: (blocks: unknown) =>
 		return { ok: false, reason: 'invalid', error: e instanceof Error ? e.message : 'invalid blocks' };
 	}
 	const theme = typeof o.themeColor === 'string' && /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(o.themeColor) ? o.themeColor : themeColorOf(blocks);
-	return { ok: true, blocks, themeColor: theme };
+	const settings = o.settings && typeof o.settings === 'object' && !Array.isArray(o.settings) ? cleanSettings(o.settings, legacySettings(theme)) : null;
+	return { ok: true, blocks, themeColor: theme, settings };
 }
 
 /** Mailer template ids are UUIDs; accept only a conservative id shape before putting one in a URL. */

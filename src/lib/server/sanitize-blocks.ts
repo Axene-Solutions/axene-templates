@@ -96,7 +96,8 @@ export { isSafeLiteralUrl };
 
 const HEX = /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 const RGB = /^rgba?\(\s*\d{1,3}(?:\.\d+)?%?\s*,\s*\d{1,3}(?:\.\d+)?%?\s*,\s*\d{1,3}(?:\.\d+)?%?\s*(?:,\s*(?:0|1|0?\.\d{1,4}|1\.0{1,4})\s*)?\)$/i;
-const COLOR_TOKENS = new Set(['theme', 'theme-light', 'theme-dark', 'transparent']);
+// 'auto' means readable ink on the block's fill (see textOn in template-settings.ts).
+const COLOR_TOKENS = new Set(['theme', 'theme-light', 'theme-dark', 'transparent', 'auto']);
 
 export function isColor(v: unknown): v is string {
 	return typeof v === 'string' && v.length <= 40 && (HEX.test(v) || RGB.test(v) || COLOR_TOKENS.has(v));
@@ -225,6 +226,7 @@ type Rule =
 	| { kind: 'color'; hexOnly?: boolean }
 	| { kind: 'number'; min: number; max: number; int?: boolean }
 	| { kind: 'enum'; values: readonly string[] }
+	| { kind: 'weight' }
 	| { kind: 'bool' }
 	| { kind: 'lineHeight' }
 	| { kind: 'boxPadding' }
@@ -239,9 +241,21 @@ const PAD: Record<string, Rule> = {
 	paddingRight: { kind: 'number', min: 0, max: 300 },
 };
 const ALIGN: Rule = { kind: 'enum', values: ['left', 'center', 'right'] };
-const WEIGHT: Rule = { kind: 'enum', values: ['normal', 'bold', '100', '200', '300', '400', '500', '600', '700', '800', '900'] };
+const WEIGHTS = ['normal', 'bold', '100', '200', '300', '400', '500', '600', '700', '800', '900'];
+// A weight word or a multiple of 100, as a string or a number (stored as a string).
+const WEIGHT: Rule = { kind: 'weight' };
 const FONT_SIZE: Rule = { kind: 'number', min: 1, max: 120 };
 const COLOR: Rule = { kind: 'color' };
+const LINE: Rule = { kind: 'lineHeight' };
+const BORDER_STYLE: Rule = { kind: 'enum', values: ['none', 'solid', 'dashed', 'dotted'] };
+/** The block box every type has: border style and colour, corner radius. */
+const BOX: Record<string, Rule> = {
+	borderStyle: BORDER_STYLE,
+	borderColor: COLOR,
+	blockRadius: { kind: 'number', min: 0, max: 32 },
+};
+/** Box fill for types whose backgroundColor is not already something else. */
+const FILL: Record<string, Rule> = { backgroundColor: COLOR };
 
 export const BLOCK_SCHEMA: Record<BlockType, Record<string, Rule>> = {
 	header: {
@@ -253,18 +267,25 @@ export const BLOCK_SCHEMA: Record<BlockType, Record<string, Rule>> = {
 		backgroundColor: COLOR,
 		logoWidth: { kind: 'number', min: 0, max: 600 },
 		fontSize: FONT_SIZE,
+		fontWeight: WEIGHT,
 		color: COLOR,
 		align: ALIGN,
+		...BOX,
 		...PAD,
 	},
-	heading: { text: { kind: 'html' }, fontSize: FONT_SIZE, fontWeight: WEIGHT, color: COLOR, align: ALIGN, ...PAD },
-	subheading: { text: { kind: 'html' }, fontSize: FONT_SIZE, fontWeight: WEIGHT, color: COLOR, align: ALIGN, lineHeight: { kind: 'lineHeight' }, ...PAD },
-	content: { text: { kind: 'html' }, fontSize: FONT_SIZE, fontWeight: WEIGHT, color: COLOR, align: ALIGN, lineHeight: { kind: 'lineHeight' }, ...PAD },
+	heading: { text: { kind: 'html' }, fontSize: FONT_SIZE, fontWeight: WEIGHT, lineHeight: LINE, color: COLOR, align: ALIGN, ...FILL, ...BOX, ...PAD },
+	subheading: { text: { kind: 'html' }, fontSize: FONT_SIZE, fontWeight: WEIGHT, color: COLOR, align: ALIGN, lineHeight: LINE, ...FILL, ...BOX, ...PAD },
+	content: { text: { kind: 'html' }, fontSize: FONT_SIZE, fontWeight: WEIGHT, color: COLOR, align: ALIGN, lineHeight: LINE, ...FILL, ...BOX, ...PAD },
 	image: {
 		src: { kind: 'url' },
 		alt: { kind: 'text', max: 300 },
 		width: { kind: 'number', min: 0, max: 1200 },
 		href: { kind: 'url' },
+		imageHeight: { kind: 'number', min: 0, max: 1200 },
+		borderRadius: { kind: 'number', min: 0, max: 100 },
+		align: ALIGN,
+		...FILL,
+		...BOX,
 		...PAD,
 	},
 	button: {
@@ -278,9 +299,10 @@ export const BLOCK_SCHEMA: Record<BlockType, Record<string, Rule>> = {
 		width: { kind: 'number', min: -1, max: 1200, int: true },
 		align: ALIGN,
 		innerPadding: { kind: 'boxPadding' },
+		...BOX,
 		...PAD,
 	},
-	list: { items: { kind: 'htmlList', max: MAX_ITEMS }, fontSize: FONT_SIZE, color: COLOR, bulletColor: COLOR, ...PAD },
+	list: { items: { kind: 'htmlList', max: MAX_ITEMS }, fontSize: FONT_SIZE, lineHeight: LINE, color: COLOR, bulletColor: COLOR, align: ALIGN, ...FILL, ...BOX, ...PAD },
 	table: {
 		headerRow: { kind: 'bool' },
 		col1Header: { kind: 'text', max: 300 },
@@ -291,13 +313,21 @@ export const BLOCK_SCHEMA: Record<BlockType, Record<string, Rule>> = {
 		cellColor: COLOR,
 		borderColor: COLOR,
 		fontSize: FONT_SIZE,
+		align: ALIGN,
+		...FILL,
+		borderStyle: BORDER_STYLE,
+		blockRadius: { kind: 'number', min: 0, max: 32 },
 		...PAD,
 	},
 	section: {
+		text: { kind: 'html' },
 		backgroundColor: COLOR,
+		color: COLOR,
+		fontSize: FONT_SIZE,
+		lineHeight: LINE,
+		align: ALIGN,
 		borderRadius: { kind: 'number', min: 0, max: 100 },
-		borderStyle: { kind: 'enum', values: ['none', 'solid', 'dashed', 'dotted'] },
-		borderColor: COLOR,
+		...BOX,
 		...PAD,
 	},
 	footer: {
@@ -312,6 +342,8 @@ export const BLOCK_SCHEMA: Record<BlockType, Record<string, Rule>> = {
 		linkColor: COLOR,
 		align: ALIGN,
 		showDivider: { kind: 'bool' },
+		...FILL,
+		...BOX,
 		...PAD,
 	},
 };
@@ -366,6 +398,10 @@ function check(rule: Rule, v: unknown, strict: boolean): Out {
 			return num(v, rule, strict);
 		case 'enum':
 			return typeof v === 'string' && rule.values.includes(v) ? v : INVALID;
+		case 'weight': {
+			const w = typeof v === 'number' ? String(v) : v;
+			return typeof w === 'string' && WEIGHTS.includes(w) ? w : INVALID;
+		}
 		case 'bool':
 			return typeof v === 'boolean' ? v : INVALID;
 		case 'lineHeight': {
@@ -440,6 +476,8 @@ function describe(rule: Rule): string {
 			return `one of ${rule.values.join(', ')}`;
 		case 'bool':
 			return 'true or false';
+		case 'weight':
+			return 'a font weight (normal, bold or 100 to 900)';
 		case 'html':
 		case 'htmlList':
 		case 'rows':
