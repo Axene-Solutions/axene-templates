@@ -246,6 +246,7 @@ if run_cmd /tmp/axene-rsync.log rsync -az --delete \
     --exclude='.svelte-kit' \
     --exclude='*.pyc' \
     --exclude='.claude' \
+    --exclude='_work' \
     -e "ssh" \
     ./ "${SSH_HOST}:${REMOTE_DIR}/"; then
   step_done
