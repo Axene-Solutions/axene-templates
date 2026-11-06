@@ -452,6 +452,8 @@ let deleteFrom: Area = "canvas";
 let insertTarget = $state<InsertTarget | null>(null);
 let linksBack = $state(false);
 let toast = $state("");
+// The font list shows every web font in its own face, so its stylesheet loads once it is wanted.
+let allFonts = $state(false);
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
 
 function say(message: string) {
@@ -932,6 +934,8 @@ export const view = {
   get insertTarget() { return insertTarget; },
   get linksBack() { return linksBack; },
   get toast() { return toast; },
+  get allFonts() { return allFonts; },
+  loadAllFonts() { allFonts = true; },
   say,
   openModal,
   switchModal,

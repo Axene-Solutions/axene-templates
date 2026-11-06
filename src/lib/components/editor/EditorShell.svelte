@@ -1,7 +1,7 @@
 <script lang="ts">
 	import './editor.css';
 	import { editor, view } from '$lib/store.svelte';
-	import { allWebFontsHref } from '$lib/template-settings';
+	import { allWebFontsHref, webFontHref } from '$lib/template-settings';
 	import TopBar from './TopBar.svelte';
 	import EditorModals from './EditorModals.svelte';
 	import PostSaveNudge from '../PostSaveNudge.svelte';
@@ -13,6 +13,9 @@
 	// panel, toast and the one modal slot. Shortcuts are handled on this root, so they only act
 	// while focus is inside the editor.
 	let topBar: TopBar | undefined = $state();
+
+	const MONO_HREF = 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap';
+	const templateFontHref = $derived(webFontHref(editor.settings.font));
 
 	function onkeydown(e: KeyboardEvent) {
 		if (view.modal) return;
@@ -42,8 +45,12 @@
 
 <svelte:window {onbeforeunload} />
 
+<!-- The editor chrome needs JetBrains Mono and the canvas needs the template's own font. The
+     other 15 web fonts are only shown by the font list, so they load when it is about to open. -->
 <svelte:head>
-	<link rel="stylesheet" href={allWebFontsHref()} />
+	<link rel="stylesheet" href={MONO_HREF} />
+	{#if templateFontHref}<link rel="stylesheet" href={templateFontHref} />{/if}
+	{#if view.allFonts}<link rel="stylesheet" href={allWebFontsHref()} />{/if}
 </svelte:head>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->

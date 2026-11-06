@@ -280,7 +280,7 @@
 			</CollapsibleSection>
 			<CollapsibleSection title="Typography" {...sec('eType')}>
 				<div class="lbl">Font family</div>
-				<FontSelect value={S.font} onchange={(v) => editor.setTemplateSettings({ font: v })} loadFonts={false} />
+				<FontSelect value={S.font} onchange={(v) => editor.setTemplateSettings({ font: v })} loadFonts={false} onwarm={view.loadAllFonts} />
 				<ColorGrid label="Text color" hint="(all text blocks)" value={S.textColor} onchange={(v, key) => editor.setBaseTextColor(v, key ? 'etext' : null)} />
 			</CollapsibleSection>
 		{:else if !selB}
@@ -386,7 +386,7 @@
 			<ColorGrid label="Theme color" hint="(buttons, header, bullets)" value={theme} onchange={themeSet} />
 		</CollapsibleSection>
 		<CollapsibleSection title="Font family" {...sec('font')}>
-			<FontSelect value={S.font} onchange={(v) => editor.setTemplateSettings({ font: v })} loadFonts={false} />
+			<FontSelect value={S.font} onchange={(v) => editor.setTemplateSettings({ font: v })} loadFonts={false} onwarm={view.loadAllFonts} />
 		</CollapsibleSection>
 		<CollapsibleSection title="Email width" {...sec('width')}>
 			<WidthControl value={S.width} onchange={(v, key) => editor.setTemplateSettings({ width: v }, key)} />
