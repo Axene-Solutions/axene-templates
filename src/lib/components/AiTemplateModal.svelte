@@ -273,7 +273,7 @@
 	.ai-ex { background: var(--color-surface-2); padding: 8px 14px; border-radius: 4px; font: inherit; font-size: 13px; font-weight: 500; line-height: 1.3; text-align: left; border: 1px solid var(--color-surface-3); color: var(--color-text); cursor: pointer; }
 	.ai-ex:hover { background: var(--color-surface-3); }
 	.ai-ex:focus-visible { outline: 2px solid #ffd100; outline-offset: 1px; }
-	.ai-pre { margin: 8px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--color-surface-2); color: var(--color-text); font-size: 11.5px; line-height: 1.55; white-space: pre-wrap; max-height: 180px; overflow: auto; }
+	.ai-pre { box-sizing: content-box; margin: 8px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--color-surface-2); color: var(--color-text); font-size: 11.5px; line-height: 1.55; white-space: pre-wrap; max-height: 180px; overflow: auto; }
 	.ai-file { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 	.ai-drop { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 22px 16px; border: 0; border-radius: 12px; background: var(--color-surface-2); cursor: pointer; color: var(--color-text); font: inherit; }
 	.ai-drop:hover, .ai-drop-on { background: var(--color-surface-3); }
