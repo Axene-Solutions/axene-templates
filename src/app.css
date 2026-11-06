@@ -13,22 +13,22 @@
 
 	/* Typography colors */
 	--color-text: #1a1a17;
-	--color-muted: #7a786f;
+	--color-muted: #6a685f;
 	--color-muted-soft: #a9a79c;
 
 	/* Accent (brand yellow). Use --color-accent only as a fill with dark
 	   text (#101010). Use --color-accent-ink for yellow-ish text or icons. */
 	--color-accent: #ffd100;
-	--color-accent-soft: #fff6cc;
+	--color-accent-soft: #fff3c2;
 	--color-accent-ink: #3f2e00;
 	/* Text and icons on an accent fill. The accent is yellow in both themes, so this stays dark. */
 	--color-on-accent: #101010;
 
 	/* Status */
-	--color-success: #1f8a5b;
-	--color-success-soft: #e4f3ec;
-	--color-danger: #c5503a;
-	--color-danger-soft: #f7e4de;
+	--color-success: #1b7a50;
+	--color-success-soft: #e1f1e8;
+	--color-danger: #b3402c;
+	--color-danger-soft: #f7e1da;
 	--color-info: #3d6ee0;
 	--color-info-soft: #e5ecfb;
 
@@ -38,6 +38,11 @@
 	--radius-sm: 6px;
 	--radius-md: 8px;
 	--radius-lg: 14px;
+	--color-surface-3: #e5e3d7;
+	--color-scrim: rgba(26, 26, 23, 0.45);
+	--color-bar: #c9c7bb;
+	--color-bar-2: #a5a296;
+	--color-warn: #8a5a00;
 }
 
 :root {
@@ -56,20 +61,25 @@
 	--color-border: #2a2825;
 
 	--color-text: #f2f1ec;
-	--color-muted: #8e8b7e;
+	--color-muted: #9a978a;
 	--color-muted-soft: #5a584f;
 
 	--color-accent: #ffd100;
-	--color-accent-soft: rgba(255, 209, 0, 0.14);
+	--color-accent-soft: rgba(255, 209, 0, 0.13);
 	--color-accent-ink: #ffe066;
 	--color-on-accent: #101010;
 
 	--color-success: #4caf7d;
-	--color-success-soft: rgba(76, 175, 125, 0.14);
+	--color-success-soft: rgba(76, 175, 125, 0.15);
 	--color-danger: #ff7a5e;
-	--color-danger-soft: rgba(214, 63, 40, 0.18);
+	--color-danger-soft: rgba(255, 122, 94, 0.14);
 	--color-info: #7aa3f3;
 	--color-info-soft: rgba(122, 163, 243, 0.14);
+	--color-surface-3: #2a2825;
+	--color-scrim: rgba(0, 0, 0, 0.6);
+	--color-bar: #4a4740;
+	--color-bar-2: #6c695f;
+	--color-warn: #e8b84a;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }

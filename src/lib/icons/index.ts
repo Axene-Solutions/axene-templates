@@ -46,8 +46,9 @@ import trash from './svg/trash.svg?raw'
 import undo from './svg/undo.svg?raw'
 import user from './svg/user.svg?raw'
 import warning from './svg/warning.svg?raw'
+import { designIcons } from './design'
 
-export const icons = {
+const baseIcons = {
 	'align-center': alignCenter,
 	'align-left': alignLeft,
 	'align-right': alignRight,
@@ -90,5 +91,8 @@ export const icons = {
 	user: user,
 	warning: warning,
 } as const
+
+// Design icons last so the redesign's Iconsax outline icons win over older icons of the same name.
+export const icons = { ...baseIcons, ...designIcons } as const
 
 export type IconName = keyof typeof icons
