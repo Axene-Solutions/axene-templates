@@ -148,6 +148,14 @@
 		!sending && varsFilled && !!fromEmail && recipients.length > 0 && !tooMany && subject.trim().length > 0 && subject.length <= 200
 	);
 	const sentCount = $derived(results.filter((r) => r.ok).length);
+	const allSent = $derived(!sending && results.length > 0 && results.every((r) => r.ok) && !formError);
+
+	// Everything went out: confirm it, then get out of the way.
+	$effect(() => {
+		if (!open || !allSent) return;
+		const t = setTimeout(onclose, 2600);
+		return () => clearTimeout(t);
+	});
 
 	const failed = $derived(results.filter((r) => !r.ok));
 	function retryFailed() {
@@ -180,6 +188,22 @@
 			{#if mailer.status !== 'connected'}
 				<MailerConnectCard />
 			{:else}
+				{#if sending || allSent}
+					<div class="sm-state" role="status" aria-live="polite">
+						{#if sending}
+							<span class="sm-spin" aria-hidden="true"></span>
+							<div class="sm-state-title">Sending to {recipients.length} recipient{recipients.length === 1 ? '' : 's'}</div>
+							<div class="sm-state-sub">This takes a few seconds.</div>
+						{:else}
+							<span class="sm-tick" aria-hidden="true"><Icon name="check" width={26} height={26} /></span>
+							<div class="sm-state-title">{results.length === 1 ? 'Email sent' : `${results.length} emails sent`}</div>
+							<div class="sm-state-sub sm-mono">{results.length === 1 ? results[0].to : `${results[0].to} and ${results.length - 1} more`}</div>
+							<div class="sm-state-sub">Delivery status is in your Mailer email log.</div>
+							<button class="sm-btn sm-btn-primary sm-state-btn" type="button" onclick={onclose} use:autofocus>Done</button>
+						{/if}
+					</div>
+				{/if}
+				<div class="sm-form" class:sm-hide={sending || allSent}>
 				<label class="sm-label" for="sm-from">From</label>
 				<SelectMenu
 					id="sm-from"
@@ -242,12 +266,12 @@
 
 				{#if results.length}
 					<div class="sm-results" aria-live="polite">
-						<div class="sm-muted">{sentCount} of {results.length} queued</div>
+						<div class="sm-muted">{sentCount} of {results.length} sent</div>
 						{#each results as r}
 							<div class="sm-res" class:sm-res-ok={r.ok} class:sm-res-err={!r.ok}>
 								<Icon name={r.ok ? 'check' : 'warning'} width={14} height={14} />
 								<span class="sm-mono sm-res-to">{r.to}</span>
-								<span class="sm-res-msg">{r.ok ? 'Queued' : (r.error ?? 'Failed')}</span>
+								<span class="sm-res-msg">{r.ok ? 'Sent' : (r.error ?? 'Failed')}</span>
 							</div>
 						{/each}
 					</div>
@@ -275,6 +299,7 @@
 						<Icon name="send" width={14} height={14} />
 						{sending ? 'Sending...' : 'Send'}
 					</button>
+				</div>
 				</div>
 			{/if}
 		</div>
@@ -351,6 +376,16 @@
 	}
 	.sm-note-info { border-color: var(--color-info); background: var(--color-info-soft); color: var(--color-text); }
 	.sm-note-err { border-color: var(--sm-err); background: color-mix(in srgb, var(--sm-err) 12%, transparent); color: var(--sm-err); }
+	.sm-hide { display: none; }
+	.sm-state { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 36px 12px 28px; }
+	.sm-state-title { font-size: 17px; font-weight: 600; margin-top: 10px; }
+	.sm-state-sub { font-size: 12.5px; color: var(--sm-muted); }
+	.sm-state-btn { margin-top: 16px; }
+	.sm-spin { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--sm-border); border-top-color: var(--sm-accent); animation: sm-rot 0.8s linear infinite; }
+	.sm-tick { display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; color: var(--sm-ok); background: color-mix(in srgb, var(--sm-ok) 14%, transparent); box-shadow: inset 0 0 0 2px var(--sm-ok); animation: sm-pop 0.28s ease-out; }
+	@keyframes sm-rot { to { transform: rotate(360deg); } }
+	@keyframes sm-pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+	@media (prefers-reduced-motion: reduce) { .sm-spin, .sm-tick { animation: none; } }
 	.sm-results { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
 	.sm-res {
 		display: flex; align-items: center; gap: 8px;
