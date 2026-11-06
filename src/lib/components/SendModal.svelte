@@ -7,6 +7,7 @@
 	import { autofocus, trapFocus } from '$lib/focus';
 	import Icon from './Icon.svelte';
 	import MailerConnectCard from './MailerConnectCard.svelte';
+	import SelectMenu from './SelectMenu.svelte';
 	import PlaceholderWarnings from './PlaceholderWarnings.svelte';
 
 	let { open = false, onclose }: { open: boolean; onclose: () => void } = $props();
@@ -180,11 +181,14 @@
 				<MailerConnectCard />
 			{:else}
 				<label class="sm-label" for="sm-from">From</label>
-				<select id="sm-from" class="sm-input" bind:value={fromEmail} disabled={!senders.length}>
-					{#each senders as s}
-						<option value={s.email}>{s.name ? `${s.name} <${s.email}>` : s.email}</option>
-					{/each}
-				</select>
+				<SelectMenu
+					id="sm-from"
+					bind:value={fromEmail}
+					disabled={!senders.length}
+					options={senders.map((s) => ({ value: s.email, label: s.name ?? s.email, hint: s.name ? s.email : undefined }))}
+					placeholder={senders.length ? 'Choose a sender' : 'No senders'}
+					searchPlaceholder="Search senders"
+				/>
 				{#if sendersError}
 					<div class="sm-note sm-note-err" role="alert"><Icon name="warning" width={16} height={16} /><span>{sendersError}</span></div>
 				{/if}

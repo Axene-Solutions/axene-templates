@@ -57,6 +57,7 @@
 			{#if ex}<span class="pc-expiry" class:pc-warn-text={ex.warn}>{ex.text}</span>{/if}
 		</div>
 
+		<div class:pc-tiles={!compact}>
 		<div class="pc-meter">
 			<div class="pc-line">{templatesLine(plan)}</div>
 			{#if plan.templates.used !== null && plan.templates.limit !== null && !plan.templates.unlimited}
@@ -70,6 +71,9 @@
 		{#if !compact}
 			{#if plan.daily}{@render bar('Sent today', plan.daily)}{/if}
 			{#if plan.monthly}{@render bar('Sent this month', plan.monthly)}{/if}
+		{/if}
+		</div>
+		{#if !compact}
 			{#if plan.featuresOff.length}
 				<div class="pc-off">
 					<span class="pc-muted">Not on your plan:</span>
@@ -98,6 +102,8 @@
 <style>
 	.pc { display: flex; flex-direction: column; gap: 10px; font-size: 13px; color: var(--color-text); }
 	.pc-compact { gap: 8px; padding: 10px 12px; border: 1px solid var(--color-border-1); border-radius: 8px; background: var(--color-bg); margin-bottom: 4px; }
+	.pc-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+	.pc:not(.pc-compact) .pc-meter { padding: 12px 14px; border: 1px solid var(--color-border-1); border-radius: 10px; background: var(--color-bg); }
 	.pc-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
 	.pc-name { font-weight: 600; }
 	.pc-expiry { font-size: 12px; color: var(--color-muted); }

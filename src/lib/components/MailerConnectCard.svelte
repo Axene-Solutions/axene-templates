@@ -77,9 +77,12 @@
 		</div>
 		{/if}
 	{:else}
-		<div class="mc-status">
-			<Icon name="check" width={16} height={16} />
-			<span>Connected, key ending <span class="mc-mono">{mailer.keyHint}</span>{when ? `, since ${when}` : ''}</span>
+		<div class="mc-keyrow">
+			<div class="mc-keyinfo">
+				<span class="mc-k">API key</span>
+				<span class="mc-mono mc-keyval">axm_k_••••{mailer.keyHint}</span>
+			</div>
+			{#if when}<div class="mc-keyinfo"><span class="mc-k">Connected</span><span>{when}</span></div>{/if}
 		</div>
 
 		{#if mailer.check}
@@ -169,7 +172,11 @@
 	.mc-note-err { border-color: var(--mc-err); background: color-mix(in srgb, var(--mc-err) 12%, transparent); color: var(--mc-err); }
 	.mc-note-warn { border-color: var(--mc-warn); background: color-mix(in srgb, var(--mc-warn) 12%, transparent); color: var(--mc-warn); }
 	.mc-note-ok { border-color: var(--mc-ok); background: color-mix(in srgb, var(--mc-ok) 10%, transparent); color: var(--mc-ok); }
-	.mc-scopes { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+	.mc-scopes { list-style: none; margin: 16px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+	.mc-keyrow { display: flex; flex-wrap: wrap; gap: 8px 32px; }
+	.mc-keyinfo { display: flex; flex-direction: column; gap: 2px; }
+	.mc-k { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--mc-muted); }
+	.mc-keyval { font-size: 13px; }
 	.mc-scope {
 		display: grid; grid-template-columns: auto 1fr auto; align-items: center; column-gap: 8px; row-gap: 2px;
 		padding: 8px 10px; border-radius: 7px; border: 1px solid var(--mc-border);
@@ -186,6 +193,7 @@
 	.mc-scope-unverified :global(.icon-wrapper), .mc-scope-unverified .mc-scope-state, .mc-scope-unknown :global(.icon-wrapper), .mc-scope-unknown .mc-scope-state { color: var(--mc-muted); }
 	.mc-scope-foot { margin-top: 8px; line-height: 1.45; }
 	.mc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 16px; }
+	.mc-compact .mc-actions { margin-top: 14px; }
 	.mc-btn {
 		display: inline-flex; align-items: center; gap: 6px; background: transparent; color: var(--mc-text);
 		border: 1px solid var(--mc-border); border-radius: 7px; padding: 7px 14px; font: inherit; font-weight: 600; cursor: pointer;
