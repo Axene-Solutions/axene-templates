@@ -4,6 +4,13 @@
 	import Icon from '$lib/components/Icon.svelte'
 	import SiteNav from '$lib/components/SiteNav.svelte'
 	import SiteFooter from '$lib/components/SiteFooter.svelte'
+	import MailerSection from '$lib/components/landing/MailerSection.svelte'
+	import AiSection from '$lib/components/landing/AiSection.svelte'
+	import PersonalizationSection from '$lib/components/landing/PersonalizationSection.svelte'
+	import LiveDemo from '$lib/components/landing/LiveDemo.svelte'
+	import DevelopersSection from '$lib/components/landing/DevelopersSection.svelte'
+	import FaqSection from '$lib/components/landing/FaqSection.svelte'
+	import '$lib/components/landing/landing.css'
 
 	const user = $derived(page.data.user)
 	let mounted = $state(false)
@@ -81,7 +88,7 @@
 			</p>
 
 			<div class="hero-actions sr-hero">
-				<a href="/editor" class="btn-primary">Start building for free</a>
+				<a href="/editor" class="btn-primary" style="color: #1a1a17">Start building for free</a>
 				<a href="/templates" class="btn-ghost">Browse templates</a>
 			</div>
 		</div>
@@ -143,6 +150,11 @@
 			</div>
 		</div>
 	</section>
+
+	<MailerSection />
+	<AiSection />
+	<PersonalizationSection />
+	<LiveDemo />
 
 	<!-- ══════ MARQUEE ══════ -->
 	<section class="marquee-section">
@@ -417,12 +429,15 @@
 		</div>
 	</section>
 
+	<DevelopersSection />
+	<FaqSection />
+
 	<!-- ══════ CTA ══════ -->
 	<section class="section-cta">
 		<div class="container text-center sr-bottom">
 			<h2 class="cta-h2">Start designing today<span class="accent">.</span></h2>
 			<p class="cta-sub">Free to use. No account needed. Build your first email in minutes.</p>
-			<a href="/editor" class="btn-primary btn-lg">Open the editor now</a>
+			<a href="/editor" class="btn-primary btn-lg" style="color: #1a1a17">Open the editor now</a>
 		</div>
 	</section>
 
@@ -433,6 +448,24 @@
 	/* ═══════════════════════════════════════
 	   BASE
 	   ═══════════════════════════════════════ */
+	/* The landing design uses the app's original token values. The shared tokens were updated for
+	   other screens, so the old values are scoped to this page only. */
+	.landing {
+		--color-muted: #7a786f;
+		--color-accent-soft: #fff6cc;
+		--color-success: #1f8a5b;
+		--color-success-soft: #e4f3ec;
+		--color-danger: #c5503a;
+		--color-danger-soft: #f7e4de;
+	}
+	:global([data-theme='dark']) .landing {
+		--color-muted: #8e8b7e;
+		--color-accent-soft: rgba(255, 209, 0, 0.14);
+		--color-success: #4caf7d;
+		--color-success-soft: rgba(76, 175, 125, 0.14);
+		--color-danger: #ff7a5e;
+		--color-danger-soft: rgba(214, 63, 40, 0.18);
+	}
 	.landing {
 		overflow-y: auto;
 		overflow-x: hidden;
