@@ -33,7 +33,14 @@
 			editor.duplicateBlock(editor.selectedId);
 		}
 	}
+
+	// Closing or reloading the tab inside the 2 second autosave delay would drop the last edits.
+	function onbeforeunload(e: BeforeUnloadEvent) {
+		if (!editor.flushOnExit()) e.preventDefault();
+	}
 </script>
+
+<svelte:window {onbeforeunload} />
 
 <svelte:head>
 	<link rel="stylesheet" href={allWebFontsHref()} />

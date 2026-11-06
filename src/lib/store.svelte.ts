@@ -789,6 +789,23 @@ async function saveTemplate(opts: { quiet?: boolean } = {}) {
   return false;
 }
 
+/**
+ * The page is being closed or reloaded with unsaved edits: send them with a keepalive request,
+ * which the browser finishes after the page is gone. Returns false when that is not possible
+ * (keepalive bodies are capped near 64 KB), so the caller can ask the browser to confirm.
+ */
+function flushOnExit(): boolean {
+  if (!dirty || !templateId) return true;
+  const body = JSON.stringify({ id: templateId, name: templateName, category: templateCategory, isPublic: templateIsPublic, blocks, settings });
+  if (body.length > 60_000) return false;
+  try {
+    void fetch("/api/templates", { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true }).catch(() => {});
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 let saveAgain = false;
 /** A save was asked for while one was in flight, or edits arrived meanwhile: save those too. */
 function afterSave() {
@@ -893,6 +910,7 @@ export const editor = {
   copyHtml,
   fileName: fileSlug,
   saveTemplate,
+  flushOnExit,
 };
 
 /** Editor view state: layout, tabs, the single modal slot, the toast. Never saved. */
