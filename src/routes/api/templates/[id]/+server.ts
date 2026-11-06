@@ -4,6 +4,13 @@ import { db } from '$lib/server/db';
 import { templates } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { sanitizeBlocksForRead } from '$lib/server/sanitize-blocks';
+import { cleanSettings, legacySettings } from '$lib/template-settings';
+import { themeColorOf } from '$lib/mailer-templates';
+
+/** Stored settings as a complete object, or null for a template saved before settings existed. */
+function settingsOf(raw: unknown, blocks: unknown) {
+	return raw ? cleanSettings(raw, legacySettings(themeColorOf(Array.isArray(blocks) ? blocks : []))) : null;
+}
 
 // GET /api/templates/:id - load a template
 export const GET: RequestHandler = async ({ params, locals }) => {
@@ -24,13 +31,13 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 			// The Mailer link is only meaningful to (and only shown to) the owner.
 			const mailerTemplateId = locals.user && t.userId === locals.user.id ? t.mailerTemplateId : null;
 			const mailerInSync = !!(mailerTemplateId && t.mailerSyncedAt && t.mailerSyncedLocalAt && t.updatedAt && t.updatedAt.getTime() <= t.mailerSyncedLocalAt.getTime());
-			return json({ mailerInSync, id: t.id, name: t.name, category: t.category, version: t.version, blocks: sanitizeBlocksForRead(t.blocks), isStarter: t.isStarter, isPublic: t.isPublic, mailerTemplateId });
+			return json({ mailerInSync, id: t.id, name: t.name, category: t.category, version: t.version, blocks: sanitizeBlocksForRead(t.blocks), settings: settingsOf(t.settings, t.blocks), isStarter: t.isStarter, isPublic: t.isPublic, mailerTemplateId });
 		}
 
 		if (locals.user && t.userId === locals.user.id) {
 			// No local edits since the last open or save that matched Mailer's copy.
 			const mailerInSync = !!(t.mailerTemplateId && t.mailerSyncedAt && t.mailerSyncedLocalAt && t.updatedAt && t.updatedAt.getTime() <= t.mailerSyncedLocalAt.getTime());
-			return json({ id: t.id, name: t.name, category: t.category, version: t.version, blocks: sanitizeBlocksForRead(t.blocks), isStarter: t.isStarter, isPublic: t.isPublic, mailerTemplateId: t.mailerTemplateId, mailerInSync });
+			return json({ id: t.id, name: t.name, category: t.category, version: t.version, blocks: sanitizeBlocksForRead(t.blocks), settings: settingsOf(t.settings, t.blocks), isStarter: t.isStarter, isPublic: t.isPublic, mailerTemplateId: t.mailerTemplateId, mailerInSync });
 		}
 
 		return json({ error: 'Forbidden' }, { status: 403 });

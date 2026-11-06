@@ -73,7 +73,7 @@ export const POST: RequestHandler = async (event) => {
 			}
 			await db
 				.update(templates)
-				.set({ blocks: env.blocks, mailerSyncedAt: remoteAt, mailerSyncedLocalAt: now, updatedAt: now })
+				.set({ blocks: env.blocks, settings: env.settings, mailerSyncedAt: remoteAt, mailerSyncedLocalAt: now, updatedAt: now })
 				.where(and(eq(templates.id, existing.id), eq(templates.userId, auth.user.id)));
 			return json({ id: existing.id, created: false, state: 'refreshed' });
 		}
@@ -89,6 +89,7 @@ export const POST: RequestHandler = async (event) => {
 				name,
 				category: 'general',
 				blocks: env.blocks,
+				settings: env.settings,
 				isStarter: false,
 				isPublic: false,
 				mailerTemplateId: mailerId,

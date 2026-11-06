@@ -35,6 +35,9 @@ export const templates = pgTable('templates', {
   category: text('category').notNull().default('uncategorized'),  
   version: text('version').notNull().default('v1'), 
   blocks: jsonb('blocks').notNull(),
+  // Template level settings (width, font, container look; see src/lib/template-settings.ts).
+  // Null for templates saved before settings existed: they render with legacySettings().
+  settings: jsonb('settings'),
   isStarter: boolean('is_starter').notNull().default(false),
   isPublic: boolean('is_public').notNull().default(false),
   // Id of the linked template in the owner's Axene Mailer account, if saved there.

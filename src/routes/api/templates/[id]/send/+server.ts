@@ -125,7 +125,7 @@ export const POST: RequestHandler = async (event) => {
 
 	let html: string;
 	try {
-		const out = renderTemplateForSend(blocks, vars.value, links);
+		const out = renderTemplateForSend(blocks, vars.value, links, t.settings as Record<string, unknown> | null);
 		if (!out.ok && out.refused) {
 			return json({ error: `This email was not sent because ${out.refused}.`, code: out.code ?? 'render_refused' }, { status: 422 });
 		}

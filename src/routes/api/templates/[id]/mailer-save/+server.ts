@@ -11,7 +11,8 @@ import { forgetPlans } from '$lib/server/mailer/plancache';
 import { htmlToText, validateSubject } from '$lib/server/mailer/validate';
 import { RenderRefused, renderTemplateForMailer } from '$lib/server/render';
 import { BlocksValidationError, compiledHtmlProblem, sanitizeBlocks } from '$lib/server/sanitize-blocks';
-import { buildEnvelope, cleanLine, MAX_SUBJECT_MAILER, MAX_TEMPLATE_NAME } from '$lib/mailer-templates';
+import { buildEnvelope, cleanLine, MAX_SUBJECT_MAILER, MAX_TEMPLATE_NAME, themeColorOf } from '$lib/mailer-templates';
+import { cleanSettings, legacySettings } from '$lib/template-settings';
 
 // 60 saves per user per hour. In memory: per process, reset on restart.
 const limiter = createRateLimiter(60, 60 * 60 * 1000);
@@ -68,10 +69,12 @@ export const POST: RequestHandler = async (event) => {
 		if (e instanceof BlocksValidationError) return json({ error: `This template cannot be saved to Mailer: ${e.message}. Nothing was saved.`, code: 'render_refused' }, { status: 422 });
 		throw e;
 	}
+	// Template settings travel in the envelope (Mailer keeps blocks_json as an opaque object).
+	const settings = t.settings ? cleanSettings(t.settings, legacySettings(themeColorOf(blocks))) : null;
 	let html: string;
 	try {
 		// Placeholders must survive: compile without variable injection.
-		html = renderTemplateForMailer(blocks).html;
+		html = renderTemplateForMailer(blocks, settings).html;
 	} catch (e) {
 		if (e instanceof RenderRefused) return json({ error: `This template cannot be saved to Mailer because ${e.message}. Nothing was saved.`, code: e.code }, { status: 422 });
 		console.error('Template render failed for mailer-save:', e instanceof Error ? e.message : 'unknown');
@@ -88,7 +91,7 @@ export const POST: RequestHandler = async (event) => {
 		subject: subject.value,
 		html_body: html,
 		text_body: htmlToText(html),
-		blocks_json: buildEnvelope(blocks),
+		blocks_json: buildEnvelope(blocks, undefined, settings),
 	};
 
 	inFlight.add(lock);
