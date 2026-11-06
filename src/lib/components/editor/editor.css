@@ -27,7 +27,15 @@
 	font-family: 'Figtree', system-ui, sans-serif;
 	-webkit-font-smoothing: antialiased;
 	overflow: hidden;
+	/* The board renders without the Tailwind preflight: normal line height, and form controls
+	   keep the browser's own 13.333px size unless a class or inline style sets one. */
+	line-height: normal;
 }
+.ed-root :where(button, input, textarea, select) { font-size: 13.3333px; line-height: normal; }
+/* No preflight on the board either: boxes are content-box (buttons, selects, checkboxes keep
+   the browser's border-box) unless a style says otherwise.
+   Zero specificity, so every class or inline box-sizing still wins. */
+:where(.ed-root *:not(button, select, input[type=button], input[type=submit], input[type=reset], input[type=checkbox], input[type=radio]), .ed-root *::before, .ed-root *::after) { box-sizing: content-box; }
 :root[data-theme='dark'] .ed-root {
 	--bad: #c7452f;
 	--warn: #f0a36b;
@@ -93,7 +101,10 @@
 .ed-root .num:focus { box-shadow: 0 0 0 2px #ffd100; }
 .ed-root .lay { border: 0; cursor: pointer; border-radius: 8px; background: var(--s2); height: 44px; display: grid; place-items: center; padding: 0; }
 .ed-root .lay:hover { background: var(--s3); }
-.ed-root .segs .seg[aria-pressed='true'] { background: var(--text); color: var(--bg); box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+/* The board's pressed-seg rule is a <style> inside the Alignment control, so it only exists
+   while that control is on screen (a block selected, Customize tab, Layout section open).
+   Segs without an inline style (top bar Desktop and Mobile, Alignment, Weight) turn dark then. */
+.ed-root:has(.segs[aria-label='Alignment']) .segs .seg[aria-pressed='true'] { background: var(--text); color: var(--bg); box-shadow: 0 1px 2px rgba(0,0,0,.2); }
 @keyframes ed-spin { to { transform: rotate(360deg); } }
 @keyframes ed-pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 

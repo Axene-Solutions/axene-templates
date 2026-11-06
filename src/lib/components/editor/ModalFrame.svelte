@@ -34,7 +34,7 @@
 	{#if scrimCloses}
 		<button type="button" tabindex="-1" aria-label="Close" onclick={() => !busy && onclose()} style="position:absolute;inset:0;width:100%;height:100%;border:0;padding:0;margin:0;background:transparent;cursor:default"></button>
 	{/if}
-	<div {role} aria-modal="true" aria-label={label} tabindex="-1" onkeydown={key} use:trapFocus style="position:relative;z-index:1;box-sizing:border-box;{style}">
+	<div {role} aria-modal="true" aria-label={label} tabindex="-1" onkeydown={key} use:trapFocus style="position:relative;z-index:1;{style}">
 		{@render children()}
 	</div>
 </div>

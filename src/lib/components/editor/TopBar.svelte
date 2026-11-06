@@ -3,8 +3,7 @@
 	import { editor, view } from '$lib/store.svelte';
 	import { nudge } from '$lib/nudge.svelte';
 	import Icon from '../Icon.svelte';
-	import Logo from '../Logo.svelte';
-	import { CATEGORY_GROUPS, categoryLabel } from './categories';
+		import { CATEGORY_GROUPS, categoryLabel } from './categories';
 
 	let catOpen = $state(false);
 	let copied = $state(false);
@@ -67,7 +66,10 @@
 
 <header style="height:60px;display:flex;align-items:center;gap:8px;padding:0 16px;box-sizing:border-box;flex-shrink:0">
 	<a class="icon-btn" href="/templates" aria-label="Back to templates"><Icon name="arrow-left42" width={18} height={18} /></a>
-	<Logo size={26} />
+	<!-- The board's <img width="26" height="26">: the yellow mark is not square and is drawn
+	     stretched to the box, without object-fit (the shared Logo component contains it). -->
+	<img class="tb-logo tb-logo-light" src="/logos/axene_logo_black_square.webp" width="26" height="26" alt="Axene" />
+	<img class="tb-logo tb-logo-dark" src="/logos/axene_logo_corrected.webp" width="26" height="26" alt="Axene" />
 	<input class="field" type="text" aria-label="Template name" value={editor.templateName} oninput={(e) => { editor.templateName = e.currentTarget.value; nudge.hide(); }} maxlength="200" style="width:176px;background:transparent;font-size:15px;font-weight:700;padding:7px 9px" />
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div style="position:relative" onkeydown={catKey}>
@@ -105,3 +107,10 @@
 	<button class="btn" type="button" onclick={openSave}><Icon name="email" width={15} height={15} />{saveMailerLabel}</button>
 	<button class="btn btn-primary" type="button" onclick={openSend}><Icon name="send" width={15} height={15} />Send</button>
 </header>
+
+<style>
+	.tb-logo { display: block; width: 26px; height: 26px; max-width: none; }
+	.tb-logo-dark { display: none; }
+	:global([data-theme='dark']) .tb-logo-light { display: none; }
+	:global([data-theme='dark']) .tb-logo-dark { display: block; }
+</style>
