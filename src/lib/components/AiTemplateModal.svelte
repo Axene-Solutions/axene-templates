@@ -159,6 +159,7 @@
 		return [...m].map(([t, n]) => (n > 1 ? `${n} ${t}` : t));
 	});
 	const ph = (x: string) => '{' + '{' + x + '}' + '}';
+	const used = $derived([...(result?.fields ?? []).map((f) => ph(f)), ...(result?.links ?? []).map((l) => ph('link:' + l))]);
 </script>
 
 {#if open}
@@ -249,7 +250,7 @@
 								<div style="color:var(--color-muted)">{result.blocks.length} blocks: {counts.join(', ')}</div>
 								{#if result.subject}<div style="color:var(--color-muted)">Subject: <span class="dz-mono" style="font-size:12px;overflow-wrap:anywhere">{result.subject}</span></div>{/if}
 								{#if result.fields.length || result.links.length}
-									<div style="color:var(--color-muted)">Uses {#each [...result.fields.map((f) => ph(f)), ...result.links.map((l) => ph('link:' + l))] as u, i (u)}{#if i > 0}, {/if}<span class="dz-mono" style="font-size:12px">{u}</span>{/each}</div>
+									<div style="color:var(--color-muted)">Uses {#each used as u, i (u)}{#if i > 0}{i === used.length - 1 ? ' and ' : ', '}{/if}<span class="dz-mono" style="font-size:12px">{u}</span>{/each}</div>
 								{/if}
 								{#each result.warnings as w (w)}<div style="color:var(--color-warn);margin-top:4px">{w}</div>{/each}
 							</div>
