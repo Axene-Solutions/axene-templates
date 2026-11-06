@@ -5,6 +5,7 @@
     import SiteNav from '$lib/components/SiteNav.svelte';
     import SiteFooter from '$lib/components/SiteFooter.svelte';
     import Icon from '$lib/components/Icon.svelte';
+    import AiTemplateModal from '$lib/components/AiTemplateModal.svelte';
     import MailerTemplatesTab from '$lib/components/MailerTemplatesTab.svelte';
 
     let { data } = $props();
@@ -213,11 +214,14 @@
             busyStarterId = null;
         }
     }
+    let aiOpen = $state(false);
 </script>
 
 <svelte:head>
     <title>Templates - Axene Templates</title>
 </svelte:head>
+
+<AiTemplateModal open={aiOpen} onclose={() => (aiOpen = false)} />
 
 <div class="page">
     <SiteNav {user} />
@@ -229,10 +233,16 @@
             {#if !loadError}<span class="count-badge">{totalCount}</span>{/if}
         </div>
         {#if user}
+            <div class="topbar-actions">
+            <button class="btn-ai" onclick={() => (aiOpen = true)}>
+                <Icon name="edit" width={16} height={16} />
+                Generate with AI
+            </button>
             <button class="btn-new" onclick={() => goto('/editor')}>
                 <Icon name="plus" width={16} height={16} />
                 New Template
             </button>
+            </div>
         {:else}
             <a href="/auth/google" class="btn-signin-banner">
                 <Icon name="user" width={16} height={16} />
@@ -458,6 +468,9 @@
     .topbar-left { display: flex; align-items: center; gap: 10px; }
     .title { font-size: 24px; font-weight: 700; color: var(--color-text); margin: 0; line-height: 1; }
     .count-badge { font-size: 11px; font-weight: 600; color: var(--color-muted); background: var(--color-surface-2); border-radius: 999px; padding: 2px 9px; line-height: 1.5; }
+    .topbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .btn-ai { display: flex; align-items: center; gap: 6px; background: transparent; color: var(--color-text); border: 1px solid var(--color-border-1); border-radius: 8px; padding: 9px 16px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+    .btn-ai:hover { background: var(--color-surface-2); border-color: var(--color-muted); }
     .btn-new { display: flex; align-items: center; gap: 6px; background: var(--color-accent); color: #101010; border: none; border-radius: 8px; padding: 9px 18px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
     .btn-new:hover { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text)); }
     .btn-signin-banner { display: flex; align-items: center; gap: 6px; background: var(--color-accent-soft); color: var(--color-accent-ink); border: 1px solid var(--color-accent); border-radius: 8px; padding: 9px 18px; font-size: 13px; font-weight: 600; text-decoration: none; transition: background 0.15s; }

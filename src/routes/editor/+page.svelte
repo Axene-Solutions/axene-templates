@@ -13,10 +13,27 @@
 	const mailerTarget = $derived(page.url.searchParams.get('mailer'))
 	let started = $state(false)
 
+	// ?import=ai: the template the user pasted from ChatGPT or Claude, already validated by the server.
+	function importFromAi() {
+		if (page.url.searchParams.get('import') !== 'ai') return
+		try {
+			const raw = sessionStorage.getItem('axene.aiImport')
+			sessionStorage.removeItem('axene.aiImport')
+			if (!raw) return
+			const data = JSON.parse(raw) as { name?: string; blocks?: unknown[] }
+			if (!Array.isArray(data.blocks) || !data.blocks.length) return
+			editor.setBlocks(data.blocks as never)
+			if (typeof data.name === 'string' && data.name) editor.templateName = data.name
+		} catch {
+			/* fall back to the blank template */
+		}
+	}
+
 	function start() {
 		if (started) return
 		started = true
 		editor.newTemplate()
+		importFromAi()
 		editor.compile()
 	}
 
