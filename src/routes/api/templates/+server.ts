@@ -42,6 +42,8 @@ export const GET: RequestHandler = async ({ locals }) => {
 			isPublic: t.isPublic,
 			updatedAt: t.updatedAt?.toISOString() ?? null,
 			isOwn: user ? t.userId === user.id : false,
+			// Only the owner is told whether a copy lives in their Mailer account.
+			inMailer: user ? t.userId === user.id && !!t.mailerTemplateId : false,
 		}));
 
 		return json(result);

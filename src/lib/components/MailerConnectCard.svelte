@@ -3,206 +3,150 @@
 	import { autofocus } from '$lib/focus';
 	import Icon from './Icon.svelte';
 
-	// Shared by the Settings page and the Send modal. All state lives in $lib/mailer.svelte.
-	let { compact = false }: { compact?: boolean } = $props();
+	// Shared by the Settings page, the From Mailer tab (compact), the Send modal and the Save dialog.
+	// All state lives in $lib/mailer.svelte. Markup and styles follow the Settings and Main boards.
+	// autoCheck: after a successful connect, run the scope check so the scope list shows right away.
+	let { compact = false, autoCheck = false }: { compact?: boolean; autoCheck?: boolean } = $props();
 
 	let apiKey = $state('');
 	let confirming = $state(false);
 
 	async function connect() {
-		if (await mailer.connect(apiKey)) apiKey = '';
+		if (await mailer.connect(apiKey)) {
+			apiKey = '';
+			if (autoCheck) mailer.recheck();
+		}
 	}
 	async function disconnect() {
 		if (await mailer.disconnect()) confirming = false;
 	}
-	const when = $derived(mailer.connectedAt ? new Date(mailer.connectedAt).toLocaleString() : '');
+	const when = $derived(
+		mailer.connectedAt
+			? new Date(mailer.connectedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+			: ''
+	);
+	const revoked = $derived(mailer.check?.kind === 'revoked');
+
+	// Scope chips shown in step 2 (the wording differs a little between the two boards).
+	const chips = $derived(
+		compact
+			? [['Send emails', ''], ['Read sender addresses', ''], ['Read templates', ' required'], ['Write templates', ' for Save'], ['Read contacts', ' recommended']]
+			: [['Send emails', ''], ['Read sender addresses', ''], ['Read templates', ' required'], ['Write templates', ' for Save and named links'], ['Read contacts', ' recommended']]
+	);
+	const stateLabel = { ok: 'Works', missing: 'Missing', unverified: 'Not tested', unknown: 'Could not check' } as const;
 </script>
+
+{#snippet keyForm()}
+	{#if mailer.status === 'disconnected' || mailer.configured}
+		{#if compact}
+			<p style="margin:0;font-size:13.5px;line-height:1.55;color:var(--color-muted)">Your key is stored encrypted and is never shown again.</p>
+		{:else}
+			<p style="margin:0;font-size:13.5px;line-height:1.55;color:var(--color-muted)">Connect your Axene Mailer account to send templates from your own verified domain, save templates into Mailer, and open Mailer templates here to edit them. Your key is stored encrypted and is never shown again.</p>
+		{/if}
+		<ol style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:{compact ? 10 : 12}px;font-size:13.5px;line-height:1.55">
+			<li style="display:flex;gap:{compact ? 10 : 12}px;align-items:flex-start"><span class="dz-num">1</span><span>Open <a class="mc-keylink" href="https://mail.axene.io/api-keys" target="_blank" rel="noopener noreferrer">mail.axene.io/api-keys</a> and create a key.</span></li>
+			<li style="display:flex;gap:{compact ? 10 : 12}px;align-items:flex-start"><span class="dz-num">2</span><span style="display:flex;flex-direction:column;gap:8px">Tick these scopes.<span style="display:flex;flex-wrap:wrap;gap:6px">{#each chips as c (c[0])}<span class="dz-badge" style="background:var(--color-bg);font-size:12px;padding:4px 10px">{c[0]}<span style="color:var(--color-muted);font-weight:500">{c[1]}</span></span>{/each}</span></span></li>
+			<li style="display:flex;gap:{compact ? 10 : 12}px;align-items:flex-start"><span class="dz-num">3</span><span>Paste the key below.</span></li>
+		</ol>
+		<div style="display:flex;flex-direction:column;gap:6px">
+			<label class="dz-lbl" for="mc-key">Mailer API key</label>
+			<div style="display:flex;gap:{compact ? 8 : 10}px;align-items:center">
+				<span style="position:relative;flex-grow:1;display:block">
+					<span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--color-muted);display:flex"><Icon name="padlock" width={15} height={15} /></span>
+					<input id="mc-key" class="dz-field dz-mono" style="padding-left:36px;background:var(--color-bg);font-size:13px" type="password" autocomplete="off" spellcheck="false" placeholder="axm_k_..." aria-label="Mailer API key" bind:value={apiKey} />
+				</span>
+				<button class="dz-btn dz-btn-primary" type="button" disabled={mailer.busy || !apiKey.trim()} onclick={connect}>
+					{#if mailer.busy}<span class="dz-spinner"></span>{/if}{mailer.busy ? 'Checking key' : mailer.status === 'unreadable' ? 'Reconnect' : 'Connect'}
+				</button>
+			</div>
+		</div>
+		{#if mailer.error}
+			<div role="alert" class="dz-note dz-note-bad"><Icon name="danger" width={16} height={16} /><span>{mailer.error}</span></div>
+		{/if}
+	{/if}
+{/snippet}
 
 <div class="mc" class:mc-compact={compact}>
 	{#if mailer.status === 'loading'}
-		<p class="mc-muted">Loading...</p>
+		<p style="margin:0;font-size:13px;color:var(--color-muted)">Loading...</p>
 	{:else if mailer.status === 'unavailable'}
-		<div class="mc-note mc-note-warn" role="alert">
-			<Icon name="warning" width={16} height={16} />
-			<span>Sending is not available right now. Try again later.</span>
-		</div>
+		<div role="alert" class="dz-note dz-note-bad"><Icon name="danger" width={16} height={16} /><span>Sending is not available right now. Try again later.</span></div>
 	{:else if mailer.status === 'disconnected' || mailer.status === 'unreadable'}
 		{#if mailer.status === 'unreadable'}
-			<div class="mc-note mc-note-err" role="alert">
-				<Icon name="warning" width={16} height={16} />
+			<div role="alert" class="dz-note dz-note-bad">
+				<Icon name="danger" width={16} height={16} />
 				<span>
-					The stored Mailer key (ending <span class="mc-mono">{mailer.keyHint}</span>) cannot be read{mailer.configured ? ', most likely because the server key changed' : ' because sending is not configured on the server'}.
+					The stored Mailer key (ending <span class="dz-mono">{mailer.keyHint}</span>) cannot be read{mailer.configured ? ', most likely because the server key changed' : ' because sending is not configured on the server'}.
 					{mailer.configured ? 'Disconnect it and connect your key again.' : 'You can disconnect it now and connect again once sending is configured.'}
 				</span>
 			</div>
-			<div class="mc-actions">
+			<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
 				{#if !confirming}
-					<button class="mc-btn mc-btn-danger" onclick={() => (confirming = true)}>Disconnect</button>
+					<button class="dz-btn dz-btn-bad" type="button" style={compact ? '' : 'background:var(--color-bg)'} onclick={() => (confirming = true)}>Disconnect</button>
 				{:else}
-					<span class="mc-muted">Delete the stored key?</span>
-					<button class="mc-btn mc-btn-danger-solid" disabled={mailer.busy} onclick={disconnect} use:autofocus>
-						{mailer.busy ? 'Removing...' : 'Yes, disconnect'}
-					</button>
-					<button class="mc-btn" onclick={() => (confirming = false)}>Cancel</button>
+					<span style="font-size:13px;color:var(--color-muted)">Delete the stored key?</span>
+					<button class="dz-btn dz-btn-solid-bad" type="button" disabled={mailer.busy} onclick={disconnect} use:autofocus>{mailer.busy ? 'Removing...' : 'Yes, disconnect'}</button>
+					<button class="dz-btn" type="button" style={compact ? '' : 'background:var(--color-bg)'} onclick={() => (confirming = false)}>Cancel</button>
 				{/if}
 			</div>
 		{/if}
-		{#if mailer.status === 'disconnected' || mailer.configured}
-		<p class="mc-text">
-			Connect your Axene Mailer account to send templates from your own verified domain, save templates into Mailer, and open Mailer templates here to edit them. Your key is stored encrypted and is never shown again.
-		</p>
-		<ol class="mc-steps">
-			<li>Open <a href="https://mail.axene.io/api-keys" target="_blank" rel="noopener noreferrer">mail.axene.io/api-keys</a> and create a key.</li>
-			<li>
-				Tick these scopes:
-				<ul>
-					<li><strong>Send emails</strong></li>
-					<li><strong>Read sender addresses</strong></li>
-					<li><strong>Read templates</strong> (required for From Mailer)</li>
-					<li><strong>Write templates</strong> (required for Save to Mailer and named links)</li>
-					<li><strong>Read contacts</strong> (recommended, needed for your contact fields in Insert field)</li>
-				</ul>
-			</li>
-			<li>Paste the key below.</li>
-		</ol>
-		<label class="mc-label" for="mc-key">Mailer API key</label>
-		<input id="mc-key" class="mc-input" type="password" autocomplete="off" spellcheck="false" placeholder="axm_k_..." bind:value={apiKey} />
-		{#if mailer.error}
-			<div class="mc-note mc-note-err" role="alert"><Icon name="warning" width={16} height={16} /><span>{mailer.error}</span></div>
-		{/if}
-		<div class="mc-actions">
-			<button class="mc-btn mc-btn-primary" disabled={mailer.busy || !apiKey.trim()} onclick={connect}>
-				{mailer.busy ? 'Checking key...' : mailer.status === 'unreadable' ? 'Reconnect' : 'Connect'}
-			</button>
-		</div>
-		{/if}
+		{@render keyForm()}
 	{:else}
-		<div class="mc-keyrow">
-			<div class="mc-keyinfo">
-				<span class="mc-k">API key</span>
-				<span class="mc-mono mc-keyval">axm_k_••••{mailer.keyHint}</span>
-			</div>
-			{#if when}<div class="mc-keyinfo"><span class="mc-k">Connected</span><span>{when}</span></div>{/if}
-		</div>
-
-		{#if mailer.check}
-			{#if mailer.check.kind === 'ok'}
-				<ul class="mc-scopes" role="status">
-					{#each mailer.check.scopes as sc}
-						<li class="mc-scope mc-scope-{sc.state}">
-							<Icon name={sc.state === 'ok' ? 'check' : 'warning'} width={14} height={14} />
-							<span class="mc-scope-main">
-								<span>{sc.label}</span>
-								<span class="mc-mono mc-scope-id">{sc.scope}</span>
-								{#if sc.scope === 'contacts:read'}<span class="mc-rec">Recommended</span>{/if}
-							</span>
-							<span class="mc-scope-state">
-								{#if sc.state === 'ok'}Works{:else if sc.state === 'missing'}Missing{:else if sc.state === 'unverified'}Not tested{:else}Could not check{/if}
-							</span>
-							{#if sc.note}<span class="mc-scope-note">{sc.note}</span>{/if}
-						</li>
-					{/each}
-				</ul>
-				<p class="mc-muted mc-scope-foot">
-					{mailer.check.senders ?? 0} sender address{mailer.check.senders === 1 ? '' : 'es'}{mailer.check.templates !== null ? `, ${mailer.check.templates} template${mailer.check.templates === 1 ? '' : 's'} in Mailer` : ''}{mailer.check.contactFields !== null ? `, ${mailer.check.contactFields} contact field${mailer.check.contactFields === 1 ? '' : 's'}` : ''}.
-					Send and write access cannot be tested without sending mail or writing data, so they are verified on first use.
-				</p>
-			{:else}
-				<div class="mc-note mc-note-err" role="status">
-					<Icon name="warning" width={16} height={16} />
-					<span>{mailer.check.message}</span>
-				</div>
-			{/if}
-		{/if}
-		{#if mailer.error}
-			<div class="mc-note mc-note-err" role="alert"><Icon name="warning" width={16} height={16} /><span>{mailer.error}</span></div>
-		{/if}
-
-		<div class="mc-actions">
-			<button class="mc-btn" disabled={mailer.checking} onclick={() => mailer.recheck()}>
-				<Icon name="refresh" width={14} height={14} />
-				{mailer.checking ? 'Checking...' : 'Check connection'}
+		<div style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px 40px">
+			<div style="display:flex;flex-direction:column;gap:4px"><div class="dz-lbl">API key</div><div class="dz-mono" style="font-size:13.5px">axm_k_••••{mailer.keyHint}</div></div>
+			{#if when}<div style="display:flex;flex-direction:column;gap:4px"><div class="dz-lbl">Connected</div><div style="font-size:13.5px">{when}</div></div>{/if}
+			<div style="flex-grow:1"></div>
+			<button class="dz-btn" type="button" style="background:var(--color-bg)" disabled={mailer.checking} onclick={() => mailer.recheck()}>
+				{#if mailer.checking}<span class="dz-spinner"></span>{:else}<Icon name="refresh-arrow" width={15} height={15} />{/if}{mailer.checking ? 'Checking' : 'Check connection'}
 			</button>
 			{#if !confirming}
-				<button class="mc-btn mc-btn-danger" onclick={() => (confirming = true)}>Disconnect</button>
+				<button class="dz-btn dz-btn-bad" type="button" style="background:var(--color-bg)" onclick={() => (confirming = true)}>Disconnect</button>
 			{:else}
-				<span class="mc-muted">Delete the stored key?</span>
-				<button class="mc-btn mc-btn-danger-solid" disabled={mailer.busy} onclick={disconnect} use:autofocus>
-					{mailer.busy ? 'Removing...' : 'Yes, disconnect'}
-				</button>
-				<button class="mc-btn" onclick={() => (confirming = false)}>Cancel</button>
+				<span style="display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--color-muted)">
+					Delete the stored key?
+					<button class="dz-btn dz-btn-solid-bad" type="button" disabled={mailer.busy} onclick={disconnect} use:autofocus>{mailer.busy ? 'Removing...' : 'Yes, disconnect'}</button>
+					<button class="dz-btn" type="button" style="background:var(--color-bg)" onclick={() => (confirming = false)}>Cancel</button>
+				</span>
 			{/if}
 		</div>
+
+		{#if revoked}
+			<div role="alert" class="dz-note dz-note-bad"><Icon name="danger" width={16} height={16} /><span>Mailer rejected your key. It may have been revoked. Disconnect it and connect a new key.</span></div>
+		{:else if mailer.check?.kind === 'error'}
+			<div role="status" class="dz-note dz-note-bad"><Icon name="danger" width={16} height={16} /><span>{mailer.check.message}</span></div>
+		{:else if mailer.check?.kind === 'ok'}
+			{@const ck = mailer.check}
+			<div role="status" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px">
+				{#each ck.scopes as sc (sc.scope)}
+					<div style="display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:12px;background:var(--color-bg)">
+						<div style="display:flex;align-items:center;gap:10px">
+							<span style="width:9px;height:9px;border-radius:4px;flex-shrink:0;background:{sc.state === 'ok' ? 'var(--color-success)' : sc.state === 'missing' ? 'var(--color-danger)' : 'var(--color-muted)'}"></span>
+							<span style="flex-grow:1;font-size:13px;font-weight:600">{sc.label}</span>
+							<span style="font-size:12px;font-weight:600;color:{sc.state === 'ok' ? 'var(--color-success)' : sc.state === 'missing' ? 'var(--color-danger)' : 'var(--color-muted)'}">{stateLabel[sc.state]}</span>
+						</div>
+						<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding-left:19px">
+							<span class="dz-mono" style="font-size:11.5px;color:var(--color-muted)">{sc.scope}</span>
+							{#if sc.scope === 'contacts:read'}<span class="dz-badge" style="background:var(--color-surface-3);color:var(--color-muted);font-size:11px">Recommended</span>{/if}
+						</div>
+						{#if sc.note}<div style="font-size:12px;line-height:1.45;color:var(--color-danger);padding-left:19px">{sc.note}</div>{/if}
+					</div>
+				{/each}
+			</div>
+			<p style="margin:0;font-size:12.5px;line-height:1.5;color:var(--color-muted)">
+				{ck.senders ?? 0} sender address{ck.senders === 1 ? '' : 'es'}{ck.templates !== null ? `, ${ck.templates} template${ck.templates === 1 ? '' : 's'} in Mailer` : ''}{ck.contactFields !== null ? `, ${ck.contactFields} contact field${ck.contactFields === 1 ? '' : 's'}` : ''}.
+				Send and write access cannot be tested without sending mail or writing data, so they are verified on first use.
+			</p>
+		{/if}
+		{#if mailer.error}
+			<div class="dz-note dz-note-bad" role="alert"><Icon name="danger" width={16} height={16} /><span>{mailer.error}</span></div>
+		{/if}
 	{/if}
 </div>
 
 <style>
-	/* All colors for this component live in this block. */
-	.mc {
-		--mc-accent: var(--color-accent);
-		--mc-field: var(--color-bg);
-		--mc-border: var(--color-border-1);
-		--mc-text: var(--color-text);
-		--mc-muted: var(--color-muted);
-		--mc-ok: var(--color-success);
-		--mc-err: var(--color-danger);
-		--mc-warn: var(--color-danger);
-		color: var(--mc-text);
-		font-size: 13px;
-	}
-	.mc-text { line-height: 1.5; color: var(--mc-muted); margin-bottom: 10px; }
-	.mc-muted { color: var(--mc-muted); font-size: 12px; }
-	.mc-steps { color: var(--mc-muted); line-height: 1.6; margin: 0 0 14px 18px; }
-	.mc-steps ul { list-style: disc; margin-left: 18px; }
-	.mc-steps a { color: var(--color-accent-ink); }
-	.mc-label { display: block; font-size: 11.5px; font-weight: 600; color: var(--mc-muted); margin: 12px 0 5px; }
-	.mc-input {
-		width: 100%; background: var(--mc-field); color: var(--mc-text);
-		border: 0; border-radius: 8px; padding: 9px 11px;
-		font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px;
-	}
-	.mc-input:focus { outline: 2px solid var(--mc-accent); }
-	.mc-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
-	.mc-status { display: flex; align-items: center; gap: 8px; color: var(--mc-ok); }
-	.mc-status span { color: var(--mc-text); }
-	.mc-note {
-		display: flex; gap: 8px; align-items: flex-start; margin-top: 12px;
-		padding: 9px 10px; border-radius: 7px; line-height: 1.45; border: 1px solid transparent;
-	}
-	.mc-note-err { border-color: var(--mc-err); background: color-mix(in srgb, var(--mc-err) 12%, transparent); color: var(--mc-err); }
-	.mc-note-warn { border-color: var(--mc-warn); background: color-mix(in srgb, var(--mc-warn) 12%, transparent); color: var(--mc-warn); }
-	.mc-note-ok { border-color: var(--mc-ok); background: color-mix(in srgb, var(--mc-ok) 10%, transparent); color: var(--mc-ok); }
-	.mc-scopes { list-style: none; margin: 16px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
-	.mc-keyrow { display: flex; flex-wrap: wrap; gap: 8px 32px; }
-	.mc-keyinfo { display: flex; flex-direction: column; gap: 2px; }
-	.mc-k { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--mc-muted); }
-	.mc-keyval { font-size: 13px; }
-	.mc-scope {
-		display: grid; grid-template-columns: auto 1fr auto; align-items: center; column-gap: 8px; row-gap: 2px;
-		padding: 8px 10px; border-radius: 8px; background: var(--mc-field);
-	}
-	.mc-scope-main { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
-	.mc-scope-id { color: var(--mc-muted); font-size: 11px; }
-	.mc-rec { font-size: 10.5px; font-weight: 600; padding: 0 7px; border-radius: 99px; background: var(--color-accent-soft); color: var(--color-accent-ink); box-shadow: 0 0 0 1px var(--color-accent); }
-	.mc-scope-state { font-size: 12px; font-weight: 600; }
-	.mc-scope-note { grid-column: 2 / 4; font-size: 11.5px; color: var(--mc-muted); }
-	.mc-scope-ok { background: color-mix(in srgb, var(--mc-ok) 10%, transparent); }
-	.mc-scope-ok :global(.icon-wrapper), .mc-scope-ok .mc-scope-state { color: var(--mc-ok); }
-	.mc-scope-missing { background: color-mix(in srgb, var(--mc-err) 12%, transparent); }
-	.mc-scope-missing :global(.icon-wrapper), .mc-scope-missing .mc-scope-state { color: var(--mc-err); }
-	.mc-scope-unverified :global(.icon-wrapper), .mc-scope-unverified .mc-scope-state, .mc-scope-unknown :global(.icon-wrapper), .mc-scope-unknown .mc-scope-state { color: var(--mc-muted); }
-	.mc-scope-foot { margin-top: 8px; line-height: 1.45; }
-	.mc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 16px; }
-	.mc-compact .mc-actions { margin-top: 14px; }
-	.mc-btn {
-		display: inline-flex; align-items: center; gap: 6px; color: var(--mc-text);
-		border: 0; background: var(--mc-field); border-radius: 8px; padding: 8px 14px; font: inherit; font-weight: 600; cursor: pointer;
-	}
-	.mc-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--mc-field) 80%, var(--mc-text)); }
-	.mc-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-	.mc-btn-primary { background: var(--mc-accent); color: var(--color-on-accent); border-color: var(--mc-accent); }
-	.mc-btn-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text)); }
-	.mc-btn-danger { color: var(--mc-err); }
-	.mc-btn-danger-solid { background: var(--color-danger); color: var(--color-bg); border-color: var(--color-danger); }
-	.mc-btn-danger-solid:hover:not(:disabled) { opacity: 0.9; }
+	.mc { display: flex; flex-direction: column; gap: 18px; color: var(--color-text); font-family: var(--font-sans); }
+	.mc-compact { gap: 16px; }
+	.mc :global(.dz-note-bad) { margin: 0; }
+	.mc-keylink { color: var(--color-text); font-weight: 600; text-decoration: none; }
+	.mc-keylink:hover { text-decoration: underline; }
 </style>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import '../app.css'
+	import '$lib/styles/dz.css'
 	import { page } from '$app/state'
 	import NavRail from '$lib/components/NavRail.svelte'
 	import { onMount } from 'svelte'
@@ -9,10 +10,11 @@
 	onMount(() => theme.init())
 
 	const isLanding = $derived(page.url.pathname === '/')
-	const isTemplates = $derived(page.url.pathname === '/templates')
 	const isLogin = $derived(page.url.pathname === '/login')
 	const isEditor = $derived(page.url.pathname.startsWith('/editor'))
-	const isFullPage = $derived(isLanding || isTemplates || isLogin || (isEditor && !data.user))
+	// The rail is only for the signed-in app screens (gallery, settings). The landing page keeps its own
+	// nav, the editor keeps its own top bar, and sign in is bare.
+	const isFullPage = $derived(isLanding || isLogin || isEditor)
 </script>
 
 <svelte:head>
@@ -50,6 +52,7 @@
 		background: var(--color-surface);
 		width: 100%;
 		display: flex;
+		align-items: flex-start;
 		min-height: 100vh;
 	}
 	.app-content {

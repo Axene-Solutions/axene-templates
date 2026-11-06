@@ -1,7 +1,8 @@
 <script lang="ts">
 	import Icon from './Icon.svelte'
 	import Logo from './Logo.svelte'
-	import ThemeToggle from './ThemeToggle.svelte'
+	import { theme } from '$lib/stores/theme.svelte'
+	import { page } from '$app/state'
 	let {
 		user = null,
 	}: {
@@ -12,12 +13,10 @@
 			avatarUrl: string | null
 		} | null
 	} = $props()
-	import { page } from '$app/state'
 	const path = $derived(page.url.pathname)
 
 	function isActive(href: string): boolean {
-		if (href === '/') return path === '/'
-		return path.startsWith(href)
+		return path === href || path.startsWith(href + '/')
 	}
 
 	function getInitials(name: string | null, email: string): string {
@@ -38,115 +37,111 @@
 	}
 </script>
 
-<nav class="rail max-h-[100vh] sticky top-0">
-	<a href="/" class="logo" title="Home">
-		<Logo size={26} />
+<nav class="rail" aria-label="Main">
+	<a href="/" class="rail-logo" title="Home" aria-label="Axene Templates home">
+		<Logo size={34} />
 	</a>
 
-	<a href="/" class="nav-btn" class:active={isActive('/')} title="Home">
-		<Icon name="home" width={16} height={16} />
+	<a class="rail-btn" class:rail-on={isActive('/templates')} href="/templates" aria-label="Templates" aria-current={isActive('/templates') ? 'page' : undefined}>
+		<Icon name="grid" width={19} height={19} />
 	</a>
-	<a href="/templates" class="nav-btn" class:active={isActive('/templates')} title="Templates">
-		<Icon name="grid" width={16} height={16} />
-	</a>
-	<a href="/editor" class="nav-btn" class:active={isActive('/editor')} title="Editor">
-		<Icon name="pencil" width={16} height={16} />
+	<a class="rail-btn" class:rail-on={isActive('/settings')} href="/settings" aria-label="Settings and Mailer" aria-current={isActive('/settings') ? 'page' : undefined}>
+		<Icon name="email" width={19} height={19} />
 	</a>
 
-	<div class="spacer"></div>
+	<div class="rail-spacer"></div>
 
-	<ThemeToggle />
+	<button class="rail-btn" type="button" onclick={() => theme.toggle()} aria-label="Switch light or dark">
+		<Icon name="moon" width={18} height={18} />
+	</button>
 
 	{#if user}
-		<a href="/settings" class="nav-btn" class:active={isActive('/settings')} title="Settings" aria-label="Settings">
-			<Icon name="settings" width={16} height={16} />
-		</a>
-		<div class="avatar" title={user.name ?? user.email}>
+		<div class="rail-avatar" title={user.name ?? user.email}>
 			{#if user.avatarUrl}
-				<img src={user.avatarUrl} alt={user.name ?? user.email} class="nav-avatar-img" referrerpolicy="no-referrer" />
+				<img src={user.avatarUrl} alt={user.name ?? user.email} class="rail-avatar-img" referrerpolicy="no-referrer" />
 			{:else}
-				<span class="nav-avatar-initials">{getInitials(user.name, user.email)}</span>
+				<span class="rail-avatar-initials">{getInitials(user.name, user.email)}</span>
 			{/if}
 		</div>
-		<button class="nav-btn" title="Sign out" aria-label="Sign out" onclick={logout}>
-			<Icon name="logout" width={16} height={16} />
+		<button class="rail-btn" type="button" title="Sign out" aria-label="Sign out" onclick={logout}>
+			<Icon name="logout" width={18} height={18} />
 		</button>
 	{:else}
-		<a href="/login" class="nav-btn" title="Sign in" aria-label="Sign in">
-			<Icon name="user" width={16} height={16} />
+		<a href="/login" class="rail-btn" title="Sign in" aria-label="Sign in">
+			<Icon name="user" width={18} height={18} />
 		</a>
 	{/if}
 </nav>
 
 <style>
 	.rail {
-		width: 46px;
-		background: var(--color-surface);
-		border-right: 1px solid var(--color-border-1);
+		position: sticky;
+		top: 0;
+		align-self: flex-start;
+		height: 100vh;
+		width: 72px;
+		flex-shrink: 0;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		padding: 12px 0;
-		gap: 2px;
-		flex-shrink: 0;
+		padding: 22px 0;
+		gap: 6px;
+		background: var(--color-bg);
 	}
-	.logo {
-		width: 30px;
-		height: 30px;
+	.rail-logo {
+		display: block;
+		margin-bottom: 18px;
 		border-radius: 8px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		margin-bottom: 10px;
 		overflow: hidden;
+		line-height: 0;
 	}
-	.nav-btn {
-		width: 30px;
-		height: 30px;
-		border-radius: 7px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		cursor: pointer;
-		color: var(--color-muted);
-		border: none;
+	.rail-logo :global(.logo) {
+		border-radius: 8px;
+	}
+	.rail-btn {
+		width: 40px;
+		height: 40px;
+		border-radius: 12px;
+		border: 0;
 		background: transparent;
+		color: var(--color-muted);
+		display: grid;
+		place-items: center;
+		cursor: pointer;
 		text-decoration: none;
-		transition:
-			background 0.12s,
-			color 0.12s;
 	}
-	.nav-btn:hover {
+	.rail-btn:hover {
 		background: var(--color-surface-2);
 		color: var(--color-text);
 	}
-	.nav-btn.active {
-		background: var(--color-accent-soft);
-		color: var(--color-accent-ink);
+	.rail-btn:focus-visible {
+		outline: 2px solid var(--color-accent);
 	}
-	.spacer {
-		flex: 1;
+	.rail-on {
+		background: var(--color-surface-2);
+		color: var(--color-text);
 	}
-	.avatar {
-		width: 26px;
-		height: 26px;
-		border-radius: 50%;
+	.rail-spacer {
+		flex-grow: 1;
+	}
+	.rail-avatar {
+		width: 28px;
+		height: 28px;
+		border-radius: 8px;
 		background: var(--color-surface-2);
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		overflow: hidden;
-		margin-top: 4px;
-		margin-bottom: 2px;
+		margin: 4px 0;
 	}
-	.nav-avatar-img {
+	.rail-avatar-img {
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
-		border-radius: 50%;
 	}
-	.nav-avatar-initials {
-		font-size: 13px;
+	.rail-avatar-initials {
+		font-size: 12px;
 		color: var(--color-text);
 		font-weight: 600;
 	}

@@ -1,33 +1,65 @@
 <script lang="ts">
     import { goto, invalidate } from '$app/navigation';
     import { page } from '$app/state';
+    import { onMount } from 'svelte';
+    import { mailer } from '$lib/mailer.svelte';
     import ConfirmModal from '$lib/components/ConfirmModal.svelte';
-    import SiteNav from '$lib/components/SiteNav.svelte';
-    import SiteFooter from '$lib/components/SiteFooter.svelte';
     import Icon from '$lib/components/Icon.svelte';
     import AiTemplateModal from '$lib/components/AiTemplateModal.svelte';
     import MailerTemplatesTab from '$lib/components/MailerTemplatesTab.svelte';
+    import TemplateCard from '$lib/components/gallery/TemplateCard.svelte';
+    import Toast from '$lib/components/gallery/Toast.svelte';
+    import { categoryId, categoryLabel, sortTemplates, type GalleryTemplate, type SortKey } from '$lib/components/gallery/helpers';
 
     let { data } = $props();
 
-    // Templates fetched from the server; kept in local state so deletes update the list
-    let templates = $state<any[]>([]);
+    // Templates fetched from the server; kept in local state so rename, copy, share and delete update the list
+    let templates = $state<GalleryTemplate[]>([]);
     $effect.pre(() => {
         templates = data.templates;
     });
-    const loadError = $derived<string | null>(data.loadError);
-    let retrying = $state(false);
-    let notice = $state<string | null>(null);
-    let noticeTimer: ReturnType<typeof setTimeout> | undefined;
-    let busyStarterId = $state<string | null>(null);
-    let renamingId = $state<string | null>(null);
-    let renameValue = $state('');
-    let renameBusy = false;
+    const loadFailed = $derived<boolean>(!!data.loadError);
+    const user = $derived(page.data.user);
 
-    function showNotice(message: string) {
-        notice = message;
-        clearTimeout(noticeTimer);
-        noticeTimer = setTimeout(() => (notice = null), 4000);
+    type Tab = 'yours' | 'community' | 'starters' | 'mailer';
+    let tab = $state<Tab>(page.data.user ? 'yours' : 'starters');
+    let cat = $state('all');
+    let sort = $state<SortKey>('recent');
+    let query = $state('');
+    let retrying = $state(false);
+    let toast = $state('');
+    let toastTimer: ReturnType<typeof setTimeout> | undefined;
+    let busyStarterId = $state<string | null>(null);
+    let duplicatingId: string | null = null;
+    let deleteTarget = $state<{ id: string; name: string } | null>(null);
+    let aiOpen = $state(false);
+    let mailerCount = $state(0);
+
+    // The Link Mailer nudge: dismissible, remembered in this browser only.
+    const NUDGE_KEY = 'axene.gallery.linkNudgeDismissed';
+    let nudgeDismissed = $state(false);
+    onMount(() => {
+        try {
+            nudgeDismissed = localStorage.getItem(NUDGE_KEY) === '1';
+        } catch {
+            /* storage can be unavailable: the nudge just shows again */
+        }
+        if (page.data.user) mailer.ensureLoaded();
+    });
+    function dismissNudge() {
+        nudgeDismissed = true;
+        try {
+            localStorage.setItem(NUDGE_KEY, '1');
+        } catch {
+            /* ignore */
+        }
+    }
+    const showNudge = $derived(!!user && !nudgeDismissed && (mailer.status === 'disconnected' || mailer.status === 'unreadable'));
+
+    function say(message: string, ms = 2400) {
+        toast = message;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => (toast = ''), ms);
     }
 
     async function retryLoad() {
@@ -38,127 +70,69 @@
             retrying = false;
         }
     }
-    const user = $derived(page.data.user);
 
-    // Dynamically extract unique categories from templates using a Set
-    let categories = $derived(() => {
-        const uniqueIds: string[] = Array.from(new Set(templates.map((t: any) => String(t.category || 'general'))));
-        
-        // Optional mapping for pretty labels. 
-        // If a category is saved as "invoice", UI outputs "Invoice", etc.
-        const idToLabel = (id: string) => {
-            const labels: Record<string, string> = {
-                // Phase 1
-                'general': 'General',
-                'otp': 'OTP / Passcodes',
-                'invoice': 'Invoices & Receipts',
-                'marketing': 'Marketing',
-                'welcome': 'Welcome Email',
-                // Phase 2 - Authentication
-                'password-reset': 'Password Reset',
-                'email-verify': 'Email Verification',
-                'magic-link': 'Magic Login Links',
-                // Phase 2 - Transactional
-                'receipt': 'Receipts',
-                'order-confirm': 'Order Confirmations',
-                'payment-status': 'Payment Success/Failure',
-                // Phase 2 - Notifications
-                'alert': 'Alerts',
-                'reminder': 'Reminders',
-                'activity': 'Activity Updates',
-                // Phase 2 - Marketing
-                'newsletter': 'Newsletters',
-                'product-announcement': 'Product Announcements',
-                'promo': 'Promotions',
-                // Phase 2 - Lifecycle
-                'onboarding': 'Onboarding Sequences',
-                're-engage': 'Re-engagement Emails'
-            };
-            
-            return labels[id] || (id.charAt(0).toUpperCase() + id.slice(1));
-        };
-
-        const mapped = uniqueIds.map(id => ({
-            id,
-            label: idToLabel(id as string)
-        }));
-        
-        // Always keep 'all' at the beginning
-        return [{ id: 'all', label: 'All Templates' }, ...mapped];
+    const isMailer = $derived(tab === 'mailer');
+    const tabDefs = $derived<[Tab, string][]>(
+        user
+            ? [['yours', 'Yours'], ['community', 'Community'], ['starters', 'Starters'], ['mailer', 'From Mailer']]
+            : [['community', 'Community'], ['starters', 'Starters']]
+    );
+    // A signed out visitor cannot sit on a signed in tab.
+    $effect(() => {
+        if (!user && (tab === 'yours' || tab === 'mailer')) tab = 'starters';
     });
 
-    let activeCategoryFilter = $state('all');
-    let searchQuery = $state('');
-    let view = $state<'templates' | 'mailer'>('templates');
-    
-    let deleteTarget = $state<{ id: string; name: string } | null>(null);
-
-    function formatDate(iso: string) {
-        const d = new Date(iso);
-        return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-    }
-
-    // 🏆 Combined Filter Logic
-    const filteredTemplates = $derived(
-        templates.filter((t: any) => {
-            const activeCat = t.category || 'general';
-            const matchesSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase());
-            const matchesCategory = activeCategoryFilter === 'all' || activeCat === activeCategoryFilter;
-            return matchesSearch && matchesCategory;
-        })
+    const base = $derived(
+        tab === 'yours'
+            ? templates.filter((t) => t.isOwn)
+            : tab === 'community'
+              ? templates.filter((t) => t.isPublic && !t.isOwn && !t.isStarter)
+              : tab === 'starters'
+                ? templates.filter((t) => t.isStarter)
+                : []
     );
+    const catList = $derived([...new Set(base.map(categoryId))]);
+    const activeCat = $derived(cat === 'all' || catList.includes(cat) ? cat : 'all');
+    const items = $derived(
+        sortTemplates(
+            base.filter((t) => (activeCat === 'all' || categoryId(t) === activeCat) && (!query.trim() || t.name.toLowerCase().includes(query.trim().toLowerCase()))),
+            sort
+        )
+    );
+    const count = $derived(isMailer ? mailerCount : items.length);
 
-    // Categories inherit derived filtering
-    const ownTemplates = $derived(filteredTemplates.filter((t: any) => t.isOwn));
-    const communityTemplates = $derived(filteredTemplates.filter((t: any) => t.isPublic && !t.isOwn && !t.isStarter));
-    const starterTemplates = $derived(filteredTemplates.filter((t: any) => t.isStarter));
+    const emptyBlank = $derived(!loadFailed && !isMailer && base.length === 0);
+    const emptyFilter = $derived(!loadFailed && !isMailer && base.length > 0 && items.length === 0);
+    const blankText: Record<string, [string, string]> = {
+        yours: ['No templates yet', 'Start from a starter, generate one with AI or begin with a blank template.'],
+        community: ['No community templates yet', 'Templates other people make public will show up here.'],
+        starters: ['No starter templates are available yet', 'Check back soon.'],
+    };
+    const emptyTitle = $derived(emptyFilter ? 'Nothing matches' : (blankText[tab] ?? ['', ''])[0]);
+    const emptyBody = $derived(emptyFilter ? 'Nothing matches your search or filter.' : (blankText[tab] ?? ['', ''])[1]);
 
-    const totalCount = $derived(filteredTemplates.length);
+    function pickTab(t: Tab) {
+        tab = t;
+        cat = 'all';
+    }
 
-    async function handleDelete() {
-        if (!deleteTarget) return;
-        const { id, name } = deleteTarget;
+    async function errorReason(res: Response): Promise<string> {
         try {
-            const res = await fetch(`/api/templates/${id}`, { method: 'DELETE' });
-            if (res.ok) {
-                templates = templates.filter((t: any) => t.id !== id);
-            } else {
-                showNotice(`Could not delete "${name}" (error ${res.status}).`);
-            }
+            const err = await res.json();
+            if (err?.error) return err.error;
         } catch {
-            showNotice(`Could not delete "${name}". Check your connection.`);
-        } finally {
-            deleteTarget = null;
+            /* keep the status based reason */
         }
+        return `error ${res.status}`;
     }
 
-    function startRename(tpl: { id: string; name: string }) {
-        renamingId = tpl.id;
-        renameValue = tpl.name;
-    }
-
-    function cancelRename() {
-        renamingId = null;
-    }
-
-    function focusSelect(node: HTMLInputElement) {
-        node.focus();
-        node.select();
-    }
-
-    async function commitRename(tpl: { id: string; name: string }) {
-        if (renamingId !== tpl.id || renameBusy) return;
-        const name = renameValue.trim();
-        if (name === tpl.name) {
-            renamingId = null;
-            return;
-        }
+    async function rename(tpl: GalleryTemplate, raw: string) {
+        const name = raw.trim();
+        if (name === tpl.name) return;
         if (name === '') {
-            showNotice('A template name cannot be empty.');
-            renamingId = null;
+            say('A template name cannot be empty.');
             return;
         }
-        renameBusy = true;
         try {
             const res = await fetch(`/api/templates/${tpl.id}`, {
                 method: 'PATCH',
@@ -167,26 +141,76 @@
             });
             if (res.ok) {
                 const saved = await res.json();
-                templates = templates.map((x: any) => (x.id === tpl.id ? { ...x, name: saved.name } : x));
+                templates = templates.map((x) => (x.id === tpl.id ? { ...x, name: saved.name } : x));
             } else {
-                let reason = `error ${res.status}`;
-                try {
-                    const err = await res.json();
-                    if (err?.error) reason = err.error;
-                } catch {
-                    /* keep the status based reason */
-                }
-                showNotice(`Could not rename "${tpl.name}" (${reason}).`);
+                say(`Could not rename "${tpl.name}" (${await errorReason(res)}).`, 4000);
             }
         } catch {
-            showNotice(`Could not rename "${tpl.name}". Check your connection.`);
-        } finally {
-            renameBusy = false;
-            renamingId = null;
+            say(`Could not rename "${tpl.name}". Check your connection.`, 4000);
         }
     }
 
-    async function useStarter(starter: any) {
+    async function duplicate(tpl: GalleryTemplate) {
+        if (duplicatingId) return;
+        duplicatingId = tpl.id;
+        try {
+            const res = await fetch(`/api/templates/${tpl.id}/duplicate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: '{}',
+            });
+            if (res.ok) {
+                const copy: GalleryTemplate = await res.json();
+                templates = [copy, ...templates];
+                sort = 'recent';
+                say(`Duplicated as ${copy.name}`);
+            } else {
+                say(`Could not duplicate "${tpl.name}" (${await errorReason(res)}).`, 4000);
+            }
+        } catch {
+            say(`Could not duplicate "${tpl.name}". Check your connection.`, 4000);
+        } finally {
+            duplicatingId = null;
+        }
+    }
+
+    async function togglePublic(tpl: GalleryTemplate) {
+        const next = !tpl.isPublic;
+        try {
+            const res = await fetch(`/api/templates/${tpl.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isPublic: next }),
+            });
+            if (res.ok) {
+                templates = templates.map((x) => (x.id === tpl.id ? { ...x, isPublic: next } : x));
+                say(next ? 'Now public, visible in Community' : 'Now private');
+            } else {
+                say(`Could not change "${tpl.name}" (${await errorReason(res)}).`, 4000);
+            }
+        } catch {
+            say(`Could not change "${tpl.name}". Check your connection.`, 4000);
+        }
+    }
+
+    async function handleDelete() {
+        if (!deleteTarget) return;
+        const { id, name } = deleteTarget;
+        deleteTarget = null;
+        try {
+            const res = await fetch(`/api/templates/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                templates = templates.filter((t) => t.id !== id);
+                say(`Deleted ${name}`);
+            } else {
+                say(`Could not delete "${name}" (error ${res.status}).`, 4000);
+            }
+        } catch {
+            say(`Could not delete "${name}". Check your connection.`, 4000);
+        }
+    }
+
+    async function useStarter(starter: GalleryTemplate) {
         if (busyStarterId) return;
         busyStarterId = starter.id;
         try {
@@ -209,373 +233,119 @@
             const saved = await res.json();
             await goto(`/editor/${saved.id}`);
         } catch {
-            showNotice(`Could not create a template from "${starter.name}". Please try again.`);
+            say(`Could not create a template from "${starter.name}". Please try again.`, 4000);
         } finally {
             busyStarterId = null;
         }
     }
-    let aiOpen = $state(false);
 </script>
 
 <svelte:head>
     <title>Templates - Axene Templates</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" />
 </svelte:head>
 
-<AiTemplateModal open={aiOpen} onclose={() => (aiOpen = false)} />
+<div class="gl">
+    <main class="gl-main">
+        <header style="display:flex;flex-wrap:wrap;align-items:center;gap:14px 16px">
+            <h1 style="margin:0;font-size:28px;font-weight:700;letter-spacing:-.02em;flex-grow:1">Templates <span style="font-size:15px;font-weight:500;color:var(--color-muted);margin-left:6px">{count}</span></h1>
+            <label style="position:relative;display:block;width:240px">
+                <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--color-muted);display:flex"><Icon name="search" width={16} height={16} /></span>
+                <input class="dz-field" style="padding-left:36px" type="text" placeholder="Search templates" aria-label="Search templates" bind:value={query} />
+            </label>
+            {#if user}
+                <button class="dz-btn" type="button" onclick={() => (aiOpen = true)}><Icon name="magicpen" width={16} height={16} />Generate with AI</button>
+                <a class="dz-btn dz-btn-primary" href="/editor"><Icon name="add" width={16} height={16} />New template</a>
+            {:else}
+                <a class="dz-btn dz-btn-primary" href="/auth/google"><Icon name="user" width={16} height={16} />Sign in to create templates</a>
+            {/if}
+        </header>
 
-<div class="page">
-    <SiteNav {user} />
-
-    <div class="tpl-container">
-    <div class="topbar">
-        <div class="topbar-left">
-            <h1 class="title">Templates</h1>
-            {#if !loadError}<span class="count-badge">{totalCount}</span>{/if}
-        </div>
-        {#if user}
-            <div class="topbar-actions">
-            <button class="btn-ai" onclick={() => (aiOpen = true)}>
-                <Icon name="edit" width={16} height={16} />
-                Generate with AI
-            </button>
-            <button class="btn-new" onclick={() => goto('/editor')}>
-                <Icon name="plus" width={16} height={16} />
-                New Template
-            </button>
-            </div>
-        {:else}
-            <a href="/auth/google" class="btn-signin-banner">
-                <Icon name="user" width={16} height={16} />
-                Sign in to create templates
-            </a>
-        {/if}
-    </div>
-
-    <div class="search-wrap">
-        <span class="search-icon"><Icon name="search" width={16} height={16} /></span>
-        <input
-            type="text"
-            class="search-input"
-            placeholder="Search templates..."
-            bind:value={searchQuery}
-        />
-    </div>
-
-    {#if user}
-        <div class="filter-tabs view-tabs" role="tablist" aria-label="Template source">
-            <button class="filter-tab" role="tab" aria-selected={view === 'templates'} class:active={view === 'templates'} onclick={() => (view = 'templates')}>Templates</button>
-            <button class="filter-tab" role="tab" aria-selected={view === 'mailer'} class:active={view === 'mailer'} onclick={() => (view = 'mailer')}>From Mailer</button>
-        </div>
-    {/if}
-
-    {#if user && view === 'mailer'}
-        <MailerTemplatesTab query={searchQuery} />
-    {:else if loadError}
-        <div class="state-card" role="alert">
-            <span class="state-icon"><Icon name="warning" width={28} height={28} /></span>
-            <h2 class="state-title">Could not load templates</h2>
-            <p class="state-text">{loadError}</p>
-            <button class="btn-retry" onclick={retryLoad} disabled={retrying}>
-                <Icon name="refresh" width={16} height={16} class={retrying ? 'spin' : ''} />
-                {retrying ? 'Retrying...' : 'Try again'}
-            </button>
-        </div>
-    {:else}
-    <!-- Beautiful Filter UI -->
-    <div class="filter-tabs">
-        {#each categories() as cat}
-            <button
-                class="filter-tab"
-                class:active={activeCategoryFilter === cat.id}
-                onclick={() => activeCategoryFilter = cat.id}
-            >
-                {cat.label}
-            </button>
-        {/each}
-    </div>
-
-    {#if user && ownTemplates.length > 0}
-        <section class="section">
-            <h2 class="section-header">Your Templates</h2>
-            <div class="grid">
-                {#each ownTemplates as tpl (tpl.id)}
-                    <div class="card">
-                        <a class="card-thumb" href="/editor/{tpl.id}" aria-label="Open {tpl.name} in the editor" tabindex="-1">
-                            <div class="wire">
-                                <div class="wire-hdr"></div>
-                                <div class="wire-bd">
-                                    <div class="wire-ln w60"></div>
-                                    <div class="wire-ln w40" style="opacity:0.5"></div>
-                                    <div class="wire-sp"></div>
-                                    <div class="wire-ls"></div>
-                                    <div class="wire-ls"></div>
-                                    <div class="wire-ls w70"></div>
-                                    <div class="wire-sp"></div>
-                                    <div class="wire-bt"></div>
-                                </div>
-                            </div>
-                            <span class="card-hover-pill">Open</span>
-                        </a>
-                        <div class="card-info">
-                            {#if renamingId === tpl.id}
-                                <input
-                                    class="card-name-input"
-                                    aria-label="Template name"
-                                    maxlength="120"
-                                    bind:value={renameValue}
-                                    use:focusSelect
-                                    onblur={() => commitRename(tpl)}
-                                    onkeydown={(e) => {
-                                        if (e.key === 'Enter') commitRename(tpl);
-                                        if (e.key === 'Escape') cancelRename();
-                                    }}
-                                />
-                            {:else}
-                                <div class="card-name static">{tpl.name}</div>
-                            {/if}
-                            <div class="card-meta">
-                                {tpl.blockCount ?? 0} blocks
-                                {#if tpl.updatedAt}
-                                    <span class="dot">&#183;</span>
-                                    {formatDate(tpl.updatedAt)}
-                                {/if}
-                                {#if tpl.isPublic}
-                                    <span class="dot">&#183;</span>
-                                    <span class="public-badge">Public</span>
-                                {/if}
-                            </div>
-                            <div class="card-actions">
-                                <a class="action-open" href="/editor/{tpl.id}">Open in Editor</a>
-                                <button class="action-rename" onclick={() => startRename(tpl)} aria-label="Rename template" title="Rename">
-                                    <Icon name="pencil" width={16} height={16} />
-                                </button>
-                                <button class="action-delete" onclick={() => { deleteTarget = { id: tpl.id, name: tpl.name }; }} aria-label="Delete template">
-                                    <Icon name="trash" width={16} height={16} />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                {/each}
-            </div>
-        </section>
-    {/if}
-
-    {#if communityTemplates.length > 0}
-        <section class="section">
-            <h2 class="section-header">Community Templates</h2>
-            <div class="grid">
-                {#each communityTemplates as tpl (tpl.id)}
-                    <div class="card">
-                        <a class="card-thumb" href="/editor/{tpl.id}" aria-label="Open {tpl.name} in the editor" tabindex="-1">
-                            <div class="wire">
-                                <div class="wire-hdr"></div>
-                                <div class="wire-bd">
-                                    <div class="wire-ln w50"></div>
-                                    <div class="wire-sp"></div>
-                                    <div class="wire-ls"></div>
-                                    <div class="wire-ls w80"></div>
-                                    <div class="wire-sp"></div>
-                                    <div class="wire-bt"></div>
-                                </div>
-                            </div>
-                            <span class="card-hover-pill">Open</span>
-                        </a>
-                        <div class="card-info">
-                            <div class="card-name static">{tpl.name}</div>
-                            <div class="card-meta">
-                                {tpl.blockCount ?? 0} blocks
-                                {#if tpl.updatedAt}
-                                    <span class="dot">&#183;</span>
-                                    {formatDate(tpl.updatedAt)}
-                                {/if}
-                            </div>
-                            <div class="card-actions"><a class="action-open" href="/editor/{tpl.id}">Open in Editor</a></div>
-                        </div>
-                    </div>
-                {/each}
-            </div>
-        </section>
-    {/if}
-
-    <section class="section">
-        <h2 class="section-header">Starter Templates</h2>
-        {#if starterTemplates.length > 0}
-            <div class="grid">
-                {#each starterTemplates as starter (starter.id)}
-                    <div class="card">
-                        <div class="card-thumb">
-                            <div class="wire">
-                                <div class="wire-hdr"></div>
-                                <div class="wire-bd">
-                                    <div class="wire-ln w50"></div>
-                                    <div class="wire-sp"></div>
-                                    <div class="wire-ls"></div>
-                                    <div class="wire-ls w80"></div>
-                                    <div class="wire-sp"></div>
-                                    <div class="wire-bt"></div>
-                                </div>
-                            </div>
-                            <span class="card-hover-pill">Use</span>
-                        </div>
-                        <div class="card-info">
-                            <div class="card-name static">{starter.name}</div>
-                            <div class="card-meta">{starter.blockCount ?? 0} blocks</div>
-                            <div class="card-actions">
-                                {#if user}
-                                    <button class="btn-use" onclick={() => useStarter(starter)} disabled={busyStarterId !== null}>
-                                        {busyStarterId === starter.id ? 'Creating...' : 'Use Template'}
-                                    </button>
-                                {:else}
-                                    <a href="/auth/google" class="btn-use">Sign in to use</a>
-                                {/if}
-                            </div>
-                        </div>
-                    </div>
-                {/each}
-            </div>
-        {:else}
-            <div class="no-results">
-                {templates.length === 0 ? 'No starter templates are available yet.' : 'No starter templates match your filters.'}
+        {#if showNudge}
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:14px 16px;border-radius:12px;background:var(--color-accent-soft)">
+                <span style="color:var(--color-accent-ink);display:flex"><Icon name="email" width={18} height={18} /></span>
+                <span style="flex-grow:1;font-size:13.5px;color:var(--color-text)"><b>Link Mailer</b> to send from your own domain, save templates to Mailer and use your contact fields.</span>
+                <a class="dz-btn dz-btn-primary" href="/settings" style="padding:8px 14px">Connect<Icon name="arrow-right4" width={14} height={14} /></a>
+                <button class="dz-x" type="button" onclick={dismissNudge} aria-label="Dismiss"><Icon name="close" width={15} height={15} /></button>
             </div>
         {/if}
-    </section>
 
-    {#if totalCount === 0 && templates.length > 0}
-        <div class="state-card">
-            <p class="state-text">Nothing matches your search or filter.</p>
-            <button class="btn-retry" onclick={() => { searchQuery = ''; activeCategoryFilter = 'all'; }}>Clear filters</button>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px">
+            <div role="tablist" aria-label="Source" style="display:inline-flex;gap:2px;padding:4px;border-radius:12px;background:var(--color-surface-2)">
+                {#each tabDefs as [id, label] (id)}
+                    <button class="dz-seg" role="tab" type="button" aria-selected={tab === id} style={tab === id ? 'background:var(--color-bg);color:var(--color-text);box-shadow:0 1px 3px rgba(0,0,0,.12)' : ''} onclick={() => pickTab(id)}>{label}</button>
+                {/each}
+            </div>
+            {#if !isMailer && !loadFailed}
+                <div style="display:flex;flex-wrap:wrap;gap:2px">
+                    {#each ['all', ...catList] as c (c)}
+                        <button class="dz-chip" type="button" style={activeCat === c ? 'background:#ffd100;color:#101010;font-weight:600' : ''} onclick={() => (cat = c)}>{c === 'all' ? 'All' : categoryLabel(c)}</button>
+                    {/each}
+                </div>
+                <div style="display:flex;align-items:center;gap:4px;margin-left:auto">
+                    <span class="dz-lbl" style="margin-right:6px; display: flex; align-items: center" aria-label="Sort" title="Sort" role="img"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="flex-shrink:0"><rect x="3" y="5" width="18" height="2" rx="1"></rect><rect x="3" y="11" width="13" height="2" rx="1"></rect><rect x="3" y="17" width="8" height="2" rx="1"></rect></svg></span>
+                    {#each [['recent', 'Newest'], ['name', 'Name'], ['blocks', 'Blocks']] as [id, label] (id)}
+                        <button class="dz-chip" type="button" aria-pressed={sort === id} style={sort === id ? 'background:var(--color-surface-3);color:var(--color-text);font-weight:600' : ''} onclick={() => (sort = id as SortKey)}>{label}</button>
+                    {/each}
+                </div>
+            {/if}
         </div>
-    {/if}
-    {/if}
-    </div>
 
-    <SiteFooter />
+        {#if isMailer}
+            <MailerTemplatesTab {query} bind:count={mailerCount} />
+        {:else if loadFailed}
+            <div role="alert" class="dz-panel state">
+                <span style="color:var(--color-danger);display:flex"><Icon name="danger" width={28} height={28} /></span>
+                <h2 class="state-title">Could not load templates</h2>
+                <p class="state-text">The server did not answer. Check your connection and try again.</p>
+                <button class="dz-btn" type="button" onclick={retryLoad} disabled={retrying} style="margin-top:6px">{#if retrying}<span class="dz-spinner"></span>{:else}<Icon name="refresh-arrow" width={15} height={15} />{/if}{retrying ? 'Retrying' : 'Try again'}</button>
+            </div>
+        {:else if items.length > 0}
+            <section aria-label="Templates" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px">
+                {#each items as tpl (tpl.id)}
+                    <TemplateCard
+                        {tpl}
+                        kind={tab === 'yours' ? 'own' : tab === 'community' ? 'community' : 'starter'}
+                        signedIn={!!user}
+                        {busyStarterId}
+                        onrename={rename}
+                        onduplicate={duplicate}
+                        ontogglepublic={togglePublic}
+                        ondelete={(t) => (deleteTarget = { id: t.id, name: t.name })}
+                        onuse={useStarter}
+                    />
+                {/each}
+            </section>
+        {:else if emptyBlank || emptyFilter}
+            <div class="dz-panel state">
+                <h2 class="state-title">{emptyTitle}</h2>
+                <p class="state-text">{emptyBody}</p>
+                {#if emptyFilter}<button class="dz-btn" type="button" onclick={() => { query = ''; cat = 'all'; }} style="margin-top:6px">Clear filters</button>{/if}
+                {#if emptyBlank && user}<div style="display:flex;gap:8px;margin-top:6px"><button class="dz-btn" type="button" onclick={() => (aiOpen = true)}>Generate with AI</button><a class="dz-btn" href="/editor">New template</a></div>{/if}
+            </div>
+        {/if}
+    </main>
 </div>
 
-{#if notice}
-    <div class="toast" role="status">{notice}</div>
-{/if}
+<Toast message={toast} />
 
-<ConfirmModal open={!!deleteTarget} title="Delete Template" message="Are you sure you want to delete '{deleteTarget?.name}'? This cannot be undone." variant="danger" confirmText="Delete" onconfirm={handleDelete} oncancel={() => (deleteTarget = null)} />
+<!-- The delete confirm and the AI dialog are never open together: each one covers the page. -->
+<ConfirmModal
+    open={!!deleteTarget && !aiOpen}
+    title="Delete template"
+    message="Are you sure you want to delete '{deleteTarget?.name}'? This cannot be undone."
+    variant="danger"
+    confirmText="Delete"
+    onconfirm={handleDelete}
+    oncancel={() => (deleteTarget = null)}
+/>
+<AiTemplateModal open={aiOpen} onclose={() => (aiOpen = false)} />
 
 <style>
-    .page {
-        overflow-y: auto; flex: 1; background: var(--color-surface); font-family: 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif;
-        min-height: 100vh; display: flex; flex-direction: column;
-    }
-    .tpl-container { max-width: 1100px; margin: 0 auto; padding: 88px 24px 48px; width: 100%; flex: 1; }
-    .topbar { display: flex; align-items: center; justify-content: space-between; }
-    .topbar-left { display: flex; align-items: center; gap: 10px; }
-    .title { font-size: 24px; font-weight: 700; color: var(--color-text); margin: 0; line-height: 1; }
-    .count-badge { font-size: 11px; font-weight: 600; color: var(--color-muted); background: var(--color-surface-2); border-radius: 999px; padding: 2px 9px; line-height: 1.5; }
-    .topbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .btn-ai { display: flex; align-items: center; gap: 6px; background: transparent; color: var(--color-text); border: 1px solid var(--color-border-1); border-radius: 8px; padding: 9px 16px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
-    .btn-ai:hover { background: var(--color-surface-2); border-color: var(--color-muted); }
-    .btn-new { display: flex; align-items: center; gap: 6px; background: var(--color-accent); color: #101010; border: none; border-radius: 8px; padding: 9px 18px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
-    .btn-new:hover { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text)); }
-    .btn-signin-banner { display: flex; align-items: center; gap: 6px; background: var(--color-accent-soft); color: var(--color-accent-ink); border: 1px solid var(--color-accent); border-radius: 8px; padding: 9px 18px; font-size: 13px; font-weight: 600; text-decoration: none; transition: background 0.15s; }
-    .btn-signin-banner:hover { background: var(--color-accent-soft); }
-    
-    .search-wrap { position: relative; margin-top: 20px; max-width: 400px; }
-    .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--color-muted); display: flex; }
-    .search-input { width: 100%; box-sizing: border-box; background: var(--color-surface-2); border: 1px solid var(--color-border-1); border-radius: 8px; padding: 8px 12px 8px 34px; font-size: 13px; font-family: inherit; color: var(--color-text); outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
-    .search-input:focus { border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-soft); }
-    .search-input::placeholder { color: var(--color-muted); }
-
-    /* ---------- Filters ---------- */
-    .filter-tabs {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin: 24px 0 16px;
-    }
-    .view-tabs { margin-bottom: 0; }
-    .filter-tab {
-        background: var(--color-surface-2);
-        border: 1px solid var(--color-border-1);
-        border-radius: 20px;
-        padding: 8px 16px;
-        font-size: 13px;
-        font-weight: 500;
-        color: var(--color-muted);
-        cursor: pointer;
-        transition: all 0.2s ease;
-        font-family: inherit;
-        letter-spacing: 0.01em;
-    }
-    .filter-tab:hover {
-        background: var(--color-surface-2);
-        color: var(--color-text);
-        border-color: var(--color-border-1);
-    }
-    .filter-tab.active {
-        background: var(--color-accent);
-        color: #101010;
-        border-color: var(--color-accent);
-        font-weight: 600;
-        box-shadow: 0 0 12px var(--color-accent-soft);
-    }
-
-    .section { margin-top: 32px; }
-    .section-header { font-size: 13px; font-weight: 600; color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 14px; }
-    
-    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-    .card { border: 1px solid var(--color-border-1); border-radius: 14px; overflow: hidden; background: var(--color-surface); transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1); box-shadow: 0 1px 3px color-mix(in srgb, var(--color-text) 4%, transparent); }
-    .card:hover { border-color: var(--color-accent); transform: translateY(-3px); }
-    .card-thumb { text-decoration: none; height: 150px; display: flex; align-items: center; justify-content: center; padding: 16px; overflow: hidden; position: relative; }
-    
-    .wire { width: 100px; background: var(--color-surface-2); backdrop-filter: blur(6px); border-radius: 6px; border: 1px solid var(--color-border-1); overflow: hidden; display: flex; flex-direction: column; opacity: 0.7; box-shadow: 0 4px 16px color-mix(in srgb, var(--color-text) 10%, transparent); transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1); }
-    .card:hover .wire { transform: scale(1.06) translateY(-2px); }
-    .wire-hdr { height: 9px; background: var(--color-accent); }
-    .wire-bd { padding: 7px 9px 9px; display: flex; flex-direction: column; gap: 3px; }
-    .wire-ln { height: 4px; background: var(--color-muted-soft); border-radius: 2px; width: 100%; }
-    .wire-ln.w60 { width: 60%; } .wire-ln.w50 { width: 50%; } .wire-ln.w40 { width: 40%; }
-    .wire-ls { height: 2.5px; background: var(--color-muted-soft); border-radius: 1px; width: 100%; }
-    .wire-ls.w80 { width: 80%; } .wire-ls.w70 { width: 70%; }
-    .wire-sp { height: 3px; }
-    .wire-bt { height: 7px; background: var(--color-accent); border-radius: 4px; width: 50%; margin: 0 auto; }
-    
-    .card-hover-pill { position: absolute; bottom: 10px; right: 10px; padding: 4px 12px; border-radius: 100px; background: var(--color-surface-2); backdrop-filter: blur(4px); font-size: 11px; font-weight: 600; color: var(--color-text); opacity: 0; transform: translateY(6px); transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1); box-shadow: 0 2px 8px color-mix(in srgb, var(--color-text) 10%, transparent); }
-    .card:hover .card-hover-pill { opacity: 1; transform: translateY(0); }
-    .card-info { padding: 16px; }
-    .card-name { font-size: 14px; font-weight: 600; color: var(--color-text); }
-    .card-name.static { cursor: default; }
-    .card-meta { font-size: 12px; color: var(--color-muted); margin-top: 4px; display: flex; align-items: center; gap: 0; }
-    .dot { margin: 0 5px; color: var(--color-muted-soft); }
-    .public-badge { font-size: 10px; font-weight: 600; color: var(--color-accent-ink); background: var(--color-accent-soft); padding: 1px 6px; border-radius: 4px; }
-    
-    .card-actions { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
-    .action-open { font-size: 12px; font-weight: 500; color: var(--color-accent-ink); text-decoration: none; cursor: pointer; font-family: inherit; transition: color 0.15s; }
-    .action-open:hover { color: var(--color-accent-ink); text-decoration: underline; }
-    .action-rename { margin-left: auto; background: none; border: none; color: var(--color-muted-soft); cursor: pointer; padding: 4px; display: flex; align-items: center; border-radius: 6px; transition: color 0.15s, background 0.15s; }
-    .action-rename:hover { color: var(--color-text); background: var(--color-surface-2); }
-    .card-name-input { width: 100%; font-size: 14px; font-weight: 600; font-family: inherit; color: var(--color-text); background: var(--color-surface-2); border: 1px solid var(--color-accent); border-radius: 6px; padding: 2px 6px; outline: none; }
-    .action-delete { background: none; border: none; color: var(--color-muted-soft); cursor: pointer; padding: 4px; display: flex; align-items: center; border-radius: 6px; transition: color 0.15s, background 0.15s; }
-    .action-delete:hover { color: var(--color-danger); background: var(--color-danger-soft); }
-    .btn-use { background: none; border: 1px solid var(--color-accent); color: var(--color-accent-ink); border-radius: 10px; padding: 8px 20px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; text-decoration: none; transition: background 0.15s, color 0.15s; }
-    .btn-use:hover:not(:disabled) { background: var(--color-accent); color: #101010; }
-    .btn-use:disabled { opacity: 0.6; cursor: progress; }
-
-    .state-card { margin-top: 32px; padding: 40px 24px; border: 1px solid var(--color-border-1); border-radius: 14px; background: var(--color-surface-2); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-    .state-icon { color: var(--color-accent-ink); display: flex; }
-    .state-title { font-size: 16px; font-weight: 600; color: var(--color-text); margin: 0; }
-    .state-text { font-size: 13px; color: var(--color-muted); margin: 0; max-width: 420px; line-height: 1.5; }
-    .btn-retry { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; background: var(--color-accent); color: #101010; border: none; border-radius: 8px; padding: 9px 18px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
-    .btn-retry:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text)); }
-    .btn-retry:disabled { opacity: 0.7; cursor: progress; }
-    :global(.spin) { animation: tpl-spin 0.8s linear infinite; }
-    @keyframes tpl-spin { to { transform: rotate(360deg); } }
-    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--color-surface-2); color: var(--color-text); border: 1px solid var(--color-danger); border-radius: 10px; padding: 10px 16px; font-size: 13px; z-index: 50; box-shadow: 0 8px 24px color-mix(in srgb, var(--color-text) 12%, transparent); }
-    
-    .no-results { font-size: 13px; color: var(--color-muted); padding: 24px 0; }
-
-    @media (max-width: 768px) {
-        .topbar { flex-direction: column; align-items: flex-start; gap: 12px; }
-        .grid { grid-template-columns: 1fr 1fr; }
-    }
-    @media (max-width: 480px) {
-        .grid { grid-template-columns: 1fr; }
-        .tpl-container { padding: 88px 16px 36px; }
-        .title { font-size: 20px; }
-    }
+    .gl { flex: 1; min-width: 0; background: var(--color-bg); color: var(--color-text); font-family: var(--font-sans); }
+    .gl-main { padding: 36px 56px 64px; display: flex; flex-direction: column; gap: 22px; min-height: 860px; box-sizing: border-box; }
+    .state { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 44px 24px; }
+    .state-title { margin: 0; font-size: 17px; font-weight: 700; }
+    .state-text { margin: 0; font-size: 13.5px; color: var(--color-muted); max-width: 420px; line-height: 1.5; }
+    @media (max-width: 640px) { .gl-main { padding: 24px 16px 48px; } }
 </style>
