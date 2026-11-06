@@ -47,9 +47,7 @@
 		{#if !view.preview}<Sidebar />{/if}
 		<Canvas />
 		{#if !view.preview}
-			<div class="rp-slot" style="width:300px;flex-shrink:0;display:flex;flex-direction:column;overflow:auto;min-height:0">
-				<RightPanel />
-			</div>
+			<RightPanel />
 		{/if}
 	</div>
 	{#if view.toast}
@@ -58,12 +56,3 @@
 	<EditorModals />
 </div>
 
-<style>
-	/* Until the new right panel lands, the old one fills the design's 300 px column. */
-	.rp-slot :global(.right-panel) {
-		width: 100%;
-		min-width: 0;
-		max-width: none;
-		flex: 1;
-	}
-</style>

@@ -1,1016 +1,444 @@
 <script lang="ts">
-	import { editor } from '$lib/store.svelte';
-	import PropSection from './PropSection.svelte';
-	import ColorPicker from './ColorPicker.svelte';
-	import AlignmentPills from './AlignmentPills.svelte';
-	import SpacingEditor from './SpacingEditor.svelte';
-	import NumberInput from './NumberInput.svelte';
-	import Icon from './Icon.svelte';
-	import SendModal from './SendModal.svelte';
-	import SaveToMailerModal from './SaveToMailerModal.svelte';
-	import PlaceholderInput from './PlaceholderInput.svelte';
-	import PlaceholderWarnings from './PlaceholderWarnings.svelte';
-	import ManageLinksDialog from './ManageLinksDialog.svelte';
-	import { mailer } from '$lib/mailer.svelte';
-	import { mailerData } from '$lib/mailer-data.svelte';
+	// The editor's right column: the Properties aside of Editor.dc.html (renderVals, right:
+	// customize, right: styles, email container), wired to the real editor store. Every edit goes
+	// through the store setters with the design's merge keys, so typing, hex typing and number
+	// scrubbing join one undo step. The Insert field modal renders here while view.modal is
+	// 'insert'; its Manage links step is inside the same dialog.
 	import { onMount } from 'svelte';
-	import { editorUi } from '$lib/editor-ui.svelte';
+	import { editor, getPath, view } from '$lib/store.svelte';
+	import { mailerData } from '$lib/mailer-data.svelte';
+	import { theme as appTheme } from '$lib/stores/theme.svelte';
+	import { analyzePlaceholders, fallbackError, formatLink } from '$lib/placeholders';
+	import { resolveColor } from '$lib/colors';
+	import { textOn } from '$lib/template-settings';
+	import { BUTTON_WIDTHS, CORNERS, WEIGHTS, buttonWidthMode, type CornerStyle, type Sides } from '$lib/panel/constants';
+	import type { SuggestFieldDef, SuggestLinkDef } from '$lib/panel/suggest';
+	import { CATEGORY_GROUPS } from './editor/categories';
+	import LinksManager from './editor/LinksManager.svelte';
+	import AddButton from './panel/AddButton.svelte';
+	import AlignmentControl from './panel/AlignmentControl.svelte';
+	import BorderControls from './panel/BorderControls.svelte';
+	import CheckboxRow from './panel/CheckboxRow.svelte';
+	import CollapsibleSection from './panel/CollapsibleSection.svelte';
+	import ColorGrid from './panel/ColorGrid.svelte';
+	import ContentField from './panel/ContentField.svelte';
+	import EmptySelection from './panel/EmptySelection.svelte';
+	import FontSelect from './panel/FontSelect.svelte';
+	import InsertFieldModal from './panel/InsertFieldModal.svelte';
+	import LayoutPicker from './panel/LayoutPicker.svelte';
+	import NumberField from './panel/NumberField.svelte';
+	import PanelHeader from './panel/PanelHeader.svelte';
+	import PresetChips from './panel/PresetChips.svelte';
+	import SegmentedControl from './panel/SegmentedControl.svelte';
+	import ShadowPresets from './panel/ShadowPresets.svelte';
+	import SpacingFields from './panel/SpacingFields.svelte';
+	import TemplateDetails from './panel/TemplateDetails.svelte';
+	import WarningsCard from './panel/WarningsCard.svelte';
+	import WidthControl from './panel/WidthControl.svelte';
 
 	onMount(() => {
-		mailer.ensureLoaded();
+		mailerData.loadFields();
+		mailerData.loadLinks();
 	});
 
-	let activeTab = $state<'customize' | 'styles'>('customize');
+	// ---------- real fields and links ----------
+	const contacts = (n: number) => n + (n === 1 ? ' contact' : ' contacts');
+	const builtins = $derived<SuggestFieldDef[]>(mailerData.builtins.map((f) => ({ key: f.key, label: f.label })));
+	const contactFields = $derived<SuggestFieldDef[]>(
+		mailerData.contactFields.filter((f) => !builtins.some((b) => b.key === f.key)).map((f) => ({ key: f.key, label: contacts(f.count) })),
+	);
+	const suggestFields = $derived<SuggestFieldDef[]>([...builtins, ...contactFields.map((c) => ({ key: c.key, label: 'Custom field, ' + c.label }))]);
+	const links = $derived<SuggestLinkDef[]>(mailerData.links.map((l) => ({ key: l.key, label: l.label, url: l.url })));
 
-	function setProp(key: string, value: any) {
-		if (editor.selectedId) editor.updateProp(editor.selectedId, key, value);
+	// ---------- selection (design selB, P, t) ----------
+	const selB = $derived(editor.selected);
+	const P = $derived<Record<string, any>>(selB?.props ?? {});
+	const t = $derived(selB?.type ?? '');
+	const emailSel = $derived(editor.selectedKind === 'container');
+	const S = $derived(editor.settings);
+	const theme = $derived(editor.themeColor);
+	const rc = (v: unknown) => (typeof v === 'string' ? resolveColor(v, theme) : '');
+	const isTextual = $derived(t === 'heading' || t === 'subheading' || t === 'content' || t === 'section');
+
+	function set(path: string, v: unknown, key?: string | null) {
+		if (selB) editor.setProp(selB.id, path, v, key);
+	}
+	const num = (v: unknown, d = 0) => {
+		const n = Number(v);
+		return Number.isFinite(n) ? n : d;
+	};
+	// Stored weights are '400' / '600' / '700' (older templates have 'normal' and 'bold').
+	const weightNum = (v: unknown) => (v === 'bold' ? 700 : v === 'normal' ? 400 : num(v));
+
+	// ---------- content fields (design fields[]) ----------
+	type Field =
+		| { kind: 'sub'; label: string }
+		| { kind: 'input'; label: string; path: string; rows?: number; url?: boolean; ph?: string; reset?: () => void; remove?: () => void; removeAria?: string }
+		| { kind: 'num'; label: string; path: string; min: number; max: number; step: number; unit: string }
+		| { kind: 'check'; label: string; path: string }
+		| { kind: 'add'; label: string; add: () => void };
+
+	const fields = $derived.by<Field[]>(() => {
+		const out: Field[] = [];
+		if (!selB) return out;
+		const inp = (label: string, path: string, o: Partial<Extract<Field, { kind: 'input' }>> = {}) => out.push({ kind: 'input', label, path, ...o });
+		const nf = (label: string, path: string, min: number, max: number, step: number, unit: string) => out.push({ kind: 'num', label, path, min, max, step, unit });
+		const items = (P.items ?? []) as string[];
+		const rows = (P.rows ?? []) as { col1: string; col2: string }[];
+		const flinks = (P.links ?? []) as { label: string; url: string }[];
+		if (t === 'header') {
+			if (P.layout !== 'text-only') {
+				inp('Logo URL', 'logoUrl', { url: true, ph: 'Axene logo (default)', reset: String(P.logoUrl || '').trim() ? () => set('logoUrl', '') : undefined });
+				nf('Logo size', 'logoWidth', 16, 200, 1, 'px');
+			}
+			if (P.layout !== 'logo-only') {
+				inp('Company name', 'companyName');
+				inp('Tagline', 'tagline', { ph: 'Optional' });
+			}
+		}
+		if (t === 'heading' || t === 'subheading') inp('Text', 'text', { rows: 2 });
+		if (t === 'content') inp('Text', 'text', { rows: 5 });
+		if (t === 'section') inp('Text', 'text', { rows: 3 });
+		if (t === 'button') {
+			inp('Label', 'text');
+			inp('Link', 'href', { url: true, ph: 'https://' });
+		}
+		if (t === 'image') {
+			inp('Image URL', 'src', { url: true, ph: 'https://' });
+			inp('Alt text', 'alt', { ph: 'Describe the image' });
+			inp('Link', 'href', { url: true, ph: 'Optional' });
+			nf('Width', 'width', 80, 600, 1, 'px');
+		}
+		if (t === 'list') {
+			items.forEach((_, i) =>
+				inp('Item ' + (i + 1), 'items.' + i, { remove: () => set('items', items.filter((_x, j) => j !== i)), removeAria: 'Remove item ' + (i + 1) }),
+			);
+			out.push({ kind: 'add', label: 'Add item', add: () => set('items', [...items, 'New item']) });
+		}
+		if (t === 'table') {
+			out.push({ kind: 'check', label: 'Show header row', path: 'headerRow' });
+			if (P.headerRow) {
+				inp('Column 1 header', 'col1Header');
+				inp('Column 2 header', 'col2Header');
+			}
+			out.push({ kind: 'sub', label: 'Rows' });
+			rows.forEach((_, i) => {
+				inp('Row ' + (i + 1) + ', left', 'rows.' + i + '.col1');
+				inp('Row ' + (i + 1) + ', right', 'rows.' + i + '.col2', { remove: () => set('rows', rows.filter((_x, j) => j !== i)), removeAria: 'Remove row ' + (i + 1) });
+			});
+			out.push({ kind: 'add', label: 'Add row', add: () => set('rows', [...rows, { col1: 'Item', col2: 'Description' }]) });
+		}
+		if (t === 'footer') {
+			inp('Company name', 'companyName');
+			inp('Company address', 'companyAddress');
+			inp('Disclaimer', 'text', { rows: 2 });
+			out.push({ kind: 'check', label: 'Show divider line', path: 'showDivider' });
+			out.push({ kind: 'sub', label: 'Links' });
+			flinks.forEach((_, i) => {
+				inp('Link ' + (i + 1) + ' label', 'links.' + i + '.label');
+				inp('Link ' + (i + 1) + ' URL', 'links.' + i + '.url', { url: true, remove: () => set('links', flinks.filter((_x, j) => j !== i)), removeAria: 'Remove link ' + (i + 1) });
+			});
+			out.push({ kind: 'add', label: 'Add link', add: () => set('links', [...flinks, { label: 'Link', url: 'https://' }]) });
+			out.push({ kind: 'sub', label: 'Unsubscribe' });
+			inp('Link text', 'unsubText');
+			inp('Link URL', 'unsubUrl', { url: true });
+		}
+		return out;
+	});
+
+	const fieldValue = (path: string) => {
+		const v = getPath(P, path);
+		return v == null ? '' : String(v);
+	};
+	const insOpen = (path: string, mode: 'field' | 'link') => {
+		const it = view.insertTarget;
+		return view.modal === 'insert' && !!it && !!selB && it.id === selB.id && it.path === path && it.mode === mode;
+	};
+
+	/** Registers the SuggestField's input with the store so focus and the caret come back after an insert. */
+	function register(node: HTMLElement, arg: { id: string; path: string }) {
+		let un = () => {};
+		const reg = (a: { id: string; path: string }) => {
+			un();
+			const el = node.querySelector<HTMLInputElement | HTMLTextAreaElement>('input, textarea');
+			un = el ? editor.registerField(a.id, a.path, el) : () => {};
+		};
+		reg(arg);
+		return { update: reg, destroy: () => un() };
 	}
 
-	const inputClass = 'rp-input';
-	const labelClass = 'rp-label';
+	// ---------- typography ----------
+	const showSize = $derived(!!selB && t !== 'image');
+	const showLine = $derived(isTextual || t === 'list');
+	const showWeight = $derived(isTextual || t === 'header' || t === 'button');
 
-	let props = $derived(editor.selected?.props ?? {});
-	let blockType = $derived(editor.selected?.type ?? null);
+	// ---------- colors (design colorRows) ----------
+	type Row = { label: string; hint?: string; value: string; on: (hex: string, key?: string) => void };
+	const fillOf = $derived(selB && P.backgroundColor && P.backgroundColor !== 'transparent' ? rc(P.backgroundColor) : '');
+	const themeSet = (v: string, key?: string) => editor.setTemplateSettings({ color: v }, key ? 'tplhex' : null);
+	const propSet = (path: string) => (v: string, key?: string) => set(path, v, key ? 'hex' + path : null);
+	const colorRows = $derived.by<Row[]>(() => {
+		if (!selB) return [];
+		const out: Row[] = [{ label: 'Accent color', hint: '(buttons and theme)', value: theme, on: themeSet }];
+		if (t === 'table') {
+			out.push({ label: 'Header background', value: rc(P.headerBg), on: propSet('headerBg') });
+			out.push({ label: 'Text color', value: rc(P.cellColor), on: propSet('cellColor') });
+			out.push({ label: 'Lines', value: rc(P.borderColor), on: propSet('borderColor') });
+		} else {
+			out.push({ label: 'Background', hint: t === 'button' ? '(button fill)' : '', value: fillOf || '#ffffff', on: propSet('backgroundColor') });
+			if (t !== 'image') {
+				const c = t === 'header' || t === 'button' ? textOn(fillOf || '#ffffff', P.color) : fillOf ? textOn(fillOf, P.color) : rc(P.color);
+				out.push({ label: 'Text color', value: c, on: propSet('color') });
+			}
+			if (t === 'list') out.push({ label: 'Bullet color', value: rc(P.bulletColor), on: propSet('bulletColor') });
+			if (t === 'footer') out.push({ label: 'Link color', value: rc(P.linkColor), on: propSet('linkColor') });
+		}
+		return out;
+	});
 
-	let buttonWidthMode = $derived<'auto' | 'custom' | 'full'>(
-		props.width === -1 ? 'full' : props.width > 0 ? 'custom' : 'auto'
+	// ---------- spacing ----------
+	let padLinked = $state(false);
+	const pads = $derived<Sides>({ top: num(P.paddingTop), right: num(P.paddingRight), bottom: num(P.paddingBottom), left: num(P.paddingLeft) });
+	function setPads(next: Sides, key?: string) {
+		if (!selB) return;
+		editor.setProps(selB.id, { paddingTop: next.top, paddingRight: next.right, paddingBottom: next.bottom, paddingLeft: next.left }, key ?? null);
+	}
+
+	// ---------- shape ----------
+	const hasRadius = $derived(t === 'button' || t === 'image' || t === 'section');
+	const showShape = $derived(hasRadius || t === 'image' || t === 'button');
+	const btnW = $derived(num(P.width));
+
+	// ---------- email container ----------
+	const dark = $derived(appTheme.resolved === 'dark');
+	const cornerOptions = CORNERS.map((c) => ({ value: c.px, label: c.label }));
+	const presetByPx = (px: number): CornerStyle => CORNERS.find((c) => c.px === px)?.value ?? 'square';
+
+	// ---------- styles tab ----------
+	const categories = CATEGORY_GROUPS.flatMap(([g, opts]) => opts.map(([value, label]) => ({ value, label: (g ? g + ': ' : '') + label })));
+
+	// ---------- warnings (real placeholder analysis, the design's copy) ----------
+	const warnings = $derived(
+		analyzePlaceholders(editor.blocks, { fields: mailerData.knownFields, links: mailerData.knownLinks }).map((i) => {
+			if (i.kind === 'unknown_field') return { text: i.text, reason: 'Not a contact field, and it has no fallback.' };
+			if (i.kind === 'unknown_link') return { text: i.text, reason: 'No named link has this key.' };
+			const inner = i.text.replace(/^\{+/, '').trim();
+			if (/^[#/^]|^else\b/.test(inner)) return { text: i.text, reason: 'Logic blocks are not supported.' };
+			return { text: i.text, reason: i.reason.charAt(0).toUpperCase() + i.reason.slice(1) + '.' };
+		}),
 	);
 
-	const layouts = [
-		{
-			value: 'logo-left',
-			title: 'Logo Left',
-			svg: `<svg width="32" height="22" viewBox="0 0 32 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="11" r="4" fill="currentColor" stroke="none" opacity="0.4"/><line x1="15" y1="9" x2="28" y2="9"/><line x1="15" y1="13" x2="24" y2="13"/></svg>`,
-		},
-		{
-			value: 'logo-center',
-			title: 'Logo Center',
-			svg: `<svg width="32" height="22" viewBox="0 0 32 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="16" cy="7" r="3.5" fill="currentColor" stroke="none" opacity="0.4"/><line x1="9" y1="14" x2="23" y2="14"/><line x1="11" y1="18" x2="21" y2="18"/></svg>`,
-		},
-		{
-			value: 'logo-right',
-			title: 'Logo Right',
-			svg: `<svg width="32" height="22" viewBox="0 0 32 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="24" cy="11" r="4" fill="currentColor" stroke="none" opacity="0.4"/><line x1="4" y1="9" x2="17" y2="9"/><line x1="8" y1="13" x2="17" y2="13"/></svg>`,
-		},
-		{
-			value: 'logo-only',
-			title: 'Logo Only',
-			svg: `<svg width="32" height="22" viewBox="0 0 32 22"><circle cx="16" cy="11" r="6" fill="currentColor" stroke="none" opacity="0.4"/></svg>`,
-		},
-		{
-			value: 'text-only',
-			title: 'Text Only',
-			svg: `<svg width="32" height="22" viewBox="0 0 32 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="8" y1="8" x2="24" y2="8"/><line x1="6" y1="12" x2="26" y2="12"/><line x1="10" y1="16" x2="22" y2="16"/></svg>`,
-		},
+	// ---------- insert field modal ----------
+	function pick(token: string) {
+		const it = view.insertTarget;
+		if (!it) return;
+		if (it.mode === 'link') editor.replaceField(it.id, it.path, token);
+		else editor.insertAt(it.id, it.path, token);
+		view.closeModal();
+	}
+
+	const sec = (k: string) => ({ open: view.isOpen(k), ontoggle: () => view.toggleSection(k) });
+	const TABS = [
+		{ value: 'customize' as const, label: 'Customize' },
+		{ value: 'styles' as const, label: 'Styles' },
 	];
 </script>
 
-<div class="right-panel">
+<aside aria-label="Properties" style="width:300px;flex-shrink:0;padding:4px 16px 20px 12px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px;overflow:auto">
+	<SegmentedControl role="tablist" stretch options={TABS} value={view.rightTab} onchange={(v) => (view.rightTab = v)} />
 
-	<!-- Top bar -->
-	<div class="rp-topbar">
-		<div class="rp-icon-group">
-			<button
-				class="rp-icon-btn"
-				title="Download HTML"
-				aria-label="Download HTML"
-				onclick={() => editor.downloadHtml()}
-				disabled={!editor.previewHtml}
-			>
-				<Icon name="download" width={14} height={14} />
-			</button>
-		</div>
-
-		<button
-			class="rp-save-mail"
-			title={editor.mailerTemplateId ? 'Update the linked template in your Axene Mailer account' : 'Save this template into your Axene Mailer account'}
-			onclick={() => (editorUi.saveMailerOpen = true)}
-		>
-			<Icon name="save" width={14} height={14} />
-			{editor.mailerTemplateId ? 'Update in Mailer' : 'Save to Mailer'}
-		</button>
-
-		<button class="rp-use-mail" title="Send this template with your Axene Mailer account" onclick={() => (editorUi.sendOpen = true)}>
-			<Icon name="send" width={14} height={14} />
-			Send
-		</button>
-	</div>
-
-	<SendModal open={editorUi.sendOpen} onclose={() => (editorUi.sendOpen = false)} />
-	<SaveToMailerModal open={editorUi.saveMailerOpen} onclose={() => (editorUi.saveMailerOpen = false)} />
-
-	<!-- Tab switcher -->
-	<div class="rp-tab-wrap">
-		<button
-			class="rp-tab"
-			class:active={activeTab === 'customize'}
-			onclick={() => activeTab = 'customize'}
-		>Customize</button>
-		<button
-			class="rp-tab"
-			class:active={activeTab === 'styles'}
-			onclick={() => activeTab = 'styles'}
-		>Styles</button>
-		<div class="rp-tab-indicator" style="transform: translateX({activeTab === 'customize' ? '0%' : '100%'})"></div>
-	</div>
-
-	<!-- Panel content -->
-	{#if !editor.selected}
-		<div class="rp-empty">
-			<div class="rp-empty-icon">
-				<Icon name="pointer" width={22} height={22} />
-			</div>
-			<span class="rp-empty-title">Nothing selected</span>
-			<span class="rp-empty-sub">Click a block on the canvas to edit its properties</span>
-		</div>
-
-	{:else if activeTab === 'customize'}
-
-		<!-- ======================== HEADER ======================== -->
-		{#if blockType === 'header'}
-
-			<PropSection title="Layout">
-				<div class="rp-layout-picker">
-					{#each layouts as opt}
-						<button
-							type="button"
-							class="rp-layout-btn"
-							class:active={(props.layout ?? 'logo-left') === opt.value}
-							title={opt.title}
-							onclick={() => setProp('layout', opt.value)}
-						>
-							{@html opt.svg}
-						</button>
-					{/each}
-				</div>
-			</PropSection>
-
-			<PropSection title="Content">
-				<div class="rp-flex-col">
-					{#if (props.layout ?? 'logo-left') !== 'text-only'}
-						<div>
-							<label class={labelClass}>Logo URL</label>
-							<PlaceholderInput url value={props.logoUrl ?? ''} oninput={(v) => setProp('logoUrl', v)} />
-						</div>
-						<NumberInput label="Logo Size" value={props.logoWidth ?? 40} unit="px" onchange={(v) => setProp('logoWidth', v)} />
-					{/if}
-					{#if (props.layout ?? 'logo-left') !== 'logo-only'}
-						<div>
-							<label class={labelClass}>Company Name</label>
-							<PlaceholderInput value={props.companyName ?? ''} oninput={(v) => setProp('companyName', v)} />
-						</div>
-						<div>
-							<label class={labelClass}>Tagline</label>
-							<PlaceholderInput value={props.tagline ?? ''} oninput={(v) => setProp('tagline', v)} />
-						</div>
-						<NumberInput label="Font Size" value={props.fontSize ?? 20} unit="px" onchange={(v) => setProp('fontSize', v)} />
-					{/if}
-				</div>
-			</PropSection>
-
-			<PropSection title="Colors">
-				<div class="rp-flex-col">
-					<div>
-						<label class={labelClass}>Accent Color <span class="rp-label-hint">(buttons & theme)</span></label>
-						<ColorPicker value={props.accentColor ?? '#FFD100'} onchange={(hex) => setProp('accentColor', hex)} />
-					</div>
-					<div>
-						<label class={labelClass}>Background</label>
-						<ColorPicker value={props.backgroundColor ?? '#FFD100'} onchange={(hex) => setProp('backgroundColor', hex)} />
-					</div>
-					{#if (props.layout ?? 'logo-left') !== 'logo-only'}
-						<div>
-							<label class={labelClass}>Text Color</label>
-							<ColorPicker value={props.color ?? '#ffffff'} onchange={(hex) => setProp('color', hex)} />
-						</div>
-					{/if}
-				</div>
-			</PropSection>
-
-		<!-- ======================== TEXT BLOCKS ======================== -->
-		{:else if blockType === 'heading' || blockType === 'subheading' || blockType === 'content'}
-
-			<PropSection title="Content">
-				<div class="rp-flex-col">
-					<div>
-						<label class={labelClass}>Text</label>
-						<PlaceholderInput multiline rows={3} value={props.text ?? ''} oninput={(v) => setProp('text', v)} />
-					</div>
-				</div>
-			</PropSection>
-
-			<PropSection title="Typography">
-				<div class="rp-flex-col">
-					<NumberInput label="Font Size" value={props.fontSize ?? 14} unit="px" onchange={(v) => setProp('fontSize', v)} />
-					<div>
-						<label class={labelClass}>Weight</label>
-						<div class="rp-flex-row">
-							<button type="button" class="rp-width-pill" class:active={(props.fontWeight ?? 'normal') === 'normal'} onclick={() => setProp('fontWeight', 'normal')}>Normal</button>
-							<button type="button" class="rp-width-pill" class:active={(props.fontWeight ?? 'normal') === 'bold'} onclick={() => setProp('fontWeight', 'bold')}>Bold</button>
-						</div>
-					</div>
-					<div>
-						<label class={labelClass}>Color</label>
-						<ColorPicker value={props.color ?? '#374151'} onchange={(hex) => setProp('color', hex)} />
-					</div>
-					<div>
-						<label class={labelClass}>Alignment</label>
-						<AlignmentPills value={props.align ?? 'left'} onchange={(a) => setProp('align', a)} />
-					</div>
-				</div>
-			</PropSection>
-
-		<!-- ======================== BUTTON ======================== -->
-		{:else if blockType === 'button'}
-
-			<PropSection title="Button">
-				<div class="rp-flex-col">
-					<div>
-						<label class={labelClass}>Label</label>
-						<PlaceholderInput value={props.text ?? ''} oninput={(v) => setProp('text', v)} />
-					</div>
-					<div>
-						<label class={labelClass}>Link URL</label>
-						<PlaceholderInput url value={props.href ?? ''} oninput={(v) => setProp('href', v)} />
-					</div>
-					<div>
-						<label class={labelClass}>Width</label>
-						<div class="rp-flex-row">
-							<button type="button" class="rp-width-pill" class:active={buttonWidthMode === 'auto'} onclick={() => setProp('width', 0)}>Auto</button>
-							<button type="button" class="rp-width-pill" class:active={buttonWidthMode === 'custom'} onclick={() => setProp('width', 200)}>Custom</button>
-							<button type="button" class="rp-width-pill" class:active={buttonWidthMode === 'full'} onclick={() => setProp('width', -1)}>Full</button>
-						</div>
-						{#if buttonWidthMode === 'custom'}
-							<div style="margin-top:8px;">
-								<NumberInput label="Width" value={props.width} unit="px" min={40} max={600} onchange={(v) => setProp('width', v)} />
-							</div>
-						{/if}
-					</div>
-					<NumberInput label="Radius" value={props.borderRadius ?? 6} unit="px" max={50} onchange={(v) => setProp('borderRadius', v)} />
-				</div>
-			</PropSection>
-
-			<PropSection title="Colors">
-				<div class="rp-flex-col">
-					<div>
-						<label class={labelClass}>Background</label>
-						<ColorPicker value={props.backgroundColor ?? '#FFD100'} onchange={(hex) => setProp('backgroundColor', hex)} />
-					</div>
-					<div>
-						<label class={labelClass}>Text</label>
-						<ColorPicker value={props.color ?? '#ffffff'} onchange={(hex) => setProp('color', hex)} />
-					</div>
-				</div>
-			</PropSection>
-
-			<PropSection title="Alignment">
-				<AlignmentPills value={props.align ?? 'center'} onchange={(a) => setProp('align', a)} />
-			</PropSection>
-
-		<!-- ======================== IMAGE ======================== -->
-		{:else if blockType === 'image'}
-
-			<PropSection title="Image">
-				<div class="rp-flex-col">
-					<div>
-						<label class={labelClass}>Source URL</label>
-						<PlaceholderInput url value={props.src ?? ''} oninput={(v) => setProp('src', v)} />
-					</div>
-					<div>
-						<label class={labelClass}>Alt Text</label>
-						<PlaceholderInput value={props.alt ?? ''} oninput={(v) => setProp('alt', v)} />
-					</div>
-					<NumberInput label="Width" value={props.width ?? 600} unit="px" max={600} onchange={(v) => setProp('width', v)} />
-					<div>
-						<label class={labelClass}>Link URL</label>
-						<PlaceholderInput url value={props.href ?? ''} oninput={(v) => setProp('href', v)} />
-					</div>
-				</div>
-			</PropSection>
-
-		<!-- ======================== LIST ======================== -->
-		{:else if blockType === 'list'}
-
-			<PropSection title="Items">
-				<div class="rp-flex-col">
-					{#each (props.items ?? []) as item, i}
-						<div class="rp-item-row">
-							<PlaceholderInput
-								value={item}
-								oninput={(v) => {
-									const updated = [...(props.items ?? [])];
-									updated[i] = v;
-									setProp('items', updated);
-								}}
-							/>
-							<button
-								type="button"
-								class="rp-del-btn"
-								onclick={() => {
-									const updated = (props.items ?? []).filter((_: string, idx: number) => idx !== i);
-									setProp('items', updated);
-								}}
-							>
-								<Icon name="close" width={12} height={12} />
-							</button>
-						</div>
-					{/each}
-					<button
-						type="button"
-						class="rp-add-btn"
-						onclick={() => setProp('items', [...(props.items ?? []), 'New item'])}
-					>
-						<Icon name="plus" width={12} height={12} />
-						Add item
-					</button>
-				</div>
-			</PropSection>
-
-			<PropSection title="Style">
-				<div class="rp-flex-col">
-					<NumberInput label="Font Size" value={props.fontSize ?? 14} unit="px" onchange={(v) => setProp('fontSize', v)} />
-					<div>
-						<label class={labelClass}>Text Color</label>
-						<ColorPicker value={props.color ?? '#374151'} onchange={(hex) => setProp('color', hex)} />
-					</div>
-					<div>
-						<label class={labelClass}>Bullet Color</label>
-						<ColorPicker value={props.bulletColor ?? '#FFD100'} onchange={(hex) => setProp('bulletColor', hex)} />
-					</div>
-				</div>
-			</PropSection>
-
-		<!-- ======================== TABLE ======================== -->
-		{:else if blockType === 'table'}
-
-			<PropSection title="Table">
-				<div class="rp-flex-col">
-					<label class="rp-checkbox-row">
-						<input type="checkbox" checked={props.headerRow ?? true} onchange={(e) => setProp('headerRow', (e.target as HTMLInputElement).checked)} />
-						Show header row
-					</label>
-					{#if props.headerRow}
-						<div>
-							<label class={labelClass}>Column 1 Header</label>
-							<PlaceholderInput value={props.col1Header ?? ''} oninput={(v) => setProp('col1Header', v)} />
-						</div>
-						<div>
-							<label class={labelClass}>Column 2 Header</label>
-							<PlaceholderInput value={props.col2Header ?? ''} oninput={(v) => setProp('col2Header', v)} />
-						</div>
-					{/if}
-				</div>
-			</PropSection>
-
-			<PropSection title="Rows">
-				<div class="rp-flex-col">
-					{#each props.rows ?? [] as row, i}
-						<div class="rp-item-row">
-							<div class="rp-flex-col" style="flex:1;">
-								<PlaceholderInput style="font-size:10.5px;" value={row.col1} placeholder="Col 1" oninput={(v) => {
-									const rows = [...(props.rows ?? [])];
-									rows[i] = { ...rows[i], col1: v };
-									setProp('rows', rows);
-								}} />
-								<PlaceholderInput style="font-size:10.5px;" value={row.col2} placeholder="Col 2" oninput={(v) => {
-									const rows = [...(props.rows ?? [])];
-									rows[i] = { ...rows[i], col2: v };
-									setProp('rows', rows);
-								}} />
-							</div>
-							<button class="rp-del-btn" onclick={() => {
-								const rows = (props.rows ?? []).filter((_: any, j: number) => j !== i);
-								setProp('rows', rows);
-							}}>
-								<Icon name="close" width={12} height={12} />
-							</button>
-						</div>
-					{/each}
-					<button class="rp-add-btn" onclick={() => {
-						setProp('rows', [...(props.rows ?? []), { col1: 'Item', col2: 'Description' }]);
-					}}>
-						<Icon name="plus" width={12} height={12} />
-						Add row
-					</button>
-				</div>
-			</PropSection>
-
-			<PropSection title="Colors">
-				<div class="rp-flex-col">
-					<div>
-						<label class={labelClass}>Header Background</label>
-						<ColorPicker value={props.headerBg ?? '#f3f4f6'} onchange={(hex) => setProp('headerBg', hex)} />
-					</div>
-					<div>
-						<label class={labelClass}>Cell Text</label>
-						<ColorPicker value={props.cellColor ?? '#374151'} onchange={(hex) => setProp('cellColor', hex)} />
-					</div>
-					<div>
-						<label class={labelClass}>Border</label>
-						<ColorPicker value={props.borderColor ?? '#e5e7eb'} onchange={(hex) => setProp('borderColor', hex)} />
-					</div>
-				</div>
-			</PropSection>
-
-		<!-- ======================== FOOTER ======================== -->
-		{:else if blockType === 'footer'}
-
-			<PropSection title="Content">
-				<div class="rp-flex-col">
-					<div>
-						<label class={labelClass}>Company Name</label>
-						<PlaceholderInput value={props.companyName ?? ''} oninput={(v) => setProp('companyName', v)} />
-					</div>
-					<div>
-						<label class={labelClass}>Company Address</label>
-						<PlaceholderInput value={props.companyAddress ?? ''} oninput={(v) => setProp('companyAddress', v)} />
-					</div>
-					<div>
-						<label class={labelClass}>Disclaimer Text</label>
-						<PlaceholderInput multiline rows={2} value={props.text ?? ''} oninput={(v) => setProp('text', v)} />
-					</div>
-					<label class="rp-checkbox-row">
-						<input type="checkbox" checked={props.showDivider ?? true} onchange={(e) => setProp('showDivider', (e.target as HTMLInputElement).checked)} />
-						Show divider line
-					</label>
-				</div>
-			</PropSection>
-
-			<PropSection title="Links">
-				<div class="rp-flex-col">
-					{#each props.links ?? [] as link, i}
-						<div class="rp-item-row">
-							<div class="rp-flex-col" style="flex:1;">
-								<PlaceholderInput style="font-size:10.5px;" value={link.label} placeholder="Label" oninput={(v) => {
-									const links = [...(props.links ?? [])];
-									links[i] = { ...links[i], label: v };
-									setProp('links', links);
-								}} />
-								<PlaceholderInput url style="font-size:10.5px;" value={link.url} placeholder="URL" oninput={(v) => {
-									const links = [...(props.links ?? [])];
-									links[i] = { ...links[i], url: v };
-									setProp('links', links);
-								}} />
-							</div>
-							<button class="rp-del-btn" onclick={() => {
-								const links = (props.links ?? []).filter((_: any, j: number) => j !== i);
-								setProp('links', links);
-							}}>
-								<Icon name="close" width={12} height={12} />
-							</button>
-						</div>
-					{/each}
-					<button class="rp-add-btn" onclick={() => {
-						setProp('links', [...(props.links ?? []), { label: 'Link', url: 'https://' }]);
-					}}>
-						<Icon name="plus" width={12} height={12} />
-						Add link
-					</button>
-				</div>
-			</PropSection>
-
-			<PropSection title="Unsubscribe">
-				<div class="rp-flex-col">
-					<div>
-						<label class={labelClass}>Link Text</label>
-						<PlaceholderInput value={props.unsubText ?? 'Unsubscribe'} oninput={(v) => setProp('unsubText', v)} />
-					</div>
-					<div>
-						<label class={labelClass}>Link URL</label>
-						<PlaceholderInput url value={props.unsubUrl ?? ''} oninput={(v) => setProp('unsubUrl', v)} />
-					</div>
-				</div>
-			</PropSection>
-
-			<PropSection title="Typography">
-				<div class="rp-flex-col">
-					<NumberInput label="Size" value={props.fontSize ?? 12} unit="px" onchange={(v) => setProp('fontSize', v)} />
-					<div>
-						<label class={labelClass}>Text Color</label>
-						<ColorPicker value={props.color ?? '#9ca3af'} onchange={(hex) => setProp('color', hex)} />
-					</div>
-					<div>
-						<label class={labelClass}>Link Color</label>
-						<ColorPicker value={props.linkColor ?? '#6b7280'} onchange={(hex) => setProp('linkColor', hex)} />
-					</div>
-					<AlignmentPills value={props.align ?? 'center'} onchange={(a) => setProp('align', a)} />
-				</div>
-			</PropSection>
-
-		<!-- ======================== SECTION ======================== -->
-		{:else if blockType === 'section'}
-
-			<PropSection title="Section">
-				<div class="rp-flex-col">
-					<div>
-						<label class={labelClass}>Background</label>
-						<ColorPicker value={props.backgroundColor ?? '#f5f5f5'} onchange={(hex) => setProp('backgroundColor', hex)} />
-					</div>
-				</div>
-			</PropSection>
-
-		{/if}
-
-	{:else}
-		<!-- ======================== STYLES TAB ======================== -->
-		{#if editor.selected}
-			<PropSection title="Spacing">
-				<SpacingEditor
-					top={props.paddingTop ?? 0}
-					right={props.paddingRight ?? 0}
-					bottom={props.paddingBottom ?? 0}
-					left={props.paddingLeft ?? 0}
-					onchange={(key, value) => setProp(key, value)}
+	{#if view.rightTab === 'customize'}
+		{#if emailSel}
+			<PanelHeader title="Email" chip="Container" ondeselect={() => editor.deselect()} />
+			<CollapsibleSection title="Layout" {...sec('eLayout')}>
+				<WidthControl value={S.width} onchange={(v, key) => editor.setTemplateSettings({ width: v }, key)} device={view.device} ondevice={(d) => (view.device = d)} />
+			</CollapsibleSection>
+			<CollapsibleSection title="Appearance" {...sec('eLook')}>
+				<ColorGrid label="Background" value={S.bg} onchange={(v, key) => editor.setTemplateSettings({ bg: v }, key ? 'ebg' : null)} />
+				<ColorGrid label="Page background" hint="(around the email)" value={S.pageBg || (dark ? '#1e1c1a' : '#efeee5')} onchange={(v, key) => editor.setTemplateSettings({ pageBg: v }, key ? 'epg' : null)} />
+			</CollapsibleSection>
+			<CollapsibleSection title="Shape" {...sec('eShape')}>
+				<NumberField label="Radius" value={editor.cornerPx} min={0} max={32} unit="px" ariaLabel="Email corner radius" mergeKey="eradius" onchange={(v, key) => editor.setContainerRadius(v, key)} />
+				<PresetChips ariaLabel="Corner presets" options={cornerOptions} value={editor.cornerPx} onpick={(px) => editor.setCorners(presetByPx(px))} />
+			</CollapsibleSection>
+			<CollapsibleSection title="Border" {...sec('eBorder')}>
+				<BorderControls
+					borderStyle={S.bStyle}
+					onstyle={(v) => editor.setTemplateSettings({ bStyle: v })}
+					width={S.bWidth}
+					onwidth={(v, key) => editor.setTemplateSettings({ bWidth: v }, key)}
+					color={S.bColor}
+					oncolor={(v, key) => editor.setTemplateSettings({ bColor: v }, key ? 'ebc' : null)}
 				/>
-			</PropSection>
+			</CollapsibleSection>
+			<CollapsibleSection title="Shadow" {...sec('eShadow')}>
+				<ShadowPresets value={S.shadow} onchange={(v) => editor.setTemplateSettings({ shadow: v })} />
+			</CollapsibleSection>
+			<CollapsibleSection title="Spacing" {...sec('eSpace')}>
+				<NumberField label="Padding" value={S.pad} min={0} max={48} unit="px" ariaLabel="Email inner padding" mergeKey="epad" onchange={(v, key) => editor.setTemplateSettings({ pad: v }, key)} />
+				<span style="font-size:12px;line-height:1.45;color:var(--muted)">Inner padding between the email edge and its blocks.</span>
+			</CollapsibleSection>
+			<CollapsibleSection title="Typography" {...sec('eType')}>
+				<div class="lbl">Font family</div>
+				<FontSelect value={S.font} onchange={(v) => editor.setTemplateSettings({ font: v })} loadFonts={false} />
+				<ColorGrid label="Text color" hint="(all text blocks)" value={S.textColor} onchange={(v, key) => editor.setBaseTextColor(v, key ? 'etext' : null)} />
+			</CollapsibleSection>
+		{:else if !selB}
+			<EmptySelection />
+		{:else}
+			{@const id = selB.id}
+			<PanelHeader title={editor.typeName(selB.type)} ondelete={() => view.requestDelete(id)} ondeselect={() => editor.deselect()} />
 
-			{#if blockType !== 'image'}
-				<PropSection title="Background">
-					<div>
-						<label class={labelClass}>Color</label>
-						<ColorPicker value={props.backgroundColor ?? '#ffffff'} onchange={(hex) => setProp('backgroundColor', hex)} />
+			<CollapsibleSection title="Layout" {...sec('layout')}>
+				{#if t === 'header'}
+					<LayoutPicker value={P.layout} onchange={(v) => set('layout', v)} />
+				{/if}
+				<AlignmentControl value={P.align} onchange={(v) => set('align', v)} />
+			</CollapsibleSection>
+
+			<CollapsibleSection title="Content" {...sec('content')}>
+				{#key id}
+					{#each fields as f, k (t + ':' + k + ':' + ('path' in f ? f.path : f.label))}
+						{#if f.kind === 'sub'}
+							<div class="cap" style="padding-top:4px">{f.label}</div>
+						{:else if f.kind === 'input'}
+							{@const path = f.path}
+							<div style="display:contents" use:register={{ id, path }}>
+								<ContentField
+									label={f.label}
+									value={fieldValue(path)}
+									onchange={(v) => set(path, v, path)}
+									fields={suggestFields}
+									{links}
+									multiline={!!f.rows}
+									rows={f.rows ?? 1}
+									placeholder={f.ph ?? ''}
+									url={!!f.url}
+									oncaret={(c) => editor.rememberCaret(id, path, c)}
+									oninsert={() => view.openInsert(id, path, 'field')}
+									insertOpen={insOpen(path, 'field')}
+									onlink={f.url ? () => view.openInsert(id, path, 'link') : undefined}
+									linkOpen={insOpen(path, 'link')}
+									onreset={f.reset}
+									onremove={f.remove}
+									removeLabel={f.removeAria ?? 'Remove'}
+								/>
+							</div>
+						{:else if f.kind === 'num'}
+							{@const path = f.path}
+							<NumberField label={f.label} value={num(P[path])} min={f.min} max={f.max} step={f.step} unit={f.unit} mergeKey={path} onchange={(v, key) => set(path, v, key)} />
+						{:else if f.kind === 'check'}
+							{@const path = f.path}
+							<CheckboxRow label={f.label} checked={!!P[path]} onchange={(on) => set(path, on)} />
+						{:else}
+							<AddButton label={f.label} onclick={f.add} />
+						{/if}
+					{/each}
+				{/key}
+				{#if !fields.length}<div style="font-size:12.5px;line-height:1.5;color:var(--muted)">This block has no text.</div>{/if}
+			</CollapsibleSection>
+
+			{#if showSize || showLine}
+				<CollapsibleSection title="Typography" {...sec('typo')}>
+					<div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:6px">
+						{#if showSize}<NumberField label="Size" value={num(P.fontSize, 14)} min={8} max={72} unit="px" mergeKey="fontSize" onchange={(v, key) => set('fontSize', v, key)} />{/if}
+						{#if showLine}<NumberField label="Line" value={num(P.lineHeight, 1.5)} min={1} max={2.6} step={0.05} unit="x" mergeKey="lineHeight" onchange={(v, key) => set('lineHeight', v, key)} />{/if}
 					</div>
-				</PropSection>
+					{#if showWeight}
+						<SegmentedControl label="Weight" variant="invert" options={WEIGHTS} value={weightNum(P.fontWeight)} onchange={(w) => set('fontWeight', String(w))} />
+					{/if}
+				</CollapsibleSection>
 			{/if}
 
-			<PropSection title="Border">
-				<div class="rp-flex-col">
-					<NumberInput label="Radius" value={props.borderRadius ?? 0} unit="px" max={50} onchange={(v) => setProp('borderRadius', v)} />
-					<div>
-						<label class={labelClass}>Border Style</label>
-						<select
-							class={inputClass}
-							value={props.borderStyle ?? 'none'}
-							onchange={(e) => setProp('borderStyle', (e.target as HTMLSelectElement).value)}
-						>
-							<option value="none">None</option>
-							<option value="solid">Solid</option>
-							<option value="dashed">Dashed</option>
-							<option value="dotted">Dotted</option>
-						</select>
+			<CollapsibleSection title="Colors" {...sec('colors')}>
+				{#each colorRows as c (c.label)}
+					<ColorGrid label={c.label} hint={c.hint ?? ''} value={c.value} onchange={c.on} />
+				{/each}
+			</CollapsibleSection>
+
+			<CollapsibleSection title="Spacing" dense {...sec('spacing')}>
+				<SpacingFields value={pads} linked={padLinked} onlink={(on) => (padLinked = on)} onchange={setPads} />
+			</CollapsibleSection>
+
+			{#if showShape}
+				<CollapsibleSection title="Shape" {...sec('shape')}>
+					<div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:6px">
+						{#if hasRadius}<NumberField label="Radius" value={num(P.borderRadius)} min={0} max={40} unit="px" ariaLabel="Corner radius" mergeKey="borderRadius" onchange={(v, key) => set('borderRadius', v, key)} />{/if}
+						{#if t === 'image'}<NumberField label="Height" value={num(P.imageHeight)} min={80} max={400} step={5} unit="px" ariaLabel="Image height" mergeKey="imageHeight" onchange={(v, key) => set('imageHeight', v, key)} />{/if}
 					</div>
-					{#if props.borderStyle && props.borderStyle !== 'none'}
-						<div>
-							<label class={labelClass}>Border Color</label>
-							<ColorPicker value={props.borderColor ?? '#d1d5db'} onchange={(hex) => setProp('borderColor', hex)} />
-						</div>
+					{#if t === 'button'}
+						<SegmentedControl
+							label="Button width"
+							ariaLabel="Button width"
+							options={BUTTON_WIDTHS.map((w) => ({ value: w.value, label: w.label }))}
+							value={buttonWidthMode(btnW)}
+							onchange={(v) => set('width', BUTTON_WIDTHS.find((w) => w.value === v)?.width ?? 0)}
+						/>
+						{#if btnW > 0}
+							<NumberField label="Width" value={btnW} min={40} max={600} unit="px" ariaLabel="Button width" mergeKey="width" onchange={(v, key) => set('width', v, key)} />
+						{/if}
 					{/if}
-				</div>
-			</PropSection>
+				</CollapsibleSection>
+			{/if}
 		{/if}
+	{:else}
+		<CollapsibleSection title="Theme color" {...sec('theme')}>
+			<ColorGrid label="Theme color" hint="(buttons, header, bullets)" value={theme} onchange={themeSet} />
+		</CollapsibleSection>
+		<CollapsibleSection title="Font family" {...sec('font')}>
+			<FontSelect value={S.font} onchange={(v) => editor.setTemplateSettings({ font: v })} loadFonts={false} />
+		</CollapsibleSection>
+		<CollapsibleSection title="Email width" {...sec('width')}>
+			<WidthControl value={S.width} onchange={(v, key) => editor.setTemplateSettings({ width: v }, key)} />
+		</CollapsibleSection>
+		<CollapsibleSection title="Corner style" {...sec('corners')}>
+			<SegmentedControl
+				ariaLabel="Corner style"
+				options={CORNERS}
+				value={CORNERS.find((c) => c.px === editor.cornerPx)?.value ?? null}
+				onchange={(v) => editor.setCorners(v)}
+			/>
+			<span style="font-size:12px;line-height:1.45;color:var(--muted)">Rounds the email, buttons and images together.</span>
+		</CollapsibleSection>
+		{#if selB}
+			{@const id = selB.id}
+			<CollapsibleSection title="Block border" {...sec('border')}>
+				<div class="lbl">{editor.typeName(selB.type)} block</div>
+				<BorderControls borderStyle={P.borderStyle} onstyle={(v) => editor.setProp(id, 'borderStyle', v)} color={rc(P.borderColor)} oncolor={(v, key) => editor.setProp(id, 'borderColor', v, key ? 'hexborderColor' : null)} />
+				<div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:6px">
+					<NumberField label="Radius" value={num(P.blockRadius)} min={0} max={32} unit="px" ariaLabel="Block radius" mergeKey="blockRadius" onchange={(v, key) => editor.setProp(id, 'blockRadius', v, key)} />
+				</div>
+			</CollapsibleSection>
+		{/if}
+		<CollapsibleSection title="Template details" {...sec('meta')}>
+			<TemplateDetails
+				name={editor.templateName}
+				onname={(v) => (editor.templateName = v)}
+				category={editor.templateCategory}
+				{categories}
+				oncategory={(v) => (editor.templateCategory = v)}
+				isPublic={editor.templateIsPublic}
+				onpublic={(on) => (editor.templateIsPublic = on)}
+			/>
+		</CollapsibleSection>
 	{/if}
 
-	<PlaceholderWarnings />
-	<ManageLinksDialog />
+	<WarningsCard {warnings} />
+</aside>
 
-	<!-- ======================== TEMPLATE METADATA ======================== -->
-	<div class="rp-meta-section">
-		<div class="rp-meta-header">
-			<Icon name="edit" width={12} height={12} />
-			Template
-		</div>
-
-		<div class="rp-meta-body">
-			<div>
-				<label class={labelClass}>Name</label>
-				<input type="text" class={inputClass} bind:value={editor.templateName} placeholder="My Email Template" />
-			</div>
-
-			<div>
-				<label class={labelClass}>Category</label>
-				<select class={inputClass} bind:value={editor.templateCategory}>
-					<option value="general">General</option>
-					<optgroup label="Authentication">
-						<option value="otp">OTP / Passcodes</option>
-						<option value="password-reset">Password Reset</option>
-						<option value="email-verify">Email Verification</option>
-						<option value="magic-link">Magic Login Links</option>
-					</optgroup>
-
-					<optgroup label="Transactional">
-						<option value="receipt">Receipts</option>
-						<option value="invoice">Invoices</option>
-						<option value="order-confirm">Order Confirmations</option>
-						<option value="payment-status">Payment Success/Failure</option>
-					</optgroup>
-
-					<optgroup label="Notifications">
-						<option value="alert">Alerts</option>
-						<option value="reminder">Reminders</option>
-						<option value="activity">Activity Updates</option>
-					</optgroup>
-
-					<optgroup label="Marketing">
-						<option value="marketing">General Marketing</option>
-						<option value="newsletter">Newsletters</option>
-						<option value="product-announcement">Product Announcements</option>
-						<option value="promo">Promotions</option>
-					</optgroup>
-
-					<optgroup label="User Lifecycle">
-						<option value="welcome">Welcome Emails</option>
-						<option value="onboarding">Onboarding Sequences</option>
-						<option value="re-engage">Re-engagement Emails</option>
-					</optgroup>
-				</select>
-			</div>
-
-			<label class="rp-checkbox-row">
-				<input type="checkbox" bind:checked={editor.templateIsPublic} />
-				Make template public
-			</label>
-		</div>
-	</div>
-
-</div>
-
-<style>
-	/* ─── Design tokens ─────────────────────────────────────────── */
-	.right-panel {
-		--accent:       var(--color-accent);
-		--accent-dim:   var(--color-accent-soft);
-		--accent-glow:  var(--color-accent-soft);
-		--bg:           var(--color-surface);
-		--bg-surface:   var(--color-surface);
-		--bg-raised:    var(--color-surface-2);
-		--bg-hover:     var(--color-surface-2);
-		--border:       var(--color-border-1);
-		--border-focus: var(--color-accent);
-		--text-hi:      var(--color-text);
-		--text-mid:     var(--color-muted);
-		--text-lo:      var(--color-muted-soft);
-		--radius-sm:    4px;
-		--radius-md:    6px;
-		--radius-lg:    8px;
-
-	width: 224px;
-	min-width: 224px;
-	max-width: 224px;
-	height: 100%;
-	background: var(--bg);
-	border-left: 1px solid var(--border);
-	display: flex;
-	flex-direction: column;
-	flex-shrink: 0;
-	overflow-y: auto;
-	overflow-x: hidden;
-	font-family: 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif;
-	font-size: 12px;
-	box-sizing: border-box;
-	}
-	.right-panel::-webkit-scrollbar { width: 3px; }
-	.right-panel::-webkit-scrollbar-track { background: transparent; }
-	.right-panel::-webkit-scrollbar-thumb { background: var(--color-surface-2); border-radius: 99px; }
-	.right-panel::-webkit-scrollbar-thumb:hover { background: var(--color-surface-2); }
-
-	/* ─── Top bar ────────────────────────────────────────────────── */
-	.rp-topbar {
-		padding: 9px 10px;
-		border-bottom: 1px solid var(--border);
-		display: flex;
-		align-items: center;
-		gap: 4px;
-		background: var(--bg);
-	}
-	.rp-icon-group {
-		display: flex;
-		align-items: center;
-		gap: 3px;
-	}
-	.rp-icon-btn {
-		width: 26px;
-		height: 26px;
-		border: 1px solid var(--border);
-		border-radius: var(--radius-md);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		cursor: pointer;
-		color: var(--text-mid);
-		background: transparent;
-		transition: background 0.12s, color 0.12s, border-color 0.12s;
-	}
-	.rp-icon-btn:hover:not(:disabled) {
-		background: var(--bg-hover);
-		color: var(--color-text);
-		border-color: var(--color-border-1);
-	}
-	.rp-use-mail {
-		margin-left: auto;
-		background: var(--accent);
-		color: #101010;
-		border: none;
-		border-radius: var(--radius-md);
-		padding: 0 11px;
-		height: 26px;
-		font-size: 11.5px;
-		font-weight: 600;
-		cursor: pointer;
-		letter-spacing: 0.01em;
-		transition: background 0.12s, box-shadow 0.12s;
-		display: flex;
-		align-items: center;
-		gap: 5px;
-		white-space: nowrap;
-		font-family: inherit;
-	}
-	.rp-use-mail:hover:not(:disabled) {
-		background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text));
-		box-shadow: 0 0 14px var(--accent-glow);
-	}
-	/* Secondary action: outlined, so Send stays the primary button. */
-	.rp-save-mail {
-		margin-left: auto;
-		background: transparent;
-		color: var(--color-text);
-		border: 1px solid var(--color-border-1);
-		border-radius: var(--radius-md);
-		padding: 0 10px;
-		height: 26px;
-		font-size: 11.5px;
-		font-weight: 600;
-		cursor: pointer;
-		display: flex;
-		align-items: center;
-		gap: 5px;
-		white-space: nowrap;
-		font-family: inherit;
-		transition: background 0.12s, border-color 0.12s;
-	}
-	.rp-save-mail:hover {
-		background: var(--bg-hover);
-	}
-	.rp-save-mail + .rp-use-mail {
-		margin-left: 0;
-	}
-	/* The panel is narrow: let the two actions share the row and wrap onto a second one if needed. */
-	.rp-topbar { flex-wrap: wrap; row-gap: 6px; }
-	.rp-save-mail,
-	.rp-save-mail + .rp-use-mail {
-		flex: 1 1 auto;
-		justify-content: center;
-	}
-	.rp-use-mail:disabled,
-	.rp-icon-btn:disabled {
-		opacity: 0.4;
-		cursor: not-allowed;
-	}
-
-	/* ─── Tabs ────────────────────────────────────────────────────── */
-	.rp-tab-wrap {
-		display: flex;
-		position: relative;
-		border-bottom: 1px solid var(--border);
-		background: var(--bg);
-	}
-	.rp-tab {
-		flex: 1;
-		text-align: center;
-		padding: 9px 0 8px;
-		font-size: 11.5px;
-		font-weight: 500;
-		color: var(--text-lo);
-		cursor: pointer;
-		border: none;
-		background: none;
-		transition: color 0.15s;
-		position: relative;
-		z-index: 1;
-		font-family: inherit;
-		letter-spacing: 0.01em;
-	}
-	.rp-tab.active { color: var(--text-hi); }
-	.rp-tab-indicator {
-		position: absolute;
-		bottom: 0;
-		left: 0;
-		width: 50%;
-		height: 2px;
-		background: var(--accent);
-		border-radius: 99px 99px 0 0;
-		transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-		box-shadow: 0 0 8px var(--accent-glow);
-	}
-
-	/* ─── Inputs & labels (global so child components inherit) ──── */
-	.right-panel :global(.rp-input) {
-		width: 100%;
-		background: var(--bg-raised);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-sm);
-		padding: 5px 8px;
-		font-size: 11.5px;
-		color: var(--text-hi);
-		outline: none;
-		font-family: inherit;
-		transition: border-color 0.15s, box-shadow 0.15s;
-		box-sizing: border-box;
-		line-height: 1.4;
-	}
-	.right-panel :global(.rp-input::placeholder) { color: var(--text-lo); }
-	.right-panel :global(.rp-input:focus) {
-		border-color: var(--border-focus);
-		box-shadow: 0 0 0 2px var(--accent-dim);
-	}
-	.right-panel :global(textarea.rp-input) { resize: none; line-height: 1.55; }
-	.right-panel :global(select.rp-input) { color: var(--text-mid); cursor: pointer; }
-	.right-panel :global(select.rp-input option) { background: var(--color-surface-2); color: var(--text-hi); }
-
-	.right-panel :global(.rp-label) {
-		display: block;
-		font-size: 10px;
-		color: var(--text-lo);
-		margin-bottom: 5px;
-		font-weight: 500;
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
-	}
-	.right-panel :global(.rp-label-hint) {
-		font-size: 9px;
-		color: var(--color-muted-soft);
-		text-transform: none;
-		letter-spacing: 0;
-	}
-
-	/* ─── Add / Delete buttons ────────────────────────────────────── */
-	.right-panel :global(.rp-add-btn) {
-		font-size: 11px;
-		color: var(--color-accent-ink);
-		font-weight: 500;
-		cursor: pointer;
-		background: none;
-		border: none;
-		padding: 0;
-		text-align: left;
-		font-family: inherit;
-		display: flex;
-		align-items: center;
-		gap: 5px;
-		opacity: 0.8;
-		transition: opacity 0.12s;
-	}
-	.right-panel :global(.rp-add-btn:hover) { opacity: 1; }
-
-	.right-panel :global(.rp-del-btn) {
-		color: var(--text-lo);
-		cursor: pointer;
-		background: none;
-		border: none;
-		padding: 3px;
-		border-radius: var(--radius-sm);
-		display: flex;
-		align-items: center;
-		flex-shrink: 0;
-		transition: color 0.1s, background 0.1s;
-	}
-	.right-panel :global(.rp-del-btn:hover) {
-		color: var(--color-danger);
-		background: var(--color-danger-soft);
-	}
-
-	/* ─── Pill buttons ────────────────────────────────────────────── */
-	.right-panel :global(.rp-width-pill) {
-		flex: 1;
-		padding: 5px 0;
-		border: 1px solid var(--border);
-		border-radius: var(--radius-sm);
-		font-size: 10.5px;
-		text-align: center;
-		cursor: pointer;
-		color: var(--text-mid);
-		background: transparent;
-		font-family: inherit;
-		font-weight: 500;
-		transition: all 0.12s;
-	}
-	.right-panel :global(.rp-width-pill:hover) {
-		border-color: var(--color-border-1);
-		color: var(--color-muted);
-		background: var(--bg-hover);
-	}
-	.right-panel :global(.rp-width-pill.active) {
-		border-color: var(--color-accent);
-		background: var(--accent-dim);
-		color: var(--color-accent-ink);
-	}
-
-	/* ─── Checkbox row ────────────────────────────────────────────── */
-	.right-panel :global(.rp-checkbox-row) {
-		display: flex;
-		align-items: center;
-		gap: 7px;
-		font-size: 11px;
-		color: var(--text-mid);
-		cursor: pointer;
-		user-select: none;
-	}
-	.right-panel :global(.rp-checkbox-row input[type="checkbox"]) {
-		accent-color: var(--color-accent-ink);
-		width: 12px;
-		height: 12px;
-		cursor: pointer;
-	}
-
-
-	/* ─── Item / flex helpers ─────────────────────────────────────── */
-	.right-panel :global(.rp-item-row) {
-		display: flex;
-		gap: 5px;
-		align-items: center;
-	}
-	.right-panel :global(.rp-item-row .rp-input) { flex: 1; }
-	.right-panel :global(.rp-flex-col) { display: flex; flex-direction: column; gap: 9px; }
-	.right-panel :global(.rp-flex-row) { display: flex; gap: 4px; }
-
-	/* ─── Layout picker ───────────────────────────────────────────── */
-	.right-panel :global(.rp-layout-picker) {
-		display: flex;
-		gap: 3px;
-	}
-	.right-panel :global(.rp-layout-btn) {
-		flex: 1;
-		height: 34px;
-		border: 1px solid var(--border);
-		border-radius: var(--radius-md);
-		background: transparent;
-		cursor: pointer;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: 4px;
-		transition: all 0.12s;
-		color: var(--text-lo);
-	}
-	.right-panel :global(.rp-layout-btn:hover) {
-		border-color: var(--color-border-1);
-		color: var(--text-mid);
-		background: var(--bg-hover);
-	}
-	.right-panel :global(.rp-layout-btn.active) {
-		border-color: var(--color-accent);
-		background: var(--accent-dim);
-		color: var(--color-accent-ink);
-	}
-
-	/* ─── Empty state ─────────────────────────────────────────────── */
-	.rp-empty {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		gap: 8px;
-		padding: 32px 20px;
-	}
-	.rp-empty-icon {
-		width: 40px;
-		height: 40px;
-		border-radius: 10px;
-		background: var(--bg-raised);
-		border: 1px solid var(--border);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		color: var(--text-lo);
-		margin-bottom: 2px;
-	}
-	.rp-empty-title {
-		font-size: 12px;
-		font-weight: 600;
-		color: var(--text-mid);
-		letter-spacing: 0.01em;
-	}
-	.rp-empty-sub {
-		font-size: 10.5px;
-		color: var(--text-lo);
-		text-align: center;
-		line-height: 1.55;
-		max-width: 160px;
-	}
-
-	/* ─── Template metadata section ───────────────────────────────── */
-	.rp-meta-section {
-		margin-top: auto;
-		border-top: 1px solid var(--border);
-		background: var(--bg-surface);
-	}
-	.rp-meta-header {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		padding: 8px 12px 7px;
-		font-size: 9.5px;
-		font-weight: 600;
-		letter-spacing: 0.07em;
-		text-transform: uppercase;
-		color: var(--text-lo);
-		border-bottom: 1px solid var(--border);
-	}
-	.rp-meta-header :global(.icon-wrapper) { opacity: 0.6; }
-	.rp-meta-body {
-		padding: 11px 12px 14px;
-		display: flex;
-		flex-direction: column;
-		gap: 9px;
-	}
-</style>
+{#if view.modal === 'insert' && view.insertTarget}
+	<InsertFieldModal
+		mode={view.insertTarget.mode}
+		{builtins}
+		{contactFields}
+		{links}
+		onpick={pick}
+		onclose={() => view.closeModal()}
+		linkExample={formatLink(links[0]?.key ?? 'order_online')}
+		{fallbackError}
+	>
+		{#snippet manageLinks({ back })}
+			<LinksManager ondone={back} />
+		{/snippet}
+	</InsertFieldModal>
+{/if}

@@ -36,7 +36,6 @@ test('every iframe in the app is sandboxed, and none grants allow-scripts or all
 // Each {@html} sink and why it is safe. A new one must be added here on purpose.
 const ALLOWED_HTML = new Map<string, string[]>([
 	['src/lib/components/Icon.svelte', ['{@html svg}']], // vendored Iconsax SVG files
-	['src/lib/components/RightPanel.svelte', ['{@html opt.svg}']], // static layout pictograms in the file
 	['src/lib/components/CanvasBlock.svelte', ["{@html chipifyHtml(block.props.text ?? '', phKind)}"]], // server-sanitised blocks, chipified
 ]);
 
