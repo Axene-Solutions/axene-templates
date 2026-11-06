@@ -2,7 +2,8 @@
 	SegmentedControl: the design's .segs / .seg control. Text (or icon) options on a tinted
 	track; the selected one is a raised light tile (variant "soft", the design's segOn) or an
 	inverted dark tile (variant "invert", used by Alignment and Weight, which the design styles
-	with a .segs .seg[aria-pressed=true] rule: text-colored fill, background-colored ink).
+	with a .segs .seg[aria-pressed=true] rule: text-colored fill, background-colored ink). That rule
+	lives in editor.css and, as on the board, only applies while the Alignment control is shown.
 
 	Usage:
 		<SegmentedControl ariaLabel="Border style" options={BORDER_STYLES} value={p.borderStyle}
@@ -105,11 +106,6 @@
 	.seg:focus-visible {
 		outline: 2px solid #ffd100;
 		outline-offset: 1px;
-	}
-	.seg-invert .seg[aria-pressed='true'] {
-		background: var(--color-text);
-		color: var(--color-bg);
-		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 	}
 	.lbl {
 		font-size: 12px;
