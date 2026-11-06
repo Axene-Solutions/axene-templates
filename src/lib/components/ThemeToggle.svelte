@@ -11,8 +11,8 @@
 
 	const modes = [
 		{ value: 'light', label: 'Light', icon: 'sun' },
-		{ value: 'dark', label: 'Dark', icon: 'moon' },
-		{ value: 'system', label: 'System', icon: 'monitor' },
+		{ value: 'dark', label: 'Dark', icon: 'moon-twotone' },
+		{ value: 'system', label: 'System', icon: 'monitor-twotone' },
 	] as const
 
 	// The server cannot read the theme cookie, so it renders "system". Show the

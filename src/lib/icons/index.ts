@@ -93,6 +93,7 @@ const baseIcons = {
 } as const
 
 // Design icons last so the redesign's Iconsax outline icons win over older icons of the same name.
-export const icons = { ...baseIcons, ...designIcons } as const
+// The theme toggle in the landing nav and login keeps the original two-tone moon and monitor (the landing design uses them).
+export const icons = { ...baseIcons, ...designIcons, 'moon-twotone': moon, 'monitor-twotone': monitor } as const
 
 export type IconName = keyof typeof icons
