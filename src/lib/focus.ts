@@ -46,10 +46,10 @@ export function trapFocus(node: HTMLElement) {
 	};
 	node.addEventListener('focusin', onfocusin);
 	const lost = () => !document.activeElement || document.activeElement === document.body;
-	const usable = (el: HTMLElement | null): el is HTMLElement => !!el && el.isConnected && node.contains(el) && !el.matches(':disabled') && el.offsetParent !== null;
+	const usable = (el: HTMLElement | null): boolean => !!el && el.isConnected && node.contains(el) && !el.matches(':disabled') && el.offsetParent !== null;
 	const observer = new MutationObserver(() => {
 		if (!lost()) return;
-		if (usable(last)) last.focus({ preventScroll: true });
+		if (last && usable(last)) last.focus({ preventScroll: true });
 		else if (!last || !last.isConnected) {
 			const next = node.querySelector<HTMLElement>('[data-autofocus]') ?? items()[0];
 			if (next) next.focus({ preventScroll: true });
