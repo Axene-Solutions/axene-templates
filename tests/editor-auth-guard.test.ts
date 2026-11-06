@@ -34,7 +34,9 @@ for (const p of PATHS) {
 			return new Response('page');
 		};
 		await assert.rejects(
-			() => handle({ event: signedOutEvent(p) as never, resolve: resolve as never }),
+			async () => {
+				await handle({ event: signedOutEvent(p) as never, resolve: resolve as never });
+			},
 			(e: unknown) => {
 				const r = e as { status?: number; location?: string };
 				assert.equal(r.status, 302);
@@ -48,7 +50,9 @@ for (const p of PATHS) {
 
 test('the redirect keeps a safe next target and drops an unsafe one', async () => {
 	await assert.rejects(
-		() => handle({ event: signedOutEvent('/editor/abc?mailer=1') as never, resolve: (async () => new Response('x')) as never }),
+		async () => {
+			await handle({ event: signedOutEvent('/editor/abc?mailer=1') as never, resolve: (async () => new Response('x')) as never });
+		},
 		(e: unknown) => {
 			assert.equal((e as { location?: string }).location, '/login?next=' + encodeURIComponent('/editor/abc?mailer=1'));
 			return true;
