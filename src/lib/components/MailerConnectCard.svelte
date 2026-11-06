@@ -17,6 +17,13 @@
 			if (autoCheck) mailer.recheck();
 		}
 	}
+	// Enter in the key field connects, like the Connect button next to it.
+	function keyEnter(e: KeyboardEvent) {
+		if (e.key === 'Enter' && !mailer.busy && apiKey.trim()) {
+			e.preventDefault();
+			connect();
+		}
+	}
 	async function disconnect() {
 		if (await mailer.disconnect()) confirming = false;
 	}
@@ -55,7 +62,7 @@
 			<div style="display:flex;gap:{compact ? 8 : 10}px;align-items:center">
 				<span style="position:relative;flex-grow:1;display:block">
 					<span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--color-muted);display:flex"><Icon name="padlock" width={15} height={15} /></span>
-					<input id="mc-key" class="dz-field dz-mono" style="padding-left:36px;background:var(--color-bg);font-size:{compact ? 13.5 : 13}px" type="password" autocomplete="off" spellcheck="false" placeholder="axm_k_..." aria-label="Mailer API key" bind:value={apiKey} />
+					<input id="mc-key" class="dz-field dz-mono" style="padding-left:36px;background:var(--color-bg);font-size:{compact ? 13.5 : 13}px" type="password" autocomplete="off" spellcheck="false" placeholder="axm_k_..." aria-label="Mailer API key" bind:value={apiKey} onkeydown={keyEnter} />
 				</span>
 				<button class="dz-btn dz-btn-primary" type="button" disabled={mailer.busy || !apiKey.trim()} onclick={connect}>
 					{#if mailer.busy}<span class="dz-spinner"></span>{/if}{mailer.busy ? 'Checking key' : mailer.status === 'unreadable' ? 'Reconnect' : 'Connect'}
