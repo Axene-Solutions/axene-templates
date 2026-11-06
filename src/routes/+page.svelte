@@ -24,6 +24,9 @@
 
 	onMount(async () => {
 		mounted = true
+		// The hero animates in with CSS from the first paint (the board's srUp). Revealing it from
+		// script hid the server-rendered hero after hydration and faded it in again (a flash).
+		if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 		const ScrollReveal = (await import('scrollreveal')).default
 		const sr = ScrollReveal({
 			distance: '40px',
@@ -32,7 +35,6 @@
 			opacity: 0,
 			reset: false,
 		})
-		sr.reveal('.sr-hero', { origin: 'bottom', interval: 150, delay: 100 })
 		sr.reveal('.sr-mockup', { origin: 'bottom', distance: '80px', delay: 500, duration: 1200 })
 		sr.reveal('.sr-bottom', { origin: 'bottom', distance: '50px', viewFactor: 0.2 })
 		sr.reveal('.sr-card', { origin: 'bottom', interval: 150, viewFactor: 0.2, distance: '30px' })
@@ -516,6 +518,32 @@
 		transform-origin: bottom;
 		animation: pulseBar 3s ease-in-out infinite alternate;
 		opacity: 0.5;
+	}
+	/* The board's hero entrance: runs from the first paint, so nothing flashes on hydration. */
+	.sr-hero {
+		animation: srUp 1s cubic-bezier(0.25, 0.1, 0.25, 1) both;
+	}
+	.hero-badge.sr-hero {
+		animation-delay: 0.1s;
+	}
+	.hero h1.sr-hero {
+		animation-delay: 0.25s;
+	}
+	.hero-sub.sr-hero {
+		animation-delay: 0.4s;
+	}
+	.hero-actions.sr-hero {
+		animation-delay: 0.55s;
+	}
+	@keyframes srUp {
+		0% {
+			opacity: 0;
+			transform: translateY(40px);
+		}
+		100% {
+			opacity: 1;
+			transform: translateY(0);
+		}
 	}
 	@keyframes pulseBar {
 		0% {
@@ -1100,6 +1128,17 @@
 		}
 		.tpl-grid {
 			grid-template-columns: 1fr;
+		}
+	}
+	/* Reduced motion: no entrance, pulse or marquee movement (placed last so it wins). */
+	@media (prefers-reduced-motion: reduce) {
+		.sr-hero,
+		.bar,
+		.badge-dot,
+		.marquee-track,
+		.marquee-track.row2,
+		.marquee-track.row3 {
+			animation: none;
 		}
 	}
 </style>
