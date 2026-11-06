@@ -158,7 +158,7 @@
 					{@const pinned = b.type === 'header' || b.type === 'footer'}
 					{#if dnd.dropIdx === i}<div style={line}></div>{/if}
 					<div style={'position:relative;z-index:1;' + (on ? 'outline:2px solid #ffd100;outline-offset:0;border-radius:4px;z-index:5;' : '') + (dnd.dragging === b.id ? 'opacity:.4;' : '')}>
-						<button class="blk" type="button" draggable={pinned ? 'false' : 'true'} ondragstart={(e) => dnd.start(e, { id: b.id })} ondragover={(e) => dnd.over(e, i)} ondrop={(e) => dnd.drop(e)} ondragend={() => dnd.end()} aria-label={'Edit ' + TYPE_NAME[b.type] + ' block'} aria-pressed={on} onclick={(e) => pick(e, b.id)} onkeydown={(e) => blockKey(e, b.id)}>
+						<button class="blk" type="button" data-canvas={b.id} draggable={pinned ? 'false' : 'true'} ondragstart={(e) => dnd.start(e, { id: b.id })} ondragover={(e) => dnd.over(e, i)} ondrop={(e) => dnd.drop(e)} ondragend={() => dnd.end()} aria-label={'Edit ' + TYPE_NAME[b.type] + ' block'} aria-pressed={on} onclick={(e) => pick(e, b.id)} onkeydown={(e) => blockKey(e, b.id)}>
 							<CanvasBlock block={b} ctx={{ theme: editor.themeColor, cpx, first: i === 0, last: i === editor.blocks.length - 1 }} />
 						</button>
 						{#if on}
