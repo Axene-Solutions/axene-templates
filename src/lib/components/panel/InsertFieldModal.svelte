@@ -28,6 +28,7 @@
 <script lang="ts">
 	import { onMount, tick, untrack, type Snippet } from 'svelte';
 	import Icon from '$lib/components/Icon.svelte';
+	import { trapFocus } from '$lib/focus';
 	import { buildInsertView, type InsertMode } from '$lib/panel/insert';
 	import { wrapIndex, type SuggestFieldDef, type SuggestLinkDef } from '$lib/panel/suggest';
 
@@ -144,6 +145,7 @@
 </script>
 
 <div
+	use:trapFocus
 	style="position:fixed;inset:0;background:var(--color-scrim);display:flex;align-items:flex-start;justify-content:center;padding:56px 16px;box-sizing:border-box;z-index:50"
 >
 	<button
