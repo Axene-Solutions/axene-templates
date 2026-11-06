@@ -66,8 +66,8 @@
 		idx = Math.max(0, fonts.findIndex((f) => f.name === cur.name));
 		open = true;
 		await tick();
+		// The board does not scroll the list to the current font on open, only on arrow keys.
 		search?.focus();
-		scrollTo(idx);
 	}
 
 	async function close(refocus: boolean) {
