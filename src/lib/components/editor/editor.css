@@ -32,6 +32,10 @@
 	line-height: normal;
 }
 .ed-root :where(button, input, textarea, select) { font-size: 13.3333px; line-height: normal; }
+/* No preflight on the board either: boxes are content-box (buttons, selects, checkboxes keep
+   the browser's border-box) unless a style says otherwise.
+   Zero specificity, so every class or inline box-sizing still wins. */
+:where(.ed-root *:not(button, select, input[type=button], input[type=submit], input[type=reset], input[type=checkbox], input[type=radio]), .ed-root *::before, .ed-root *::after) { box-sizing: content-box; }
 :root[data-theme='dark'] .ed-root {
 	--bad: #c7452f;
 	--warn: #f0a36b;
