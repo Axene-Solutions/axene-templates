@@ -5,9 +5,13 @@
 	import NavRail from '$lib/components/NavRail.svelte'
 	import { onMount } from 'svelte'
 	import { theme } from '$lib/stores/theme.svelte'
+	import { installSessionRefresh } from '$lib/session-refresh'
 	let { data, children } = $props()
 
-	onMount(() => theme.init())
+	onMount(() => {
+		theme.init()
+		installSessionRefresh()
+	})
 
 	const isLanding = $derived(page.url.pathname === '/')
 	const isLogin = $derived(page.url.pathname === '/login')
