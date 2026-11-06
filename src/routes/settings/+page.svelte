@@ -53,7 +53,7 @@
 			<div style="display:flex;align-items:center;gap:14px">
 				<span style="width:42px;height:42px;border-radius:12px;background:var(--color-bg);display:grid;place-items:center;color:var(--color-text)"><Icon name="email" width={21} height={21} /></span>
 				<div style="flex-grow:1"><div style="font-size:16px;font-weight:700">Axene Mailer</div><div style="font-size:13px;color:var(--color-muted);margin-top:2px">Send from your verified domains, save templates into Mailer, use your contact fields.</div></div>
-				<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:4px;white-space:nowrap;flex-shrink:0;{connected ? 'background:var(--color-success-soft);color:var(--color-success)' : 'background:var(--color-bg);color:var(--color-muted)'}">{#if connected}<Icon name="done" width={12} height={12} />{/if}{pillLabel}</span>
+				<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:4px;{connected ? 'background:var(--color-success-soft);color:var(--color-success)' : 'background:var(--color-bg);color:var(--color-muted)'}">{#if connected}<Icon name="done" width={12} height={12} />{/if}{pillLabel}</span>
 			</div>
 			<MailerConnectCard autoCheck />
 		</section>
