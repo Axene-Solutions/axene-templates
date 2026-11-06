@@ -2,9 +2,7 @@
 	import { untrack } from 'svelte';
 	import { invalidate } from '$app/navigation';
 	import { editor } from '$lib/store.svelte';
-	import Sidebar from '$lib/components/Sidebar.svelte';
-	import Canvas from '$lib/components/Canvas.svelte';
-	import RightPanel from '$lib/components/RightPanel.svelte';
+	import EditorShell from '$lib/components/editor/EditorShell.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 
 	let { data } = $props();
@@ -17,7 +15,7 @@
 		const tpl = data.template;
 		if (!tpl) return;
 		untrack(() => {
-			editor.setTemplate(tpl.id, tpl.name, tpl.blocks, !!tpl.isPublic, tpl.category || 'general', tpl.mailerTemplateId ?? '');
+			editor.setTemplate(tpl.id, tpl.name, tpl.blocks, !!tpl.isPublic, tpl.category || 'general', tpl.mailerTemplateId ?? '', tpl.settings ?? null);
 			if (tpl.mailerInSync) editor.markMailerSynced();
 			editor.compile();
 		});
@@ -53,9 +51,7 @@
 	</div>
 {:else if data.template}
 	<div class="editor-wrap">
-		<Sidebar />
-		<Canvas />
-		<RightPanel />
+		<EditorShell />
 	</div>
 {:else}
 	<div class="load-error" role="alert">
@@ -77,6 +73,7 @@
 <style>
 .editor-wrap {
 		display: flex;
+		flex-direction: column;
 		flex: 1;
 		min-width: 0;
 		min-height: 0;

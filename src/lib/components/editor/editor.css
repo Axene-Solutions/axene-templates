@@ -1,0 +1,112 @@
+/* Editor board styles, ported from Editor.dc.html <helmet><style>, scoped to the editor root.
+   The design's short variable names are aliases of the app tokens (src/app.css), so inline
+   styles port verbatim. --bad, --warn and --warn-soft have the Editor board's own values. */
+
+.ed-root {
+	--bg: var(--color-bg);
+	--s2: var(--color-surface-2);
+	--s3: var(--color-surface-3);
+	--text: var(--color-text);
+	--muted: var(--color-muted);
+	--ok: var(--color-success);
+	--ok-soft: var(--color-success-soft);
+	--scrim: var(--color-scrim);
+	--bar: var(--color-bar);
+	--bar2: var(--color-bar-2);
+	--accent-soft: var(--color-accent-soft);
+	--accent-ink: var(--color-accent-ink);
+	--bad: #b3402c;
+	--warn: #9a4a12;
+	--warn-soft: #f8ece4;
+	position: relative;
+	height: 100vh;
+	display: flex;
+	flex-direction: column;
+	background: var(--bg);
+	color: var(--text);
+	font-family: 'Figtree', system-ui, sans-serif;
+	-webkit-font-smoothing: antialiased;
+	overflow: hidden;
+}
+:root[data-theme='dark'] .ed-root {
+	--bad: #c7452f;
+	--warn: #f0a36b;
+	--warn-soft: rgba(240, 163, 107, 0.12);
+}
+
+.ed-root button { font-family: inherit; color: inherit; }
+.ed-root .btn { border: 0; cursor: pointer; font-weight: 600; font-size: 13px; border-radius: 8px; padding: 8px 13px; display: inline-flex; align-items: center; gap: 7px; text-decoration: none; background: var(--s2); color: var(--text); white-space: nowrap; transition: background .12s; }
+.ed-root .btn:hover { background: var(--s3); }
+.ed-root .btn-primary { background: #ffd100; color: #101010; }
+.ed-root .btn-primary:hover { background: #f0c400; }
+.ed-root .btn-ghost { background: transparent; color: var(--muted); }
+.ed-root .btn-ghost:hover { background: var(--s2); color: var(--text); }
+.ed-root .icon-btn { width: 34px; height: 34px; flex-shrink: 0; border-radius: 8px; border: 0; background: transparent; color: var(--muted); display: grid; place-items: center; cursor: pointer; text-decoration: none; padding: 0; }
+.ed-root .icon-btn:hover { background: var(--s2); color: var(--text); }
+.ed-root .mini { width: 26px; height: 26px; border-radius: 8px; border: 0; background: transparent; color: var(--muted); display: grid; place-items: center; cursor: pointer; padding: 0; flex-shrink: 0; }
+.ed-root .mini:hover { background: var(--s3); color: var(--text); }
+.ed-root .kbd { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 500; color: var(--muted); padding: 1px 5px; border-radius: 4px; background: var(--s3); }
+.ed-root .seg { border: 0; cursor: pointer; font-weight: 600; font-size: 12.5px; padding: 6px 11px; border-radius: 8px; background: transparent; color: var(--muted); display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.ed-root .seg:hover { color: var(--text); }
+.ed-root .segs { display: inline-flex; padding: 3px; border-radius: 8px; background: var(--s2); gap: 2px; }
+.ed-root .tile { border: 0; cursor: pointer; border-radius: 12px; background: var(--s2); color: var(--muted); padding: 12px 8px 9px; display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; min-width: 0; }
+.ed-root .tile:hover { background: var(--s3); color: var(--text); }
+.ed-root .tile:focus-visible, .ed-root .btn:focus-visible, .ed-root .seg:focus-visible, .ed-root .icon-btn:focus-visible, .ed-root .mini:focus-visible, .ed-root .row:focus-visible, .ed-root .sec:focus-visible, .ed-root .blk:focus-visible { outline: 2px solid #ffd100; outline-offset: 1px; }
+.ed-root .hdl { position: absolute; border: 0; padding: 0; margin: 0; background: #ffd100; color: #101010; border-radius: 4px; box-shadow: 0 0 0 2px var(--bg), 0 1px 4px rgba(0,0,0,.28); z-index: 7; touch-action: none; cursor: ns-resize; }
+.ed-root .hdl:hover { background: #ffdd33; }
+.ed-root .hdl:focus-visible { outline: 2px solid #101010; outline-offset: 2px; }
+.ed-root .grip { position: absolute; left: -30px; top: 50%; transform: translateY(-50%); width: 18px; height: 32px; border: 0; padding: 0; border-radius: 4px; background: var(--bg); box-shadow: 0 1px 4px rgba(0,0,0,.18); display: grid; grid-template-columns: repeat(2, 3px); gap: 3px; place-content: center; cursor: grab; z-index: 7; }
+.ed-root .grip:hover { background: var(--s3); }
+.ed-root .grip:focus-visible { outline: 2px solid #ffd100; outline-offset: 1px; }
+.ed-root .nf { display: flex; align-items: center; gap: 6px; height: 36px; box-sizing: border-box; padding: 0 10px; border-radius: 8px; background: var(--s2); min-width: 0; user-select: none; -webkit-user-select: none; }
+.ed-root .nf:focus-within { box-shadow: 0 0 0 2px #ffd100; }
+.ed-root .nf-l { border: 0; background: transparent; padding: 0; margin: 0; font: inherit; font-size: 12px; font-weight: 500; color: var(--muted); cursor: ew-resize; white-space: nowrap; touch-action: none; user-select: none; -webkit-user-select: none; }
+.ed-root .nf-i { flex: 1; min-width: 0; width: 100%; border: 0; background: transparent; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 12.5px; text-align: right; outline: none; padding: 0; margin: 0; -moz-appearance: textfield; appearance: textfield; }
+.ed-root .nf-i::-webkit-outer-spin-button, .ed-root .nf-i::-webkit-inner-spin-button { -webkit-appearance: none; appearance: none; margin: 0; }
+.ed-root .nf-u { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); user-select: none; -webkit-user-select: none; }
+.ed-root .chip { border: 0; cursor: pointer; font: inherit; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; font-weight: 500; padding: 4px 9px; border-radius: 4px; background: var(--s2); color: var(--muted); }
+.ed-root .chip:hover { color: var(--text); }
+.ed-root .chip:focus-visible { outline: 2px solid #ffd100; outline-offset: 1px; }
+.ed-root aside .lbl, .ed-root aside .cap, .ed-root aside .sec, .ed-root aside .mono { user-select: none; -webkit-user-select: none; }
+.ed-root .tbb { width: 32px; height: 32px; border-radius: 8px; border: 0; background: transparent; color: #d9d7cc; display: grid; place-items: center; cursor: pointer; padding: 0; flex-shrink: 0; transition: background .12s, color .12s; }
+.ed-root .tbb:hover { background: rgba(255,255,255,.14); color: #ffffff; }
+.ed-root .tbb:focus-visible { outline: 2px solid #ffd100; outline-offset: 1px; }
+.ed-root .tbb-del { color: #ff9b85; }
+.ed-root .tbb-del:hover { background: rgba(255,122,94,.20); color: #ffb3a1; }
+.ed-root .ill { width: 58px; height: 34px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; }
+.ed-root .bar { background: var(--bar); border-radius: 1px; }
+.ed-root .blk { display: block; width: 100%; border: 0; padding: 0; margin: 0; background: transparent; text-align: inherit; cursor: pointer; font: inherit; color: inherit; }
+.ed-root .blk:hover { outline: 1px dashed #9ca3af; outline-offset: 3px; }
+.ed-root .field { width: 100%; box-sizing: border-box; border: 0; border-radius: 8px; background: var(--s2); color: var(--text); font: inherit; font-size: 13px; padding: 9px 11px; outline: none; }
+.ed-root .field:focus { box-shadow: 0 0 0 2px #ffd100; }
+.ed-root .field::placeholder { color: var(--muted); }
+.ed-root .mono { font-family: 'JetBrains Mono', monospace; }
+.ed-root .lbl { font-size: 12px; font-weight: 600; color: var(--muted); }
+.ed-root .cap { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.ed-root .opt { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; background: transparent; text-align: left; cursor: pointer; padding: 7px 9px; border-radius: 8px; font-size: 12.5px; }
+.ed-root .opt:hover { background: var(--s3); }
+.ed-root .row { display: flex; align-items: center; gap: 9px; width: 100%; border: 0; background: transparent; text-align: left; cursor: pointer; padding: 8px 9px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--text); }
+.ed-root .row:hover { background: var(--s2); }
+.ed-root .sec { display: flex; align-items: center; width: 100%; border: 0; background: transparent; cursor: pointer; padding: 6px 2px; font-size: 13px; font-weight: 700; color: var(--text); text-align: left; }
+.ed-root .sw { border: 0; cursor: pointer; padding: 0; aspect-ratio: 1; border-radius: 8px; width: 100%; }
+.ed-root .num { width: 64px; box-sizing: border-box; border: 0; border-radius: 8px; background: var(--s2); color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 12.5px; padding: 7px 8px; outline: none; text-align: right; }
+.ed-root .num:focus { box-shadow: 0 0 0 2px #ffd100; }
+.ed-root .lay { border: 0; cursor: pointer; border-radius: 8px; background: var(--s2); height: 44px; display: grid; place-items: center; padding: 0; }
+.ed-root .lay:hover { background: var(--s3); }
+.ed-root .segs .seg[aria-pressed='true'] { background: var(--text); color: var(--bg); box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+@keyframes ed-spin { to { transform: rotate(360deg); } }
+@keyframes ed-pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* Placeholder chips on the canvas, scaled to the text (design segs()). */
+.ed-root .ph {
+	font-family: 'JetBrains Mono', monospace; font-size: .7em; font-weight: 500; letter-spacing: 0;
+	padding: 1px 6px; border-radius: 4px; line-height: 1.3; vertical-align: middle; white-space: nowrap;
+	background: #ecf2fe; color: #1e40af; box-shadow: none;
+}
+.ed-root .ph-link { background: #f4effe; color: #5b21b6; box-shadow: none; }
+.ed-root .ph-bad { background: #fdeeec; color: #a8231a; box-shadow: none; }
+
+/* Rich text inside a canvas block: paragraphs flush, links inert (the block is a button). */
+.ed-root .ed-rich p { margin: 0; }
+.ed-root .ed-rich ul, .ed-root .ed-rich ol { margin: 0; padding-left: 20px; }
+.ed-root .ed-rich a { pointer-events: none; color: inherit; text-decoration: underline; }
