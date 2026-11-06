@@ -31,15 +31,15 @@
 	const presets: Preset[] = [
 		{
 			label: 'Promo', sub: 'Image, heading, text, button', shape: [sh('100%', 16), sh('70%', 4), sh('100%', 2), sh('45%', 6, 'var(--bar2)')],
-			list: [['image', { alt: 'Weekend offer' }], ['heading', { text: 'This weekend only' }], ['content', { text: 'Take 20% off everything until Sunday night.' }], ['button', { text: 'Shop the offer' }]],
+			list: [['image', { alt: 'Weekend offer' }], ['heading', { text: 'This weekend only' }], ['content', { text: 'Take 20% off every bag until Sunday night.' }], ['button', { text: 'Shop the offer' }]],
 		},
 		{
 			label: 'Receipt', sub: 'Heading, table, button', shape: [sh('60%', 4), sh('100%', 4), sh('100%', 4), sh('45%', 6, 'var(--bar2)')],
-			list: [['heading', { text: 'Thanks for your order, ' + tok('first_name|friend') }], ['table', { col1Header: 'Item', col2Header: 'Amount', rows: [{ col1: 'Your item', col2: 'KES 1,200' }, { col1: 'Delivery', col2: 'KES 200' }] }], ['button', { text: 'Track order' }]],
+			list: [['heading', { text: 'Thanks for your order, ' + tok('first_name|friend') }], ['table', { col1Header: 'Item', col2Header: 'Amount', rows: [{ col1: 'Kiambu AA, 500 g', col2: 'KES 1,200' }, { col1: 'Delivery', col2: 'KES 200' }] }], ['button', { text: 'Track order' }]],
 		},
 		{
 			label: 'Newsletter', sub: 'Heading, image, list', shape: [sh('70%', 4), sh('100%', 14), sh('90%', 2), sh('80%', 2)],
-			list: [['heading', { text: 'This month at Your Company' }], ['subheading', { text: 'What is new, what is next and one useful tip.' }], ['image', { alt: 'Featured image' }], ['list', { items: ['A new feature is live', 'Our next event is on the 12th', 'Tip: reply to this email with questions'] }]],
+			list: [['heading', { text: 'This month at Kahawa' }], ['subheading', { text: 'New beans, a new shop and a brewing tip.' }], ['image', { alt: 'Harvest season' }], ['list', { items: ['Kirinyaga peaberry is back', 'Our Ruiru shop opens on the 12th', 'Brew tip: rest the beans for a week'] }]],
 		},
 		{
 			label: 'Note', sub: 'Section with a callout', shape: [sh('100%', 12, 'var(--bar2)'), sh('80%', 2), sh('60%', 2)],

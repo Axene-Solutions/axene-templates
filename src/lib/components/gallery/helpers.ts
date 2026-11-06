@@ -89,7 +89,8 @@ export function whenLabel(iso: string | null | undefined, now = Date.now()): str
 
 export function blocksLabel(n: number | undefined): string {
 	const c = n ?? 0;
-	return `${c} block${c === 1 ? '' : 's'}`;
+	// The design always says "N blocks", also for one.
+	return `${c} blocks`;
 }
 
 export type SortKey = 'recent' | 'name' | 'blocks';

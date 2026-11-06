@@ -17,8 +17,8 @@ test('whenLabel: the relative wording of the board', () => {
 	assert.equal(whenLabel('nope', NOW), '');
 });
 
-test('blocksLabel pluralises', () => {
-	assert.equal(blocksLabel(1), '1 block');
+test('blocksLabel follows the design wording', () => {
+	assert.equal(blocksLabel(1), '1 blocks');
 	assert.equal(blocksLabel(5), '5 blocks');
 	assert.equal(blocksLabel(undefined), '0 blocks');
 });
