@@ -69,6 +69,14 @@ export function buttonWidthMode(width: number): 'auto' | 'custom' | 'full' {
 	return w === -1 ? 'full' : w > 0 ? 'custom' : 'auto';
 }
 
+/** Padding of a block, one value per side, in px. */
+export interface Sides {
+	top: number;
+	right: number;
+	bottom: number;
+	left: number;
+}
+
 export const WIDTH_PRESETS: readonly number[] = [480, 600, 720];
 export const PAD_PRESETS: readonly number[] = [0, 8, 16, 24, 32];
 
