@@ -53,7 +53,7 @@
 	.cm-card {
 		width: 100%; max-width: 420px; background: var(--color-bg); border-radius: 16px; padding: 24px;
 		box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35); display: flex; flex-direction: column; gap: 12px;
-		font-family: var(--font-sans); color: var(--color-text);
+		font-family: var(--font-sans); color: var(--color-text); line-height: normal;
 	}
 	.cm-title { margin: 0; font-size: 18px; font-weight: 700; }
 	.cm-message { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--color-muted); }

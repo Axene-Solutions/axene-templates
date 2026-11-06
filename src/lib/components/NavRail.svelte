@@ -75,6 +75,7 @@
 
 <style>
 	.rail {
+		line-height: normal;
 		position: sticky;
 		top: 0;
 		align-self: flex-start;

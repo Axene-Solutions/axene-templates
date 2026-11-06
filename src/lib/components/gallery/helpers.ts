@@ -14,11 +14,11 @@ export type GalleryTemplate = {
 
 const CATEGORY_LABELS: Record<string, string> = {
 	general: 'General',
-	otp: 'OTP / Passcodes',
-	invoice: 'Invoices & Receipts',
+	otp: 'OTP',
+	invoice: 'Invoice',
 	marketing: 'Marketing',
 	welcome: 'Welcome Email',
-	'password-reset': 'Password Reset',
+	'password-reset': 'Password reset',
 	'email-verify': 'Email Verification',
 	'magic-link': 'Magic Login Links',
 	receipt: 'Receipts',

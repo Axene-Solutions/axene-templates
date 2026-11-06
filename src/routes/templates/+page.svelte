@@ -342,7 +342,7 @@
 <AiTemplateModal open={aiOpen} onclose={() => (aiOpen = false)} />
 
 <style>
-    .gl { flex: 1; min-width: 0; background: var(--color-bg); color: var(--color-text); font-family: var(--font-sans); }
+    .gl { line-height: normal; flex: 1; min-width: 0; background: var(--color-bg); color: var(--color-text); font-family: var(--font-sans); }
     .gl-main { padding: 36px 56px 64px; display: flex; flex-direction: column; gap: 22px; min-height: 860px; box-sizing: border-box; }
     .state { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 44px 24px; }
     .state-title { margin: 0; font-size: 17px; font-weight: 700; }

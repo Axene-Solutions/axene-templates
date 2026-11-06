@@ -82,7 +82,7 @@
 </div>
 
 <style>
-	.st { flex: 1; min-width: 0; color: var(--color-text); font-family: var(--font-sans); background: var(--color-bg); }
+	.st { line-height: normal; flex: 1; min-width: 0; color: var(--color-text); font-family: var(--font-sans); background: var(--color-bg); }
 	.st-main { padding: 36px 56px 64px; display: flex; flex-direction: column; gap: 18px; max-width: 820px; min-height: 860px; box-sizing: border-box; }
 	.st-card { background: var(--color-surface-2); border-radius: 16px; padding: 22px 24px; display: flex; flex-direction: column; }
 	@media (max-width: 640px) { .st-main { padding: 24px 16px 48px; } }
