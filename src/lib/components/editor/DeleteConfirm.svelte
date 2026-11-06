@@ -7,9 +7,6 @@
 	const b = $derived(view.deleteBlock);
 	const text = $derived(b ? 'Delete this ' + TYPE_NAME[b.type].toLowerCase() + ' block?' : '');
 
-	function focusEl(el: HTMLElement) {
-		setTimeout(() => el.focus(), 0);
-	}
 	// Focus starts on Delete, so Enter confirms; Escape (in ModalFrame) cancels.
 </script>
 
@@ -18,6 +15,6 @@
 	<p style="margin:0;font-size:13.5px;line-height:1.5;color:var(--muted)">{text} You can undo this with ⌘Z.</p>
 	<div style="display:flex;justify-content:flex-end;gap:8px">
 		<button class="btn" type="button" onclick={() => view.closeModal()}>Cancel<span class="kbd">Esc</span></button>
-		<button class="btn" type="button" use:focusEl onclick={() => view.confirmDelete()} style="background:var(--bad);color:#ffffff"><Icon name="trash" width={15} height={15} />Delete<span class="kbd" style="background:rgba(255,255,255,.22);color:#ffffff">Enter</span></button>
+		<button class="btn" type="button" data-autofocus onclick={() => view.confirmDelete()} style="background:var(--bad);color:#ffffff"><Icon name="trash" width={15} height={15} />Delete<span class="kbd" style="background:rgba(255,255,255,.22);color:#ffffff">Enter</span></button>
 	</div>
 </ModalFrame>

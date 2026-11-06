@@ -23,7 +23,7 @@ import {
   type TemplateSettings,
 } from "./template-settings";
 import { mailerData } from "./mailer-data.svelte";
-import { goto } from "$app/navigation";
+import { replaceState } from "$app/navigation";
 
 export type SelectedKind = "block" | "container" | null;
 export type ModalKind = "" | "save" | "send" | "delete" | "insert" | "links";
@@ -53,6 +53,13 @@ let mailerTemplateName = $state("");
 let mailerSyncedJson = $state("");
 const snapshot = () => JSON.stringify([blocks, templateName, settings]);
 let dirty = $state(false);
+// Bumped on every change. A save records the revision it sent, so edits made while it was in
+// flight stay dirty (and get saved next) instead of being marked saved by its reply.
+let rev = 0;
+function touch() {
+  rev++;
+  dirty = true;
+}
 let saveState = $state<"idle" | "saving" | "saved" | "error">("idle");
 let saveError = $state("");
 
@@ -80,7 +87,7 @@ function commit(apply: () => void, mergeKey?: string | null) {
     redoStack = [];
   }
   apply();
-  dirty = true;
+  touch();
   scheduleCompile();
 }
 
@@ -93,7 +100,7 @@ function restore(json: string) {
     selectedKind = null;
   }
   lastKey = null;
-  dirty = true;
+  touch();
   scheduleCompile();
 }
 
@@ -149,6 +156,32 @@ function selectContainer() {
 }
 function deselect() {
   selectBlock(null);
+}
+
+// ---------- focus after structural changes ----------
+// Moving a keyed row moves its DOM node, which drops focus to <body>; deleting the focused
+// block removes it. Either way the editor's shortcuts (on its root) would stop working, so
+// focus goes back to the same control or to the nearest block.
+type Area = "canvas" | "layer";
+function areaOf(el: Element | null | undefined): Area {
+  return el?.closest("[data-layer]") ? "layer" : "canvas";
+}
+function focusBlockEl(id: string | null | undefined, area: Area) {
+  setTimeout(() => {
+    if (typeof document === "undefined") return;
+    const a = document.activeElement;
+    if (a && a !== document.body && a.isConnected) return;
+    const el = id ? document.querySelector<HTMLElement>(`[data-${area}="${CSS.escape(id)}"]`) : null;
+    (el ?? document.querySelector<HTMLElement>('[aria-label="Select the email container"]'))?.focus({ preventScroll: true });
+  }, 0);
+}
+function keepFocus(fn: () => void) {
+  const el = typeof document !== "undefined" ? (document.activeElement as HTMLElement | null) : null;
+  fn();
+  if (!el || el === document.body) return;
+  setTimeout(() => {
+    if (el.isConnected && document.activeElement !== el && (document.activeElement === document.body || !document.activeElement)) el.focus({ preventScroll: true });
+  }, 0);
 }
 
 // ---------- structure ----------
@@ -240,13 +273,13 @@ function canDuplicate(id: string): boolean {
 
 function moveBlock(id: string, direction: "up" | "down") {
   if (!canMove(id, direction)) return;
-  commit(() => {
+  keepFocus(() => commit(() => {
     const arr = blocks.slice();
     const i = arr.findIndex((b) => b.id === id);
     const j = direction === "up" ? i - 1 : i + 1;
     [arr[i], arr[j]] = [arr[j], arr[i]];
     blocks = arr;
-  });
+  }));
 }
 
 /** Moves a block so it lands before the block now at `idx` (idx = length moves it last). */
@@ -415,9 +448,12 @@ let closed = $state<Record<string, boolean>>({});
 let lastTile = $state("");
 let modal = $state<ModalKind>("");
 let deleteId = $state<string | null>(null);
+let deleteFrom: Area = "canvas";
 let insertTarget = $state<InsertTarget | null>(null);
 let linksBack = $state(false);
 let toast = $state("");
+// The font list shows every web font in its own face, so its stylesheet loads once it is wanted.
+let allFonts = $state(false);
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
 
 function say(message: string) {
@@ -449,6 +485,7 @@ function closeModal() {
 function requestDelete(id: string) {
   if (modal || preview) return;
   deleteId = id;
+  deleteFrom = typeof document !== "undefined" ? areaOf(document.activeElement) : "canvas";
   modal = "delete";
 }
 function confirmDelete() {
@@ -456,8 +493,10 @@ function confirmDelete() {
   modal = "";
   deleteId = null;
   if (id) {
+    const i = blocks.findIndex((b) => b.id === id);
     removeBlock(id);
     say("Block deleted");
+    focusBlockEl((blocks[i] ?? blocks[i - 1])?.id, deleteFrom);
   }
 }
 
@@ -526,8 +565,10 @@ const dnd = {
     dragging = "";
     dropIdx = null;
     if (!d || idx === null) return;
+    const area = areaOf(e.currentTarget as Element | null);
     if (d.id) moveTo(d.id, idx);
     else if (d.type) addBlock(d.type, idx);
+    focusBlockEl(selectedId, area);
   },
   end() {
     drag = null;
@@ -546,6 +587,7 @@ function setBlocks(newBlocks: Block[]) {
   redoStack = [];
   lastKey = null;
   dirty = false;
+  saveAgain = false;
   saveState = "idle";
   saveError = "";
   scheduleCompile();
@@ -681,9 +723,15 @@ async function copyHtml(): Promise<boolean> {
 
 // Save template
 async function saveTemplate(opts: { quiet?: boolean } = {}) {
-  if (saveState === "saving") return false;
+  if (saveState === "saving") {
+    // One save at a time: this one runs again when the current one is done.
+    saveAgain = true;
+    return false;
+  }
   saveState = "saving";
   saveError = "";
+  const sentRev = rev;
+  const sentId = templateId;
   try {
     const res = await fetch("/api/templates", {
       method: "POST",
@@ -699,24 +747,36 @@ async function saveTemplate(opts: { quiet?: boolean } = {}) {
     });
     if (res.ok) {
       const data = await res.json().catch(() => ({}));
-      dirty = false;
+      dirty = rev !== sentRev;
       saveState = "saved";
       // Saving a starter or someone else's public template forks it: continue on the new copy.
-      if (data.forked && typeof data.id === "string") {
-        const oldId = templateId;
+      if (data.forked && typeof data.id === "string" && templateId === sentId) {
         templateId = data.id;
         mailerTemplateId = "";
         mailerTemplateName = "";
         mailerSyncedJson = "";
-        if (typeof location !== "undefined" && location.pathname === `/editor/${oldId}`) {
-          goto(`/editor/${data.id}`, { replaceState: true, noScroll: true, keepFocus: true });
+      }
+      // Point the address bar at the saved row (a new template, or the fork) so a reload opens
+      // it. A shallow replace: navigating would reload the template and drop undo history.
+      if (typeof location !== "undefined" && templateId === (data.forked ? data.id : sentId)) {
+        const path = location.pathname;
+        if (path === "/editor" || (path.startsWith("/editor/") && path !== `/editor/${templateId}`)) {
+          try {
+            replaceState(`/editor/${encodeURIComponent(templateId)}`, {});
+          } catch {
+            /* router not ready: the address bar keeps the old path */
+          }
         }
       }
+      afterSave();
       return true;
     }
     if (opts.quiet && res.status === 422) {
       // The edit stays unsaved (dirty) and the next change schedules another autosave.
       saveState = "idle";
+      // Retry only if something changed while this save was in flight.
+      if (rev !== sentRev) afterSave();
+      else saveAgain = false;
       return false;
     }
     saveError =
@@ -727,7 +787,35 @@ async function saveTemplate(opts: { quiet?: boolean } = {}) {
     saveError = "Could not save, check your connection";
   }
   saveState = "error";
+  saveAgain = false;
   return false;
+}
+
+/**
+ * The page is being closed or reloaded with unsaved edits: send them with a keepalive request,
+ * which the browser finishes after the page is gone. Returns false when that is not possible
+ * (keepalive bodies are capped near 64 KB), so the caller can ask the browser to confirm.
+ */
+function flushOnExit(): boolean {
+  if (!dirty || !templateId) return true;
+  const body = JSON.stringify({ id: templateId, name: templateName, category: templateCategory, isPublic: templateIsPublic, blocks, settings });
+  if (body.length > 60_000) return false;
+  try {
+    void fetch("/api/templates", { method: "POST", headers: { "Content-Type": "application/json" }, body, keepalive: true }).catch(() => {});
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+let saveAgain = false;
+/** A save was asked for while one was in flight, or edits arrived meanwhile: save those too. */
+function afterSave() {
+  const again = saveAgain;
+  saveAgain = false;
+  if (!dirty || !templateId) return;
+  if (again) void saveTemplate({ quiet: true });
+  else scheduleAutosave();
 }
 
 export const editor = {
@@ -743,19 +831,20 @@ export const editor = {
   get templateName() { return templateName; },
   set templateName(v: string) {
     templateName = v;
-    dirty = true;
+    touch();
     scheduleAutosave();
   },
   get templateCategory() { return templateCategory; },
   set templateCategory(v: string) {
     templateCategory = v;
-    dirty = true;
+    touch();
     scheduleAutosave();
   },
   get templateIsPublic() { return templateIsPublic; },
   set templateIsPublic(v: boolean) {
     templateIsPublic = v;
-    dirty = true;
+    touch();
+    scheduleAutosave();
   },
   get templateId() { return templateId; },
   get dirty() { return dirty; },
@@ -823,6 +912,7 @@ export const editor = {
   copyHtml,
   fileName: fileSlug,
   saveTemplate,
+  flushOnExit,
 };
 
 /** Editor view state: layout, tabs, the single modal slot, the toast. Never saved. */
@@ -844,6 +934,8 @@ export const view = {
   get insertTarget() { return insertTarget; },
   get linksBack() { return linksBack; },
   get toast() { return toast; },
+  get allFonts() { return allFonts; },
+  loadAllFonts() { allFonts = true; },
   say,
   openModal,
   switchModal,

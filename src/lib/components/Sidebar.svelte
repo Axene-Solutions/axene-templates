@@ -132,7 +132,7 @@
 				{@const on = editor.selectedId === b.id}
 				{#if dnd.dropIdx === i}<div style="height:2px;background:#ffd100;margin:0 4px"></div>{/if}
 				<div style="display:flex;align-items:center;gap:2px;border-radius:8px">
-					<button class="row" type="button" draggable={pinned ? 'false' : 'true'} ondragstart={(e) => dnd.start(e, { id: b.id })} ondragover={(e) => dnd.over(e, i)} ondrop={(e) => dnd.drop(e)} ondragend={() => dnd.end()} onclick={(e) => pick(e, b.id)} onkeydown={(e) => rowKey(e, b.id)} aria-current={on} style={(on ? 'background:var(--s2);box-shadow:inset 0 0 0 1.5px #ffd100;' : '') + (pinned ? 'cursor:pointer;' : 'cursor:grab;') + (dnd.dragging === b.id ? 'opacity:.4;' : '')}>
+					<button class="row" type="button" data-layer={b.id} draggable={pinned ? 'false' : 'true'} ondragstart={(e) => dnd.start(e, { id: b.id })} ondragover={(e) => dnd.over(e, i)} ondrop={(e) => dnd.drop(e)} ondragend={() => dnd.end()} onclick={(e) => pick(e, b.id)} onkeydown={(e) => rowKey(e, b.id)} aria-current={on} style={(on ? 'background:var(--s2);box-shadow:inset 0 0 0 1.5px #ffd100;' : '') + (pinned ? 'cursor:pointer;' : 'cursor:grab;') + (dnd.dragging === b.id ? 'opacity:.4;' : '')}>
 						<span style="display:flex;color:var(--muted);{pinned ? 'opacity:.25' : ''}"><Icon name="menu" width={14} height={14} /></span>
 						<span class="mono" style="font-size:11px;color:var(--muted);width:14px;text-align:right">{i + 1}</span>
 						<span style="flex-grow:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{TYPE_NAME[b.type]}</span>

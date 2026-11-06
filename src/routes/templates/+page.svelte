@@ -1,7 +1,7 @@
 <script lang="ts">
     import { goto, invalidate } from '$app/navigation';
     import { page } from '$app/state';
-    import { onMount } from 'svelte';
+    import { onMount, tick } from 'svelte';
     import { mailer } from '$lib/mailer.svelte';
     import ConfirmModal from '$lib/components/ConfirmModal.svelte';
     import Icon from '$lib/components/Icon.svelte';
@@ -200,8 +200,16 @@
         try {
             const res = await fetch(`/api/templates/${id}`, { method: 'DELETE' });
             if (res.ok) {
+                const at = items.findIndex((t) => t.id === id);
                 templates = templates.filter((t) => t.id !== id);
                 say(`Deleted ${name}`);
+                // The focused Delete button went with its card: move focus to the card now in its
+                // place (or the one before), so keyboard users keep their spot in the grid.
+                await tick();
+                if (document.activeElement === document.body || !document.activeElement) {
+                    const links = document.querySelectorAll<HTMLElement>('section[aria-label="Templates"] a[aria-label$=" in the editor"]');
+                    (links[Math.min(at, links.length - 1)] ?? document.querySelector<HTMLElement>('main a[href="/editor"]'))?.focus();
+                }
             } else {
                 say(`Could not delete "${name}" (error ${res.status}).`, 4000);
             }

@@ -29,8 +29,10 @@
 		help?: boolean;
 		loadFonts?: boolean;
 		ariaLabel?: string;
+		/** Called when the list is about to be needed (pointer over, focus, open), to load its fonts. */
+		onwarm?: () => void;
 	}
-	let { value, onchange, fonts = FONTS, help = true, loadFonts = true, ariaLabel = 'Font family' }: Props = $props();
+	let { value, onchange, fonts = FONTS, help = true, loadFonts = true, ariaLabel = 'Font family', onwarm }: Props = $props();
 
 	const uid = $props.id();
 	const listId = `font-list-${uid}`;
@@ -62,6 +64,7 @@
 	const hl = $derived(Math.max(0, Math.min(idx, shown.length - 1)));
 
 	async function openList() {
+		onwarm?.();
 		q = '';
 		idx = Math.max(0, fonts.findIndex((f) => f.name === cur.name));
 		open = true;
@@ -156,6 +159,8 @@
 		aria-label={ariaLabel}
 		onclick={() => (open ? close(false) : openList())}
 		onkeydown={btnKey}
+		onpointerenter={() => onwarm?.()}
+		onfocus={() => onwarm?.()}
 		style="display:flex;align-items:center;gap:8px;height:36px;padding:0 11px;text-align:left;cursor:pointer"
 		><span
 			style={'font-family:' +
