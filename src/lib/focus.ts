@@ -7,11 +7,14 @@ export function autofocus(node: HTMLElement) {
 	node.focus();
 }
 
-/** Move focus into the dialog, keep Tab inside it, and give focus back to the opener on close. */
+/**
+ * Move focus into the dialog (to the element marked data-autofocus, else the first control),
+ * keep Tab inside it, and give focus back to the opener on close.
+ */
 export function trapFocus(node: HTMLElement) {
 	const previous = document.activeElement as HTMLElement | null;
 	const items = () => [...node.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => el.offsetParent !== null);
-	(items()[0] ?? node).focus();
+	(node.querySelector<HTMLElement>('[data-autofocus]') ?? items()[0] ?? node).focus();
 
 	function onkeydown(e: KeyboardEvent) {
 		if (e.key !== 'Tab') return;
