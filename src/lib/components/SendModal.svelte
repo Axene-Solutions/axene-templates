@@ -4,13 +4,20 @@
 	import { mailer } from '$lib/mailer.svelte';
 	import { mailerData } from '$lib/mailer-data.svelte';
 	import { collectUsage, linkFieldNeeds } from '$lib/placeholders';
-	import { autofocus, trapFocus } from '$lib/focus';
 	import Icon from './Icon.svelte';
 	import MailerConnectCard from './MailerConnectCard.svelte';
-	import SelectMenu from './SelectMenu.svelte';
 	import PlaceholderWarnings from './PlaceholderWarnings.svelte';
+	import ModalFrame from './editor/ModalFrame.svelte';
 
-	let { open = false, onclose }: { open: boolean; onclose: () => void } = $props();
+	// Send (Editor.dc.html SEND): From picker, recipients, subject, the template's variables,
+	// sending spinner, sent check that closes by itself. `onback` shows a Back chevron when this
+	// step was reached from Save to Mailer.
+	interface Props {
+		open: boolean;
+		onclose: () => void;
+		onback?: () => void;
+	}
+	let { open = false, onclose, onback }: Props = $props();
 
 	type Sender = { email: string; name: string | null };
 	type Result = { to: string; ok: boolean; status?: number; error?: string };
@@ -20,6 +27,8 @@
 	let senders = $state<Sender[]>([]);
 	let sendersError = $state('');
 	let fromEmail = $state('');
+	let fromOpen = $state(false);
+	let fromQuery = $state('');
 	let recipientsText = $state('');
 	let subject = $state('');
 	let varValues = $state<Record<string, string>>({});
@@ -49,7 +58,6 @@
 		return [...names];
 	});
 	const optionalNames = $derived([...usage.fields].filter(([k, v]) => v.hasFallback && !variableNames.includes(k)).map(([k]) => k));
-	const usesGrammar = $derived(usage.links.size > 0 || optionalNames.length > 0);
 
 	let wasOpen = false;
 	$effect(() => {
@@ -78,6 +86,7 @@
 		formError = '';
 		results = [];
 		confirming = false;
+		fromOpen = false;
 		subject = savedSubject() || editor.templateName;
 		varValues = Object.fromEntries([...variableNames, ...optionalNames].map((n) => [n, '']));
 		await mailer.load();
@@ -113,8 +122,10 @@
 	}
 
 	async function send() {
+		if (!canSend) return;
 		formError = '';
 		results = [];
+		fromOpen = false;
 		const variables = variableNames.length || optionalNames.length ? Object.fromEntries(Object.entries(varValues).filter(([k, v]) => variableNames.includes(k) || v.trim() !== '')) : undefined;
 		sending = true;
 		try {
@@ -175,250 +186,101 @@
 		formError = '';
 	}
 
-	// While a send is running, Escape and backdrop clicks do nothing, so results are never discarded.
-	function close() {
-		if (!sending) onclose();
+	const from = $derived(senders.find((s) => s.email === fromEmail) ?? null);
+	const shown = $derived.by(() => {
+		const q = fromQuery.trim().toLowerCase();
+		return senders.filter((s) => !q || (s.name ?? '').toLowerCase().includes(q) || s.email.includes(q));
+	});
+	function sendToMe() {
+		if (!userEmail || recipients.includes(userEmail.toLowerCase())) return;
+		recipientsText = [...recipients, userEmail].join(', ');
 	}
-	function onkeydown(e: KeyboardEvent) {
-		if (open && e.key === 'Escape') close();
+	function fromKey(e: KeyboardEvent) {
+		if (e.key === 'Escape' && fromOpen) {
+			e.preventDefault();
+			e.stopPropagation();
+			fromOpen = false;
+		}
 	}
+	const note = 'font-size:12.5px;line-height:1.5;padding:10px 12px;border-radius:12px';
+	const card = 'width:100%;max-width:520px;background:var(--bg);border-radius:16px;padding:26px;box-shadow:0 30px 80px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:16px';
 </script>
 
-<svelte:window {onkeydown} />
-
 {#if open}
-	<!-- svelte-ignore a11y_click_events_have_key_events -->
-	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div class="sm sm-overlay" onclick={close}>
-		<div class="sm-card" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Send email" tabindex="-1" use:trapFocus>
-			<div class="sm-head">
-				<div class="sm-title">Send email</div>
-				<button class="sm-x" onclick={close} aria-label="Close" disabled={sending}><Icon name="close" width={16} height={16} /></button>
+	<ModalFrame label="Send email" busy={sending} {onclose} style={card}>
+		{#if sending}
+			<div role="status" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:44px 0 38px"><span style="width:36px;height:36px;border-radius:50%;border:3px solid var(--s3);border-top-color:#ffd100;animation:ed-spin .8s linear infinite"></span><div style="font-size:18px;font-weight:700;margin-top:6px">Sending to {recipients.length} recipient{recipients.length === 1 ? '' : 's'}</div><div style="font-size:13px;color:var(--muted)">This takes a few seconds.</div></div>
+		{:else if allSent}
+			<div role="status" style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:34px 0 22px"><span style="width:60px;height:60px;border-radius:16px;display:grid;place-items:center;color:var(--ok);background:var(--ok-soft);animation:ed-pop .28s ease-out"><Icon name="tick-circle" width={28} height={28} /></span><div style="font-size:19px;font-weight:700;margin-top:10px">{results.length === 1 ? 'Email sent' : `${results.length} emails sent`}</div><div style="font-size:13px;color:var(--muted)">Delivery status is in your Mailer email log. This closes by itself.</div><button class="btn btn-primary" type="button" style="margin-top:14px" onclick={onclose}>Done</button></div>
+		{:else}
+			<div style="display:flex;gap:8px;align-items:flex-start">
+				{#if onback}<button class="icon-btn" type="button" onclick={onback} aria-label="Back to saved" style="margin-left:-8px"><Icon name="arrow-left42" width={18} height={18} /></button>{/if}
+				<div style="flex-grow:1"><h2 style="margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em">Send email</h2><p style="margin:5px 0 0;font-size:13.5px;line-height:1.5;color:var(--muted)">Sent from your Mailer account, from your own domain.</p></div>
+				<button class="icon-btn" type="button" onclick={onclose} aria-label="Close"><Icon name="close" width={16} height={16} /></button>
 			</div>
 
 			{#if mailer.status !== 'connected'}
 				<MailerConnectCard />
 			{:else}
-				{#if sending || allSent}
-					<div class="sm-state" role="status" aria-live="polite">
-						{#if sending}
-							<span class="sm-spin" aria-hidden="true"></span>
-							<div class="sm-state-title">Sending to {recipients.length} recipient{recipients.length === 1 ? '' : 's'}</div>
-							<div class="sm-state-sub">This takes a few seconds.</div>
-						{:else}
-							<span class="sm-tick" aria-hidden="true"><Icon name="check" width={26} height={26} /></span>
-							<div class="sm-state-title">{results.length === 1 ? 'Email sent' : `${results.length} emails sent`}</div>
-							<div class="sm-state-sub sm-mono">{results.length === 1 ? results[0].to : `${results[0].to} and ${results.length - 1} more`}</div>
-							<div class="sm-state-sub">Delivery status is in your Mailer email log.</div>
-							<button class="sm-btn sm-btn-primary sm-state-btn" type="button" onclick={onclose} use:autofocus>Done</button>
-						{/if}
-					</div>
-				{/if}
-				<div class="sm-form" class:sm-hide={sending || allSent}>
-				<label class="sm-label" for="sm-from">From</label>
-				<SelectMenu
-					id="sm-from"
-					bind:value={fromEmail}
-					disabled={!senders.length}
-					options={senders.map((s) => ({ value: s.email, label: s.name ?? s.email, hint: s.name ? s.email : undefined }))}
-					placeholder={senders.length ? 'Choose a sender' : 'No senders'}
-					searchPlaceholder="Search senders"
-				/>
-				{#if sendersError}
-					<div class="sm-note sm-note-err" role="alert"><Icon name="warning" width={16} height={16} /><span>{sendersError}</span></div>
-				{/if}
-
-				<div class="sm-row">
-					<label class="sm-label" for="sm-to">Recipients</label>
-					<span class="sm-count" class:sm-over={tooMany}>{recipients.length} / {MAX}</span>
-					<button class="sm-link" type="button" disabled={!userEmail} onclick={() => (recipientsText = userEmail)}>Send to me</button>
-				</div>
-				<textarea id="sm-to" class="sm-input sm-mono" rows="3" placeholder="one@example.com, two@example.com" bind:value={recipientsText}></textarea>
-
-				<label class="sm-label" for="sm-subj">Subject</label>
-				<input id="sm-subj" class="sm-input" type="text" maxlength="200" bind:value={subject} />
-
-				{#if variableNames.length}
-					<div class="sm-label">Variables (all required)</div>
-					<div class="sm-vars">
-						{#each variableNames as n (n)}
-							<label class="sm-var" for="sm-var-{n}">
-								<span class="sm-mono sm-var-name">{n}</span>
-								<input id="sm-var-{n}" class="sm-input" type="text" required aria-required="true" aria-invalid={(varValues[n] ?? '').trim() === ''} bind:value={varValues[n]} />
-							</label>
-						{/each}
-					</div>
-				{/if}
-
-				{#if optionalNames.length}
-					<div class="sm-label">Optional values (leave empty to use the fallback)</div>
-					<div class="sm-vars">
-						{#each optionalNames as n (n)}
-							<label class="sm-var" for="sm-opt-{n}">
-								<span class="sm-mono sm-var-name">{n}</span>
-								<input id="sm-opt-{n}" class="sm-input" type="text" bind:value={varValues[n]} />
-							</label>
-						{/each}
-					</div>
-				{/if}
-
-				{#if usesGrammar}
-					<p class="sm-note sm-note-info" role="note">
-						<Icon name="link" width={16} height={16} />
-						<span>This send fills {'{{name|fallback}}'} and {'{{link:key}}'} here: named links come from your Mailer account and values are URL-encoded inside links. In a Mailer broadcast, Mailer fills them in per contact.</span>
-					</p>
-				{/if}
-
-				<PlaceholderWarnings variant="dialog" />
-
-				{#if formError}
-					<div class="sm-note sm-note-err" role="alert"><Icon name="warning" width={16} height={16} /><span>{formError}</span></div>
-				{/if}
-
-				{#if results.length}
-					<div class="sm-results" aria-live="polite">
-						<div class="sm-muted">{sentCount} of {results.length} sent</div>
-						{#each results as r}
-							<div class="sm-res" class:sm-res-ok={r.ok} class:sm-res-err={!r.ok}>
-								<Icon name={r.ok ? 'check' : 'warning'} width={14} height={14} />
-								<span class="sm-mono sm-res-to">{r.to}</span>
-								<span class="sm-res-msg">{r.ok ? 'Sent' : (r.error ?? 'Failed')}</span>
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<div style="display:flex;flex-direction:column;gap:7px;position:relative" onkeydown={fromKey}>
+					<span class="lbl">From</span>
+					<button type="button" class="field" onclick={() => { fromOpen = !fromOpen; fromQuery = ''; }} aria-haspopup="listbox" aria-expanded={fromOpen} disabled={!senders.length} style="display:flex;align-items:center;gap:8px;text-align:left;cursor:pointer"><span style="flex-grow:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{#if from}{from.name ?? from.email} <span class="mono" style="font-size:12px;color:var(--muted);margin-left:6px">{from.name ? from.email : ''}</span>{:else}<span style="color:var(--muted)">{senders.length ? 'Choose a sender' : 'No senders'}</span>{/if}</span><span style="color:var(--muted);display:flex"><Icon name="arrow-down4" width={14} height={14} /></span></button>
+					{#if fromOpen}
+						<div style="position:absolute;left:0;right:0;top:62px;background:var(--bg);border-radius:12px;padding:8px;box-shadow:0 18px 50px rgba(0,0,0,.28);z-index:6;display:flex;flex-direction:column;gap:4px">
+							<label style="position:relative;display:block"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);display:flex"><Icon name="search" width={15} height={15} /></span><!-- svelte-ignore a11y_autofocus --><input class="field" style="padding-left:34px" type="text" placeholder="Search senders" aria-label="Search senders" bind:value={fromQuery} autofocus /></label>
+							<div role="listbox" style="max-height:200px;overflow:auto;display:flex;flex-direction:column;gap:1px">
+								{#each shown as s (s.email)}
+									{@const on = s.email === fromEmail}
+									<button class="opt" type="button" role="option" aria-selected={on} style={on ? 'background:var(--s2)' : ''} onclick={() => { fromEmail = s.email; fromOpen = false; fromQuery = ''; }}><span style="font-weight:600">{s.name ?? s.email}</span>{#if s.name}<span class="mono" style="font-size:12px;color:var(--muted)">{s.email}</span>{/if}{#if on}<span style="margin-left:auto;color:var(--ok);display:flex"><Icon name="tick-circle" width={15} height={15} /></span>{/if}</button>
+								{/each}
+								{#if shown.length === 0}<div style="padding:14px 10px;font-size:13px;color:var(--muted)">No sender matches.</div>{/if}
 							</div>
-						{/each}
-					</div>
-					{#if failed.length}
-						<div class="sm-retry">
-							<span class="sm-muted">Send again to only the {failed.length} that did not go out, so nobody gets it twice.</span>
-							<button class="sm-link" type="button" onclick={retryFailed}>Retry failed</button>
 						</div>
 					{/if}
-				{/if}
-
-				<p class="sm-disclosure">Mail is sent from your Mailer account and counts toward its plan and limits.</p>
-
-				<div class="sm-foot sm-foot-split">
-					{#if !confirming}
-						<button class="sm-link sm-link-quiet" type="button" onclick={() => (confirming = true)}>Disconnect Mailer{mailer.keyHint ? ` (key ending ${mailer.keyHint})` : ''}</button>
-					{:else}
-						<span class="sm-confirm">
-							<span class="sm-muted">Delete the stored key?</span>
-							<button class="sm-link sm-link-danger" type="button" disabled={mailer.busy} onclick={disconnect} use:autofocus>Yes, disconnect</button>
-							<button class="sm-link sm-link-quiet" type="button" onclick={() => (confirming = false)}>Cancel</button>
-						</span>
-					{/if}
-					<button class="sm-btn sm-btn-primary" disabled={!canSend} onclick={send}>
-						<Icon name="send" width={14} height={14} />
-						{sending ? 'Sending...' : 'Send'}
-					</button>
 				</div>
+				{#if sendersError}<div role="alert" style="{note};background:var(--color-danger-soft);color:var(--bad)">{sendersError}</div>{/if}
+
+				<div style="display:flex;flex-direction:column;gap:7px">
+					<div style="display:flex;align-items:center"><span class="lbl" style="flex-grow:1">Recipients</span><span class="mono" style="font-size:12px;color:{tooMany ? 'var(--bad)' : 'var(--muted)'};margin-right:10px">{recipients.length} / {MAX}</span><button type="button" style="border:0;cursor:pointer;font-size:12px;font-weight:600;padding:4px 10px;border-radius:4px;background:var(--s2)" disabled={!userEmail} onclick={sendToMe}>Send to me</button></div>
+					<textarea class="field mono" rows="2" style="resize:none;font-size:12.5px;line-height:1.5" placeholder="one@example.com, two@example.com" aria-label="Recipients" bind:value={recipientsText}></textarea>
+				</div>
+				<div style="display:flex;flex-direction:column;gap:7px"><span class="lbl">Subject</span><input class="field" type="text" aria-label="Subject" maxlength="200" bind:value={subject} /></div>
+				{#if variableNames.length || optionalNames.length}
+					<div style="display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:12px">
+						{#each variableNames as n (n)}
+							{@const empty = (varValues[n] ?? '').trim() === ''}
+							<div style="display:flex;flex-direction:column;gap:7px"><span class="lbl"><span class="mono">{n}</span> (required)</span><input class="field" type="text" aria-label={n} aria-required="true" aria-invalid={empty} placeholder={n.endsWith('url') ? 'https://' : ''} bind:value={varValues[n]} style={empty ? 'box-shadow:0 0 0 2px var(--bad)' : ''} /></div>
+						{/each}
+						{#each optionalNames as n (n)}
+							<div style="display:flex;flex-direction:column;gap:7px"><span class="lbl"><span class="mono">{n}</span> (optional)</span><input class="field" type="text" aria-label={n} placeholder="Uses the fallback" bind:value={varValues[n]} /></div>
+						{/each}
+					</div>
+				{/if}
+				<div style="font-size:12.5px;line-height:1.5;color:var(--muted);padding:12px 14px;border-radius:12px;background:var(--s2)">Fields fill per recipient. In a Mailer broadcast, Mailer fills them from each contact.</div>
+				<PlaceholderWarnings variant="dialog" />
+				{#if formError}<div role="alert" style="{note};background:var(--color-danger-soft);color:var(--bad)">{formError}</div>{/if}
+				{#if results.length}
+					<div aria-live="polite" style="display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-radius:12px;background:var(--s2);font-size:12.5px">
+						<div style="color:var(--muted)">{sentCount} of {results.length} sent</div>
+						{#each results as r (r.to)}
+							<div style="display:flex;align-items:center;gap:8px"><span style="display:flex;color:{r.ok ? 'var(--ok)' : 'var(--bad)'}"><Icon name={r.ok ? 'tick-circle' : 'warning'} width={14} height={14} /></span><span class="mono" style="font-size:12px">{r.to}</span><span style="color:var(--muted);margin-left:auto">{r.ok ? 'Sent' : (r.error ?? 'Failed')}</span></div>
+						{/each}
+						{#if failed.length}<button class="btn" type="button" style="align-self:flex-start;background:var(--bg);padding:6px 11px;margin-top:4px" onclick={retryFailed}>Retry the {failed.length} that failed</button>{/if}
+					</div>
+				{/if}
+				<div style="display:flex;align-items:center;gap:10px">
+					{#if !confirming}
+						<button class="btn btn-ghost" type="button" onclick={() => (confirming = true)} style="padding-left:0">Disconnect Mailer</button>
+					{:else}
+						<span style="font-size:12.5px;color:var(--muted)">Delete the stored key?</span>
+						<button class="btn btn-ghost" type="button" disabled={mailer.busy} onclick={disconnect} style="color:var(--bad);padding:8px 6px">Yes, disconnect</button>
+						<button class="btn btn-ghost" type="button" onclick={() => (confirming = false)} style="padding:8px 6px">Cancel</button>
+					{/if}
+					<div style="flex-grow:1"></div>
+					<button class="btn btn-primary" type="button" onclick={send} aria-disabled={!canSend} style={canSend ? '' : 'opacity:.45;pointer-events:none'}><Icon name="send" width={16} height={16} />Send</button>
 				</div>
 			{/if}
-		</div>
-	</div>
+		{/if}
+	</ModalFrame>
 {/if}
-
-<style>
-	/* All colors for this component live in this block. */
-	.sm {
-		--sm-accent: var(--color-accent);
-		--sm-card: var(--color-surface-2);
-		--sm-field: var(--color-bg);
-		--sm-border: var(--color-border-1);
-		--sm-text: var(--color-text);
-		--sm-muted: var(--color-muted);
-		--sm-ok: var(--color-success);
-		--sm-err: var(--color-danger);
-		--sm-warn: var(--color-danger);
-	}
-	.sm-overlay {
-		position: fixed;
-		inset: 0;
-		z-index: 1000;
-		background: color-mix(in srgb, var(--color-bg) 70%, transparent);
-		backdrop-filter: blur(4px);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-	.sm-card {
-		background: var(--sm-card);
-		border: 1px solid var(--sm-border);
-		border-radius: 12px;
-		width: min(520px, 92vw);
-		max-height: 90vh;
-		overflow-y: auto;
-		padding: 22px;
-		color: var(--sm-text);
-		font-size: 13px;
-		font-family: var(--font-sans);
-	}
-	.sm-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-	.sm-title { font-size: 16px; font-weight: 600; }
-	.sm-x { background: none; border: none; color: var(--sm-muted); cursor: pointer; display: flex; padding: 4px; border-radius: 6px; }
-	.sm-x:hover { color: var(--sm-text); }
-	.sm-muted { color: var(--sm-muted); font-size: 12px; }
-	.sm-label { display: block; font-size: 11.5px; font-weight: 600; color: var(--sm-muted); margin: 12px 0 5px; }
-	.sm-row { display: flex; align-items: baseline; gap: 10px; }
-	.sm-row .sm-label { margin-right: auto; }
-	.sm-count { font-size: 11.5px; color: var(--sm-muted); }
-	.sm-over { color: var(--sm-err); }
-	.sm-link { background: none; border: none; cursor: pointer; font: inherit; font-size: 11.5px; padding: 0; }
-	.sm-link { color: var(--color-accent-ink); }
-	.sm-link:disabled { opacity: 0.4; cursor: not-allowed; }
-	.sm-link-quiet { color: var(--sm-muted); text-decoration: underline; }
-	.sm-link-danger { color: var(--sm-err); }
-	.sm-confirm { display: inline-flex; gap: 10px; align-items: center; }
-	.sm-input {
-		width: 100%;
-		background: var(--sm-field);
-		color: var(--sm-text);
-		border: 1px solid var(--sm-border);
-		border-radius: 7px;
-		padding: 8px 10px;
-		font: inherit;
-		resize: vertical;
-	}
-	.sm-input:focus { outline: 2px solid var(--sm-accent); outline-offset: 0; }
-	.sm-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 12px; }
-	.sm-note {
-		display: flex; gap: 8px; align-items: flex-start;
-		margin-top: 12px; padding: 9px 10px; border-radius: 7px; line-height: 1.45;
-		border: 1px solid transparent;
-	}
-	.sm-note-info { border-color: var(--color-info); background: var(--color-info-soft); color: var(--color-text); }
-	.sm-note-err { border-color: var(--sm-err); background: color-mix(in srgb, var(--sm-err) 12%, transparent); color: var(--sm-err); }
-	.sm-hide { display: none; }
-	.sm-state { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 36px 12px 28px; }
-	.sm-state-title { font-size: 17px; font-weight: 600; margin-top: 10px; }
-	.sm-state-sub { font-size: 12.5px; color: var(--sm-muted); }
-	.sm-state-btn { margin-top: 16px; }
-	.sm-spin { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--sm-border); border-top-color: var(--sm-accent); animation: sm-rot 0.8s linear infinite; }
-	.sm-tick { display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; color: var(--sm-ok); background: color-mix(in srgb, var(--sm-ok) 14%, transparent); box-shadow: inset 0 0 0 2px var(--sm-ok); animation: sm-pop 0.28s ease-out; }
-	@keyframes sm-rot { to { transform: rotate(360deg); } }
-	@keyframes sm-pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-	@media (prefers-reduced-motion: reduce) { .sm-spin, .sm-tick { animation: none; } }
-	.sm-results { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
-	.sm-res {
-		display: flex; align-items: center; gap: 8px;
-		padding: 7px 10px; border-radius: 7px; border: 1px solid transparent;
-	}
-	.sm-res-ok { border-color: var(--sm-ok); background: color-mix(in srgb, var(--sm-ok) 10%, transparent); color: var(--sm-ok); }
-	.sm-res-err { border-color: var(--sm-err); background: color-mix(in srgb, var(--sm-err) 10%, transparent); color: var(--sm-err); }
-	.sm-vars { display: flex; flex-direction: column; gap: 8px; }
-	.sm-var { display: grid; grid-template-columns: 9rem 1fr; align-items: center; gap: 10px; }
-	.sm-var-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--sm-muted); }
-	.sm-var .sm-input[aria-invalid='true'] { border-color: var(--sm-err); }
-	.sm-retry { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 10px; }
-	.sm-res-to { color: var(--sm-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-	.sm-res-msg { margin-left: auto; font-size: 12px; text-align: right; }
-	.sm-disclosure { margin: 14px 0 0; font-size: 11.5px; color: var(--sm-muted); }
-	.sm-foot { display: flex; justify-content: flex-end; margin-top: 16px; gap: 10px; align-items: center; }
-	.sm-foot-split { justify-content: space-between; }
-	.sm-btn {
-		display: inline-flex; align-items: center; gap: 6px;
-		border: none; border-radius: 7px; padding: 8px 16px; font: inherit; font-weight: 600; cursor: pointer;
-	}
-	.sm-btn-primary { background: var(--sm-accent); color: var(--color-on-accent); }
-	.sm-btn-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text)); }
-	.sm-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-</style>

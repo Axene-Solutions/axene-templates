@@ -3,35 +3,47 @@
 	import { mailer } from '$lib/mailer.svelte';
 	import { MAX_SUBJECT_MAILER, MAX_TEMPLATE_NAME } from '$lib/mailer-templates';
 	import { mailerData } from '$lib/mailer-data.svelte';
-	import { saveBlockedReason, PRICING_URL } from '$lib/mailer-plan';
-	import { trapFocus } from '$lib/focus';
+	import { saveBlockedReason, templatesLine, MAILER_URL, PRICING_URL } from '$lib/mailer-plan';
 	import { invalidate } from '$app/navigation';
 	import { page } from '$app/state';
 	import Icon from './Icon.svelte';
-	import ConfirmModal from './ConfirmModal.svelte';
 	import MailerConnectCard from './MailerConnectCard.svelte';
-	import MailerPlanCard from './MailerPlanCard.svelte';
 	import PlaceholderWarnings from './PlaceholderWarnings.svelte';
+	import ModalFrame from './editor/ModalFrame.svelte';
 
-	let { open = false, onclose }: { open: boolean; onclose: () => void } = $props();
+	// Save to Mailer (Editor.dc.html SAVE TO MAILER): form, saving, saved with Keep going options.
+	// "Send a test email" moves into the Send step of the same modal (onsend); its Back returns
+	// here with `resume`, so the saved state is kept.
+	interface Props {
+		open: boolean;
+		onclose: () => void;
+		onsend?: () => void;
+		resume?: boolean;
+	}
+	let { open = false, onclose, onsend, resume = false }: Props = $props();
 
 	type Result = { mailerTemplateId: string; created: boolean; linked?: boolean; name?: string; openUrl: string };
 
 	let subject = $state('');
 	let name = $state('');
-	let saving = $state(false);
+	let phase = $state<'form' | 'saving' | 'done' | 'reload'>('form');
 	let error = $state('');
 	let result = $state<Result | null>(null);
 	// Mailer's copy changed since this template was opened or last saved (409 mailer_template_changed).
 	let conflict = $state(false);
-	let confirmReload = $state(false);
 	let reloading = $state(false);
 
 	const linked = $derived(!!editor.mailerTemplateId);
 	const verb = $derived(linked ? 'Update in Mailer' : 'Save to Mailer');
 	// Saving a new template can exceed the plan; updating one that already lives in Mailer never adds one.
 	const blocked = $derived(saveBlockedReason(mailerData.plan, linked));
-	const canSave = $derived(!saving && !blocked && subject.trim().length > 0 && subject.length <= MAX_SUBJECT_MAILER && name.trim().length > 0);
+	const canSave = $derived(phase === 'form' && !blocked && !conflict && subject.trim().length > 0 && subject.length <= MAX_SUBJECT_MAILER && name.trim().length > 0);
+	const plan = $derived(mailerData.plan);
+	const badge = $derived(
+		blocked ? ['No room', 'var(--color-danger-soft)', 'var(--bad)'] : plan?.nearTemplateLimit ? ['Nearly full', 'var(--warn-soft)', 'var(--warn)'] : ['Room to save', 'var(--ok-soft)', 'var(--ok)']
+	);
+	const OB = '{' + '{';
+	const CB = '}' + '}';
 
 	// Per user and template, so a shared browser never offers one user's subject to another.
 	const subjectKey = () => {
@@ -61,7 +73,7 @@
 
 	let wasOpen = false;
 	$effect(() => {
-		if (open && !wasOpen) init();
+		if (open && !wasOpen && !(resume && result)) init();
 		wasOpen = open;
 	});
 
@@ -69,7 +81,7 @@
 		error = '';
 		result = null;
 		conflict = false;
-		confirmReload = false;
+		phase = 'form';
 		subject = rememberedSubject() || editor.templateName;
 		name = editor.templateName;
 		await mailer.load();
@@ -80,11 +92,12 @@
 		error = '';
 		result = null;
 		conflict = false;
-		saving = true;
+		phase = 'saving';
 		try {
 			// The server compiles the saved copy, so persist pending edits (and brand new templates) first.
 			if ((editor.dirty || editor.templateId.startsWith('untitled-')) && !(await editor.saveTemplate())) {
 				error = 'Save the template before sending it to Mailer (it could not be saved).';
+				phase = 'form';
 				return;
 			}
 			const res = await fetch(`/api/templates/${encodeURIComponent(editor.templateId)}/mailer-save`, {
@@ -93,11 +106,13 @@
 				body: JSON.stringify(overwrite ? { subject, name, overwrite: true } : { subject, name }),
 			});
 			const data = await res.json().catch(() => ({}));
+			phase = 'form';
 			if (res.ok) {
 				result = data as Result;
 				if (data.linked) editor.setMailerLink(data.mailerTemplateId, data.name ?? name);
 				remember(subject);
 				mailerData.refreshPlan();
+				phase = 'done';
 			} else if (res.status === 409 && data.code === 'mailer_template_changed') {
 				conflict = true;
 			} else if (res.status === 409 && (data.code === 'not_connected' || data.code === 'mailer_key_unreadable')) {
@@ -108,15 +123,13 @@
 				error = data.error ?? `Save failed (error ${res.status})`;
 			}
 		} catch {
+			phase = 'form';
 			error = 'Save failed, check your connection';
-		} finally {
-			saving = false;
 		}
 	}
 
 	/** Discards local edits: the Templates copy is replaced with Mailer's current version. */
 	async function reloadFromMailer() {
-		confirmReload = false;
 		error = '';
 		reloading = true;
 		try {
@@ -128,6 +141,7 @@
 			const data = await res.json().catch(() => ({}));
 			if (!res.ok) {
 				error = data.error ?? `Could not reload from Mailer (error ${res.status})`;
+				phase = 'form';
 				return;
 			}
 			conflict = false;
@@ -135,178 +149,66 @@
 			onclose();
 		} catch {
 			error = 'Could not reload from Mailer, check your connection';
+			phase = 'form';
 		} finally {
 			reloading = false;
 		}
 	}
 
-	// While saving, Escape and backdrop clicks do nothing, so the result is not lost.
-	function close() {
-		if (!saving && !reloading && !confirmReload) onclose();
-	}
-	function onkeydown(e: KeyboardEvent) {
-		if (open && e.key === 'Escape') close();
-	}
+	const card = 'width:100%;max-width:480px;background:var(--bg);border-radius:16px;padding:26px;box-shadow:0 30px 80px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:18px';
+	const note = 'font-size:12.5px;line-height:1.5;padding:10px 12px;border-radius:12px';
 </script>
 
-<svelte:window {onkeydown} />
-
 {#if open}
-	<!-- svelte-ignore a11y_click_events_have_key_events -->
-	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div class="mt mt-overlay" onclick={close}>
-		<div class="mt-card" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Save to Mailer" tabindex="-1" use:trapFocus>
-			<div class="mt-head">
-				<div class="mt-title">{verb}</div>
-				<button class="mt-x" onclick={close} aria-label="Close" disabled={saving}><Icon name="close" width={16} height={16} /></button>
-			</div>
+	<ModalFrame label="Save to Mailer" busy={phase === 'saving' || reloading} {onclose} style={card}>
+		{#if phase === 'form'}
+			<div style="display:flex;gap:12px"><div style="flex-grow:1"><h2 style="margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em">{verb}</h2><p style="margin:5px 0 0;font-size:13.5px;line-height:1.5;color:var(--muted)">{#if linked}Saving again replaces the content of {editor.mailerTemplateName || 'the linked template'} in Mailer.{:else}Creates this template in your Mailer account. Fields like <span class="mono" style="font-size:12px">{OB}name{CB}</span> are filled per recipient.{/if}</p></div>
+			<button class="icon-btn" type="button" onclick={onclose} aria-label="Close"><Icon name="close" width={16} height={16} /></button></div>
 
 			{#if mailer.status !== 'connected'}
 				<MailerConnectCard />
 			{:else}
-				{#if linked}
-					<div class="mt-linked">
-						<Icon name="check" width={16} height={16} />
-						<span>Saved to Mailer{editor.mailerTemplateName ? `: ${editor.mailerTemplateName}` : ''}. Saving again replaces its content.</span>
+				{#if plan}
+					<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:var(--s2)">
+						<div style="flex-grow:1"><div style="font-size:13.5px;font-weight:700">{plan.name ? plan.name + ' plan' : 'Your plan'}</div><div style="font-size:12.5px;color:var(--muted);margin-top:2px">{templatesLine(plan)}</div></div>
+						<span style="font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:4px;background:{badge[1]};color:{badge[2]}">{badge[0]}</span>
 					</div>
-				{:else}
-					<p class="mt-text">Creates this template in your Mailer account so you can use it in campaigns. Placeholders such as {'{{name}}'} are kept for Mailer to fill in.</p>
 				{/if}
-
-				<div class="mt-plan"><MailerPlanCard compact showUpgrade={!blocked} /></div>
 				{#if blocked}
-					<div class="mt-note mt-note-err" role="alert">
-						<Icon name="warning" width={16} height={16} />
-						<span>{blocked} <a class="mt-open" href={PRICING_URL} target="_blank" rel="noopener noreferrer">Compare plans</a></span>
-					</div>
+					<div role="alert" style="{note};background:var(--color-danger-soft)"><span style="font-weight:700;color:var(--bad)">{blocked}</span> <a href={PRICING_URL} target="_blank" rel="noopener noreferrer" style="color:var(--text);font-weight:600">Compare plans</a></div>
 				{/if}
-
-				<label class="mt-label" for="mt-name">Template name in Mailer</label>
-				<input id="mt-name" class="mt-input" type="text" maxlength={MAX_TEMPLATE_NAME} bind:value={name} />
-
-				<label class="mt-label" for="mt-subj">Subject</label>
-				<input id="mt-subj" class="mt-input" type="text" maxlength={MAX_SUBJECT_MAILER} bind:value={subject} />
-
+				<div style="display:flex;flex-direction:column;gap:7px"><span class="lbl">Name in Mailer</span><input class="field" type="text" aria-label="Name in Mailer" maxlength={MAX_TEMPLATE_NAME} bind:value={name} /></div>
+				<div style="display:flex;flex-direction:column;gap:7px"><span class="lbl">Subject</span><input class="field" type="text" aria-label="Subject" maxlength={MAX_SUBJECT_MAILER} bind:value={subject} /></div>
 				<PlaceholderWarnings variant="dialog" />
-
-				{#if error}
-					<div class="mt-note mt-note-err" role="alert"><Icon name="warning" width={16} height={16} /><span>{error}</span></div>
-				{/if}
-
+				{#if error}<div role="alert" style="{note};background:var(--color-danger-soft);color:var(--bad)">{error}</div>{/if}
 				{#if conflict}
-					<div class="mt-note mt-note-warn" role="alert">
-						<Icon name="warning" width={16} height={16} />
-						<div>
-							<div class="mt-strong">This template changed in Mailer since you opened it</div>
-							<div>Saving now would replace the changes made in Mailer.</div>
-							<div class="mt-actions">
-								<button class="mt-btn mt-btn-secondary" disabled={saving || reloading} onclick={() => (confirmReload = true)}>
-									<Icon name="refresh" width={14} height={14} />
-									{reloading ? 'Reloading...' : 'Reload from Mailer'}
-								</button>
-								<button class="mt-btn mt-btn-danger" disabled={saving || reloading} onclick={() => save(true)}>
-									<Icon name="save" width={14} height={14} />
-									Overwrite Mailer's copy
-								</button>
-							</div>
+					<div role="alert" style="{note};background:var(--warn-soft)">
+						<span style="font-weight:700;color:var(--warn)">This template changed in Mailer since you opened it.</span> Saving now would replace the changes made in Mailer.
+						<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+							<button class="btn" type="button" style="background:var(--bg)" onclick={() => (phase = 'reload')}>Reload from Mailer</button>
+							<button class="btn" type="button" style="background:var(--bg)" onclick={() => save(true)}>Overwrite Mailer's copy</button>
 						</div>
 					</div>
 				{/if}
-
-				{#if result}
-					<div class="mt-note mt-note-ok" role="status">
-						<Icon name="check" width={16} height={16} />
-						<span>
-							{result.created ? 'Saved to Mailer' : 'Updated in Mailer'}{result.name ? `: ${result.name}` : ''}.
-							<a class="mt-open" href={result.openUrl} target="_blank" rel="noopener noreferrer">Open in Mailer</a>
-						</span>
-					</div>
-				{/if}
-
-				<div class="mt-foot">
-					<span class="mt-muted">Write access to templates is checked on the first save.</span>
-					<button class="mt-btn mt-btn-primary" disabled={!canSave || conflict || reloading} onclick={() => save()}>
-						<Icon name="save" width={14} height={14} />
-						{saving ? 'Saving...' : result ? 'Save again' : verb}
-					</button>
-				</div>
+				<div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn" type="button" onclick={onclose}>Cancel</button><button class="btn btn-primary" type="button" onclick={() => save()} aria-disabled={!canSave} style={canSave ? '' : 'opacity:.45;pointer-events:none'}>{verb}</button></div>
 			{/if}
-		</div>
-	</div>
+		{:else if phase === 'reload'}
+			<div style="display:flex;gap:8px;align-items:flex-start">
+				<button class="icon-btn" type="button" onclick={() => (phase = 'form')} aria-label="Back" style="margin-left:-8px" disabled={reloading}><Icon name="arrow-left42" width={18} height={18} /></button>
+				<div style="flex-grow:1"><h2 style="margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em">Reload from Mailer</h2><p style="margin:5px 0 0;font-size:13.5px;line-height:1.5;color:var(--muted)">This replaces the template here with the version in Mailer. Edits made here since it was opened are discarded.</p></div>
+			</div>
+			<div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn" type="button" onclick={() => (phase = 'form')} disabled={reloading}>Cancel</button><button class="btn" type="button" onclick={reloadFromMailer} disabled={reloading} style="background:var(--bad);color:#ffffff">{reloading ? 'Reloading' : 'Discard edits and reload'}</button></div>
+		{:else if phase === 'saving'}
+			<div role="status" style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:34px 0 26px"><span style="width:34px;height:34px;border-radius:50%;border:3px solid var(--s3);border-top-color:#ffd100;animation:ed-spin .8s linear infinite"></span><div style="font-size:17px;font-weight:700">Saving to Mailer</div><div style="font-size:13px;color:var(--muted)">Just a moment.</div></div>
+		{:else}
+			<div role="status" style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding-top:10px"><span style="width:56px;height:56px;border-radius:16px;display:grid;place-items:center;color:var(--ok);background:var(--ok-soft);animation:ed-pop .28s ease-out"><Icon name="tick-circle" width={26} height={26} /></span><div style="font-size:18px;font-weight:700;margin-top:8px">{result?.created === false ? 'Updated in Mailer' : 'Saved to Mailer'}</div><div style="font-size:13px;color:var(--muted)">{result?.name ?? name} is in your Mailer templates.</div></div>
+			<div style="display:flex;flex-direction:column;gap:6px">
+				<div class="cap" style="padding:0 2px 2px">Keep going</div>
+				{#if onsend}<button class="opt" type="button" style="background:var(--s2);padding:12px 14px;font-size:13px" onclick={onsend}><span style="font-weight:600;flex-grow:1">Send a test email</span><span style="color:var(--muted);display:flex"><Icon name="arrow-right4" width={15} height={15} /></span></button>{/if}
+				<a class="opt" style="background:var(--s2);padding:12px 14px;font-size:13px;text-decoration:none;color:var(--text)" href="{MAILER_URL}/broadcasts/new?template={encodeURIComponent(result?.mailerTemplateId ?? editor.mailerTemplateId)}" target="_blank" rel="noopener noreferrer"><span style="font-weight:600;flex-grow:1">Use it in a broadcast</span><span style="color:var(--muted);display:flex"><Icon name="arrow-right4" width={15} height={15} /></span></a>
+				<a class="opt" style="background:var(--s2);padding:12px 14px;font-size:13px;text-decoration:none;color:var(--text)" href={result?.openUrl ?? `${MAILER_URL}/templates`} target="_blank" rel="noopener noreferrer"><span style="font-weight:600;flex-grow:1">Open in Mailer</span><span style="color:var(--muted);display:flex"><Icon name="arrow-right4" width={15} height={15} /></span></a>
+			</div>
+			<div style="display:flex;justify-content:flex-end"><button class="btn" type="button" onclick={onclose}>Done</button></div>
+		{/if}
+	</ModalFrame>
 {/if}
-
-<ConfirmModal
-	open={confirmReload}
-	title="Reload from Mailer"
-	message="This replaces the template here with the version in Mailer. Edits made here since it was opened are discarded."
-	confirmText="Discard edits and reload"
-	variant="danger"
-	onconfirm={reloadFromMailer}
-	oncancel={() => (confirmReload = false)}
-/>
-
-<style>
-	/* All colors for this component live in this block. */
-	.mt {
-		--mt-accent: var(--color-accent);
-		--mt-card: var(--color-surface-2);
-		--mt-field: var(--color-bg);
-		--mt-border: var(--color-border-1);
-		--mt-text: var(--color-text);
-		--mt-muted: var(--color-muted);
-		--mt-ok: var(--color-success);
-		--mt-err: var(--color-danger);
-		--mt-warn-ink: var(--color-accent-ink);
-		--mt-warn-bg: var(--color-accent-soft);
-	}
-	.mt-overlay {
-		position: fixed; inset: 0; z-index: 1000;
-		background: color-mix(in srgb, var(--color-bg) 70%, transparent);
-		backdrop-filter: blur(4px);
-		display: flex; align-items: center; justify-content: center;
-	}
-	.mt-card {
-		background: var(--mt-card); border: 1px solid var(--mt-border); border-radius: 12px;
-		width: min(520px, 92vw); max-height: 90vh; overflow-y: auto; padding: 22px;
-		color: var(--mt-text); font-size: 13px;
-		font-family: var(--font-sans);
-	}
-	.mt-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-	.mt-title { font-size: 16px; font-weight: 600; }
-	.mt-x { background: none; border: none; color: var(--mt-muted); cursor: pointer; display: flex; padding: 4px; border-radius: 6px; }
-	.mt-x:hover { color: var(--mt-text); }
-	.mt-plan { margin-top: 12px; }
-	.mt-text { line-height: 1.5; color: var(--mt-muted); margin: 0; }
-	.mt-muted { color: var(--mt-muted); font-size: 12px; }
-	.mt-linked { display: flex; gap: 8px; align-items: flex-start; color: var(--mt-ok); line-height: 1.45; }
-	.mt-linked span { color: var(--mt-text); }
-	.mt-label { display: block; font-size: 11.5px; font-weight: 600; color: var(--mt-muted); margin: 12px 0 5px; }
-	.mt-input {
-		width: 100%; background: var(--mt-field); color: var(--mt-text);
-		border: 1px solid var(--mt-border); border-radius: 7px; padding: 8px 10px; font: inherit;
-	}
-	.mt-input:focus { outline: 2px solid var(--mt-accent); outline-offset: 0; }
-	.mt-note {
-		display: flex; gap: 8px; align-items: flex-start; margin-top: 12px; padding: 9px 10px;
-		border-radius: 7px; line-height: 1.45; border: 1px solid transparent;
-	}
-	.mt-note-err { border-color: var(--mt-err); background: color-mix(in srgb, var(--mt-err) 12%, transparent); color: var(--mt-err); }
-	.mt-note-ok { border-color: var(--mt-ok); background: color-mix(in srgb, var(--mt-ok) 10%, transparent); color: var(--mt-ok); }
-	.mt-note-ok span { color: var(--mt-text); }
-	.mt-open { color: var(--color-accent-ink); font-weight: 600; text-decoration: underline; margin-left: 4px; }
-	.mt-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 16px; }
-	.mt-btn {
-		display: inline-flex; align-items: center; gap: 6px; border: none; border-radius: 7px;
-		padding: 8px 16px; font: inherit; font-weight: 600; cursor: pointer; white-space: nowrap;
-	}
-	.mt-btn-primary { background: var(--mt-accent); color: var(--color-on-accent); }
-	.mt-btn-primary:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 85%, var(--color-text)); }
-	.mt-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-	.mt-note-warn { border-color: var(--mt-warn-ink); background: var(--mt-warn-bg); color: var(--mt-text); }
-	.mt-strong { font-weight: 600; margin-bottom: 2px; }
-	.mt-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-	.mt-btn-secondary { background: var(--mt-field); color: var(--mt-text); border: 1px solid var(--mt-border); }
-	.mt-btn-secondary:hover:not(:disabled) { border-color: var(--mt-muted); }
-	.mt-btn-danger { background: var(--mt-err); color: var(--color-bg); }
-	.mt-btn-danger:hover:not(:disabled) { background: color-mix(in srgb, var(--mt-err) 85%, var(--color-text)); }
-</style>

@@ -17,7 +17,10 @@
 	const issues = $derived(analyzePlaceholders(editor.blocks, { fields: mailerData.knownFields, links: mailerData.knownLinks }));
 </script>
 
-{#if issues.length}
+{#if issues.length && variant === 'dialog'}
+	<!-- Editor.dc.html: one quiet line in the Save and Send dialogs. -->
+	<div role="status" style="font-size:12.5px;line-height:1.5;padding:10px 12px;border-radius:12px;background:var(--warn-soft)" title={issues.map((i) => `${i.text}: ${i.reason}`).join('\n')}><span style="font-weight:700;color:var(--warn)">{issues.length} placeholder{issues.length === 1 ? '' : 's'} to check.</span> You can still save. Placeholders Mailer cannot fill make it reject a send.</div>
+{:else if issues.length}
 	<div class="pw pw-{variant}" role="status">
 		<div class="pw-head">
 			<Icon name="warning" width={14} height={14} />
